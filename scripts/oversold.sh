@@ -26,13 +26,40 @@ elif [ ! -x "$dest/bin/oversold" ]; then
 fi
 [ "$pin_ok" -eq 1 ] || fail "the Oversold clone does not match oversold.lock or is not built, run make oversold"
 
+real_root=$(cd "$root" && pwd -P)
+
 absolute() {
-	if [ -d "$1" ]; then
-		(cd "$1" && pwd -P)
+	p=$1
+	tail=""
+	while [ ! -e "$p" ]; do
+		base=$(basename "$p")
+		case "$base" in
+		. | ..)
+			fail "cannot resolve $1"
+			;;
+		esac
+		tail="/$base$tail"
+		parent=$(dirname "$p")
+		[ "$parent" != "$p" ] || fail "cannot resolve $1"
+		p=$parent
+	done
+	if [ -d "$p" ]; then
+		dir=$(cd "$p" && pwd -P)
+		echo "$dir$tail"
 	else
-		dir=$(cd "$(dirname "$1")" && pwd -P)
-		echo "$dir/$(basename "$1")"
+		[ -z "$tail" ] || fail "$1: $p is not a folder"
+		dir=$(cd "$(dirname "$p")" && pwd -P)
+		echo "$dir/$(basename "$p")"
 	fi
+}
+
+inside_repo() {
+	case "$1" in
+	"$real_root" | "$real_root"/*) ;;
+	*)
+		fail "$2 resolves to $1, outside the repo"
+		;;
+	esac
 }
 
 sub=${1:-}
@@ -50,8 +77,12 @@ while [ "$i" -lt "$n" ]; do
 			;;
 		esac
 	fi
-	if [ "$i" -gt 1 ] && [ -e "$a" ]; then
-		a=$(absolute "$a")
+	if [ "$i" -gt 1 ]; then
+		if [ -e "$a" ] || { [ "$sub" = "export" ] && [ "$i" -eq "$n" ]; }; then
+			abs=$(absolute "$a") || exit 2
+			inside_repo "$abs" "$a"
+			a=$abs
+		fi
 	fi
 	set -- "$@" "$a"
 done
