@@ -1,0 +1,1000 @@
+{
+  "schema": "oversold.report/v1",
+  "scenario": {
+    "name": "single-cart-over-demand",
+    "file": "reference.yaml",
+    "sha256": "d834f2853d9e881438d153ce326c9de1a8ead376b79d53d3b1f6362c638c7f3b",
+    "version": "2.21.2"
+  },
+  "oversold": [
+    {
+      "commit": "a18d5c9f3892dbca86effa0766e975985f8324bd",
+      "dirty": false
+    }
+  ],
+  "checked_by": {
+    "commit": "a18d5c9f3892dbca86effa0766e975985f8324bd",
+    "dirty": false
+  },
+  "versions_used": [
+    "2.19.0"
+  ],
+  "servers": [
+    {
+      "service": "medusa",
+      "medusa_version": "2.19.0",
+      "image_id": "sha256:170f4d29b9d544cdf96e06f7a75d4d3306f28abd80024cfdbe46044c0096e112"
+    }
+  ],
+  "postgres_version": "15.19",
+  "runs_planned": 30,
+  "runs_recorded": 30,
+  "checks": [
+    {
+      "check": "no_oversell",
+      "version": 1,
+      "runs": 30,
+      "fail": 30,
+      "pass": 0,
+      "inconclusive": 0
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 1,
+      "runs": 30,
+      "fail": 0,
+      "pass": 30,
+      "inconclusive": 0
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 1,
+      "runs": 30,
+      "fail": 0,
+      "pass": 30,
+      "inconclusive": 0
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 1,
+      "runs": 30,
+      "fail": 0,
+      "pass": 30,
+      "inconclusive": 0
+    }
+  ],
+  "runs": [
+    {
+      "index": 1,
+      "file": "run-001.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "file": "run-002.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "file": "run-003.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "file": "run-004.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "file": "run-005.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "file": "run-006.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "file": "run-007.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "file": "run-008.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "file": "run-009.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "file": "run-010.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "file": "run-011.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "file": "run-012.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "file": "run-013.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "file": "run-014.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "file": "run-015.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "file": "run-016.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "file": "run-017.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "file": "run-018.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "file": "run-019.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "file": "run-020.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "file": "run-021.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "file": "run-022.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "file": "run-023.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "file": "run-024.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "file": "run-025.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "file": "run-026.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 27,
+      "file": "run-027.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 28,
+      "file": "run-028.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 29,
+      "file": "run-029.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 30,
+      "file": "run-030.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart main: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    }
+  ],
+  "exit_code": 1,
+  "generated": "2026-10-22T06:59:12.742768000Z"
+}

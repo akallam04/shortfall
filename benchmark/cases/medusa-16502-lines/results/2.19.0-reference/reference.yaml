@@ -1,0 +1,32 @@
+schema: oversold.scenario/v1
+name: single-cart-over-demand
+description: >
+  Targets Medusa issue #16502: a cart with two lines sharing one inventory
+  item oversells because the batch reservation skips the summed availability
+  check. One cart with OVS-PIECE 4 and OVS-TWOPACK 2 against 6 WIDGET in
+  stock. Each line fits on its own (4 units), but together they need 8.
+  Medusa's rules expect the completion to be rejected and nothing reserved.
+target:
+  engine: medusa
+  version: 2.21.2
+  servers: 1
+stock:
+  WIDGET: 6
+carts:
+  main:
+    server: 1
+    lines:
+      - sku: OVS-PIECE
+        qty: 4
+      - sku: OVS-TWOPACK
+        qty: 2
+race:
+  - id: complete
+    server: 1
+    do: complete
+    cart: main
+timing:
+  release: sequential
+faults: []
+runs: 30
+seed: 2
