@@ -2,7 +2,7 @@ PYTHON ?= python3
 VENV := .venv
 VPY := $(VENV)/bin/python
 
-.PHONY: tools venv test lint oversold
+.PHONY: tools venv test lint oversold engine-up engine-down engine-status
 
 tools:
 	@git --version
@@ -27,3 +27,12 @@ lint:
 
 oversold:
 	sh scripts/setup-oversold.sh
+
+engine-up:
+	sh scripts/engine.sh up
+
+engine-down:
+	sh scripts/engine.sh down
+
+engine-status:
+	sh scripts/engine.sh status
