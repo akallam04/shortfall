@@ -6,13 +6,17 @@ It is graded on a benchmark of real bugs that are already public, against simple
 
 ## Status
 
-Setting up. No results yet.
+Three benchmark cases from public Medusa issues, each reproduced by hand with Oversold on Medusa 2.21.2 and 2.19.0, two of them with a one-server control that held in 30 of 30 runs. No agent yet. See [benchmark/README.md](benchmark/README.md).
 
 ## How it uses Oversold
 
 Shortfall runs Oversold only through its command line, from a clone pinned to one public commit in `oversold.lock`. `make oversold` clones that commit into `.oversold/`, checks it, builds it and makes the clone read-only.
 
-Oversold runs on Shortfall's own Docker engine, a [Colima](https://github.com/abiosoft/colima) VM named `shortfall` that can see only this folder, so every image a run uses was built from the pinned clone. `make engine-up` starts it and `make engine-down` stops it. `scripts/oversold.sh` is the only way Shortfall runs Oversold: it checks the pin, sends every run to that engine and writes run folders to `runs/`.
+Oversold runs on Shortfall's own Docker engine, a [Colima](https://github.com/abiosoft/colima) VM named `shortfall` that can see only this folder. Every image a run uses comes from the pinned clone: the Medusa images it builds and the public base images its Compose file and Dockerfile name. `make engine-up` starts the engine and `make engine-down` stops it. `scripts/oversold.sh` is the only way Shortfall runs Oversold: it checks the pin, sends every run to that engine and writes run folders to `runs/`. `sh scripts/oversold.sh up` starts Oversold's stack in the engine before runs, and `sh scripts/oversold.sh down` removes it.
+
+## Benchmark
+
+Each folder in [benchmark/cases/](benchmark/cases/) is one public bug. `case.yaml` names the issue, the rule it breaks, the Medusa versions, the control and what the agent may see. `reference.yaml` is a scenario written by hand that reproduces it. The first three come from Oversold's own scenarios. `results/` holds every measured run with its full history, gzipped, so `oversold check --verify` can recompute every verdict. [benchmark/README.md](benchmark/README.md) has the measured results.
 
 ## Safety
 
