@@ -1,0 +1,13 @@
+#!/bin/sh
+
+patterns="$(git rev-parse --git-dir)/info/blocked-patterns"
+if [ -f "$patterns" ]; then
+	matches=$(grep -v '^#' "$1" | grep -Eif "$patterns")
+	if [ -n "$matches" ]; then
+		echo "commit-msg: blocked pattern in commit message:" >&2
+		echo "$matches" >&2
+		exit 1
+	fi
+fi
+
+exit 0

@@ -1,0 +1,34 @@
+#!/bin/sh
+
+gitleaks_bin=$(command -v gitleaks 2>/dev/null)
+if [ -z "$gitleaks_bin" ] && [ -x "$HOME/.local/bin/gitleaks" ]; then
+	gitleaks_bin="$HOME/.local/bin/gitleaks"
+fi
+if [ -z "$gitleaks_bin" ]; then
+	echo "pre-commit: gitleaks not found on PATH or at \$HOME/.local/bin/gitleaks" >&2
+	exit 1
+fi
+
+"$gitleaks_bin" git --pre-commit --staged --redact --no-banner . || exit 1
+
+patterns="$(git rev-parse --git-dir)/info/blocked-patterns"
+if [ -f "$patterns" ]; then
+	found=0
+	names=$(git diff --cached --name-only --diff-filter=ACMR | grep -Eif "$patterns")
+	if [ -n "$names" ]; then
+		echo "pre-commit: blocked pattern in staged file names:" >&2
+		echo "$names" >&2
+		found=1
+	fi
+	lines=$(git diff --cached --no-color -U0 --diff-filter=ACMR | grep '^+' | grep -v '^+++ ' | grep -Eif "$patterns")
+	if [ -n "$lines" ]; then
+		echo "pre-commit: blocked pattern in staged lines:" >&2
+		echo "$lines" >&2
+		found=1
+	fi
+	if [ "$found" -ne 0 ]; then
+		exit 1
+	fi
+fi
+
+exit 0
