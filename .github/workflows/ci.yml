@@ -36,6 +36,16 @@ jobs:
         with:
           go-version: 1.27.x
       - run: sh scripts/setup-oversold.sh
+      - name: Verify every benchmark results folder
+        run: |
+          set -eu
+          count=0
+          for d in $(find benchmark/cases -mindepth 3 -maxdepth 3 -type d -path '*/results/*' | sort); do
+            sh scripts/oversold.sh check --verify "$d"
+            count=$((count + 1))
+          done
+          echo "verified $count folders"
+          test "$count" -gt 0
 
   secrets:
     runs-on: ubuntu-24.04
@@ -49,3 +59,13 @@ jobs:
           echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
           tar -xzf gitleaks.tar.gz gitleaks
       - run: ./gitleaks git --redact --no-banner .
+      - name: Scan unpacked benchmark histories
+        run: |
+          set -eu
+          tmp=$(mktemp -d)
+          find benchmark -name '*.json.gz' -print | while read -r f; do
+            mkdir -p "$tmp/$(dirname "$f")"
+            gunzip -c "$f" > "$tmp/${f%.gz}"
+          done
+          echo "unpacked $(find "$tmp" -name '*.json' | wc -l) histories"
+          ./gitleaks dir --redact --no-banner "$tmp"
