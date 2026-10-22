@@ -1,0 +1,25 @@
+schema: shortfall.case/v1
+id: medusa-17032-last-unit
+title: Last unit sold twice when two servers share one database
+engine: medusa
+versions:
+  - 2.21.2
+  - 2.19.0
+issue:
+  url: https://github.com/medusajs/medusa/issues/17032
+  opened: 2026-09-27
+  state: closed as not planned on 2026-10-18, no fix
+rule: no_oversell
+control:
+  kind: one-server
+reference:
+  file: reference.yaml
+  source: Oversold scenarios/medusa/last-unit-two-servers.yaml at commit a18d5c9f3892dbca86effa0766e975985f8324bd
+agent_sees:
+  guided:
+    - the issue's title and opening post, without comments
+    - the Medusa source code for the case's version, without git history, changelogs or changesets
+    - Oversold's scenario format and check rules at the pin
+  unguided:
+    - the Medusa source code for the case's version, without git history, changelogs or changesets
+    - Oversold's scenario format and check rules at the pin
