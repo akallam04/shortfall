@@ -6,7 +6,7 @@ It is graded on a benchmark of real bugs that are already public, against simple
 
 ## Status
 
-Three benchmark cases from public Medusa issues, each reproduced by hand with Oversold on Medusa 2.21.2 and 2.19.0, two of them with a one-server control that held in 30 of 30 runs. No agent yet. See [benchmark/README.md](benchmark/README.md).
+Three benchmark cases from public Medusa issues, each reproduced by hand with Oversold on Medusa 2.21.2, 2.19.0 and 2.22.0, two of them with a one-server control that held in 30 of 30 runs. No agent yet. See [benchmark/README.md](benchmark/README.md).
 
 ## How it uses Oversold
 

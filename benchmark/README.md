@@ -55,35 +55,44 @@ Each row is one set of 30 runs. "Rule failed" counts the runs where the case's r
 | medusa-17032-last-unit | 2.21.2 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/2.21.2-control/report.md) |
 | medusa-17032-last-unit | 2.19.0 | reference | 25 of 30 | reserved_matches_reservations 25 | 0 | [report](cases/medusa-17032-last-unit/results/2.19.0-reference/report.md) |
 | medusa-17032-last-unit | 2.19.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/2.19.0-control/report.md) |
+| medusa-17032-last-unit | 2.22.0 | reference | 24 of 30 | reserved_matches_reservations 24 | 0 | [report](cases/medusa-17032-last-unit/results/2.22.0-reference/report.md) |
+| medusa-17032-last-unit | 2.22.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/2.22.0-control/report.md) |
 | medusa-17032-counter | 2.21.2 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.21.2-reference/report.md) |
 | medusa-17032-counter | 2.21.2 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.21.2-control/report.md) |
 | medusa-17032-counter | 2.19.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.19.0-reference/report.md) |
 | medusa-17032-counter | 2.19.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.19.0-control/report.md) |
+| medusa-17032-counter | 2.22.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.22.0-reference/report.md) |
+| medusa-17032-counter | 2.22.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.22.0-control/report.md) |
 | medusa-16502-lines | 2.21.2 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/2.21.2-reference/report.md) |
 | medusa-16502-lines | 2.19.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/2.19.0-reference/report.md) |
+| medusa-16502-lines | 2.22.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/2.22.0-reference/report.md) |
 
 A case is reproduced on a version when its rule failed in at least one reference run and in no control run. A case with no control is "reproduced, no control yet".
 
-| Case | 2.21.2 | 2.19.0 |
-|---|---|---|
-| medusa-17032-last-unit | reproduced | reproduced |
-| medusa-17032-counter | reproduced | reproduced |
-| medusa-16502-lines | reproduced, no control yet | reproduced, no control yet |
+| Case | 2.21.2 | 2.19.0 | 2.22.0 |
+|---|---|---|---|
+| medusa-17032-last-unit | reproduced | reproduced | reproduced |
+| medusa-17032-counter | reproduced | reproduced | reproduced |
+| medusa-16502-lines | reproduced, no control yet | reproduced, no control yet | reproduced, no control yet |
 
 ## Setup
 
-- Oversold at commit `a18d5c9f3892dbca86effa0766e975985f8324bd`, from `oversold.lock`.
+- Oversold at commit `27169174ca97a2147ac39d70fae3fd29573131d4`, from `oversold.lock`. The 2.22.0 sets ran at this commit. The 2.21.2 and 2.19.0 sets ran at the earlier pin `a18d5c9f3892dbca86effa0766e975985f8324bd`. The check rules are the same at both pins: nothing under `internal/checks`, `internal/history` or `internal/report` changed between them, nor `docs/checks.md`, `docs/history-format.md`, `targets/medusa/Dockerfile` or `targets/medusa/app`, and `check --verify` at the new pin passes on every earlier folder.
 - Colima 0.10.3, profile `shortfall`: 4 CPUs, 6 GiB memory, 40 GiB disk, `vz` VM, `virtiofs` mount of this repo, read-only.
 - Docker client 29.8.2.
 - macOS 27.0.1 on Apple silicon.
 - `oversold-medusa:2.21.2`: `sha256:8b684bf5b7c6af1b401200325dc4ff285f96bdf8c44e0a68f42b2408d77e0796`
 - `oversold-medusa:2.19.0`: `sha256:170f4d29b9d544cdf96e06f7a75d4d3306f28abd80024cfdbe46044c0096e112`
+- `oversold-medusa:2.22.0`: `sha256:26e01f1395dc0cbd8c7f6503f6635280eba4196511b2a0b48148d342a51ac258`
 - `postgres:15.19-alpine`: image `sha256:d2c2ced0372e855e4c257a9e9b5725f403847c01cfb64facbf2b21dbdadb2d74`, digest `postgres@sha256:d2c2ced0372e855e4c257a9e9b5725f403847c01cfb64facbf2b21dbdadb2d74`
-- Runs from 2026-10-22 06:28:45 UTC to 2026-10-22 06:59:12 UTC.
+- 2.21.2 and 2.19.0 runs from 2026-10-22 06:28:45 UTC to 2026-10-22 06:59:12 UTC.
+- 2.22.0 runs from 2026-10-25 22:20:08 UTC to 2026-10-25 23:04:22 UTC.
 
-Every history records the Medusa image ID of each server and the Oversold commit. All 300 match the images above and the pin, with no local changes.
+Every history records the Medusa image ID of each server and the Oversold commit. All 450 match the images above and the pin their set ran at, with no local changes.
 
 Run sets from different sessions are comparable only when the Medusa image ID matches. `sh scripts/oversold.sh up` builds the image for the version in `.oversold/.env` only when it is missing and otherwise starts the existing one, and it prints the image ID and digest every time. `sh scripts/oversold.sh up --rebuild` forces a build, which gives a new image ID.
+
+Images are named `<prefix>:<version>`. The prefix is `OVERSOLD_IMAGE_PREFIX` in `.oversold/.env`, `oversold-medusa` by default, and `scripts/oversold.sh` reads it from there.
 
 ## Baseline sweep
 
