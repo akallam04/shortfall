@@ -46,6 +46,14 @@ jobs:
           done
           echo "verified $count folders"
           test "$count" -gt 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - run: pip install -e '.[dev]'
+      - name: Validate generated sweep files with the pinned Oversold
+        run: |
+          test -x .oversold/bin/oversold
+          pytest tests/test_sweep.py -k oversold_validate -rs
 
   secrets:
     runs-on: ubuntu-24.04
