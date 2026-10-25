@@ -1,0 +1,42 @@
+{
+  "schema": "oversold.history/v1",
+  "oversold": {
+    "commit": "a18d5c9f3892dbca86effa0766e975985f8324bd",
+    "dirty": false
+  },
+  "target": {
+    "version": "2.21.2",
+    "servers": [
+      {
+        "image_id": "sha256:8b684bf5b7c6af1b401200325dc4ff285f96bdf8c44e0a68f42b2408d77e0796",
+        "medusa_version": "2.21.2"
+      }
+    ]
+  },
+  "verdicts": [
+    {
+      "check": "no_oversell",
+      "version": 1,
+      "result": "fail",
+      "reason": "WIDGET live reservations 8 exceed stocked 6; WIDGET orders need 8 units but 6 were stocked at the start of the race"
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 1,
+      "result": "pass",
+      "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 1,
+      "result": "pass",
+      "reason": "cart main: 1 order"
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 1,
+      "result": "pass",
+      "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+    }
+  ]
+}

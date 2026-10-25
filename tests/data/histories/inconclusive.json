@@ -1,0 +1,37 @@
+{
+  "schema": "oversold.history/v1",
+  "oversold": {
+    "commit": "a18d5c9f3892dbca86effa0766e975985f8324bd",
+    "dirty": false
+  },
+  "target": {
+    "version": "2.21.2",
+    "servers": []
+  },
+  "verdicts": [
+    {
+      "check": "no_oversell",
+      "version": 1,
+      "result": "inconclusive",
+      "reason": "harness error: reset: connect to postgres, run make up first: failed to connect to `user=oversold database=oversold`: 127.0.0.1:55433 (127.0.0.1): dial error: dial tcp 127.0.0.1:55433: connect: connection refused"
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 1,
+      "result": "inconclusive",
+      "reason": "harness error: reset: connect to postgres, run make up first: failed to connect to `user=oversold database=oversold`: 127.0.0.1:55433 (127.0.0.1): dial error: dial tcp 127.0.0.1:55433: connect: connection refused"
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 1,
+      "result": "inconclusive",
+      "reason": "harness error: reset: connect to postgres, run make up first: failed to connect to `user=oversold database=oversold`: 127.0.0.1:55433 (127.0.0.1): dial error: dial tcp 127.0.0.1:55433: connect: connection refused"
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 1,
+      "result": "inconclusive",
+      "reason": "harness error: reset: connect to postgres, run make up first: failed to connect to `user=oversold database=oversold`: 127.0.0.1:55433 (127.0.0.1): dial error: dial tcp 127.0.0.1:55433: connect: connection refused"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schema": "oversold.history/v1",
+  "oversold": {
+    "commit": "a18d5c9f3892dbca86effa0766e975985f8324bd",
+    "dirty": false
+  },
+  "target": {
+    "version": "2.21.2",
+    "servers": [
+      {
+        "image_id": "sha256:8b684bf5b7c6af1b401200325dc4ff285f96bdf8c44e0a68f42b2408d77e0796",
+        "medusa_version": "2.21.2"
+      },
+      {
+        "image_id": "sha256:8b684bf5b7c6af1b401200325dc4ff285f96bdf8c44e0a68f42b2408d77e0796",
+        "medusa_version": "2.21.2"
+      }
+    ]
+  },
+  "verdicts": [
+    {
+      "check": "no_oversell",
+      "version": 1,
+      "result": "pass",
+      "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 1,
+      "result": "fail",
+      "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 1,
+      "result": "pass",
+      "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 1,
+      "result": "pass",
+      "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+    }
+  ]
+}
