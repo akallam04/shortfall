@@ -124,11 +124,19 @@ Every failed check in every set is compared with this map of public issues. A fa
 | `no_oversell` | a cart with two lines on the same inventory item | [#16502](https://github.com/medusajs/medusa/issues/16502), and [#17032](https://github.com/medusajs/medusa/issues/17032) with more than one cart |
 | `no_orphaned_orders` | more than one cart, completed together | [#16825](https://github.com/medusajs/medusa/issues/16825) |
 
+Oversold has never reproduced #16825, so a `no_orphaned_orders` failure does not stop the sweep but is listed for a manual check, in the attempt's `manual_check` field and at the end of the sweep's output.
+
 ### Caps and the ledger
 
-Every Oversold run goes through a guard in `src/shortfall/budget.py`, which never starts a run set that would go over a cap: 600 Oversold runs per session (`--max-runs` overrides it), 25 per attempt, and 0 dollars, which only `--raise-dollar-cap` can raise. When the session cap is reached the sweep stops, writes what it has and prints what was used against each cap.
+Every Oversold run and every paid call goes through a guard in `src/shortfall/budget.py`, which never starts a run set or a call that would go over a cap: 600 Oversold runs per session (`--max-runs` overrides it), 25 per attempt, and 0 dollars per session, which only `--raise-dollar-cap` can raise. Dollars also have a total cap of $20 across all sessions. At the start of every session the guard adds up the dollars already in the ledger, and it refuses any paid call that would take that total past $20. A paid call reserves its largest possible cost before it starts and settles to its real cost when it ends. When a cap is reached the run stops, writes what it has and prints what was used against each cap.
 
-Each attempt appends one JSON line to `runs/ledger.jsonl`, which is not committed: the attempt id, the scenario path and its sha256, the case or none, the Medusa version and image, the cart and server counts, the runs used in the screen, the score and the control, each check's failures, the verdict, the cart setup error for an `unpreparable` candidate, the wall time, the Oversold runs used, the Oversold commit and a UTC timestamp. `python -m shortfall.sweep --rerun <attempt id>` reruns one attempt from its ledger line on the same image and says whether the verdict came back the same.
+Each attempt writes to `runs/ledger.jsonl`, which is not committed, as it goes:
+
+- a `started` line before it charges anything;
+- a `spend` line for each Oversold run set, written before the set runs, and for each paid call a `reserved` line before the call and a `settled` line after it, with the model, input tokens, output tokens and dollars;
+- a `final` line when it ends.
+
+An attempt with a `started` line and no `final` line counts as interrupted, with every run and dollar it charged. A paid call with no `settled` line counts at its reservation. The `final` line holds the attempt id, the scenario path and its sha256, the case or none, the Medusa version and image, the cart and server counts, the runs used in the screen, the score and the control, each check's failures, the verdict, the cart setup error for an `unpreparable` candidate, the wall time, the Oversold runs and dollars used, any manual check, the Oversold commit and a UTC timestamp. Lines written before these kinds existed hold one complete attempt each and still count. `python -m shortfall.sweep --rerun <attempt id>` reruns one attempt from its ledger line on the same image and says whether the verdict came back the same.
 
 ## How to recheck
 
