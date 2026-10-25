@@ -5,6 +5,7 @@ engine: medusa
 versions:
   - 2.21.2
   - 2.19.0
+  - 2.22.0
 issue:
   url: https://github.com/medusajs/medusa/issues/16502
   opened: 2026-08-20

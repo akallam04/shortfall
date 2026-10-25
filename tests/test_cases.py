@@ -17,7 +17,7 @@ def test_real_cases_load():
     for case_id in ids:
         case = load_case(CASES / case_id)
         assert case.id == case_id
-        assert case.versions == ("2.21.2", "2.19.0")
+        assert case.versions == ("2.21.2", "2.19.0", "2.22.0")
 
 
 def test_real_case_fields():
