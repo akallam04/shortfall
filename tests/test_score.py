@@ -51,14 +51,33 @@ def queues(path: Path, candidate: list[dict], control: list[dict] | None = None)
     return out
 
 
-def attempt(tmp_path, path, q, budget=None):
-    runner = FixtureRunner(q)
+def ledger_file(tmp_path: Path) -> Path:
+    return tmp_path / "runs" / "ledger.jsonl"
+
+
+def attempt(tmp_path, path, q, budget=None, runner=None):
+    runner = runner or FixtureRunner(q)
     budget = budget or Budget()
     meta = {"attempt_id": "s-001", "source": "sweep", "seed": 0, "rerun_of": None}
     entry, stop = score.score_candidate(
-        tmp_path, path, "2.21.2", runner, budget, CASES, IMAGE, "none", PIN, meta
+        tmp_path,
+        path,
+        "2.21.2",
+        runner,
+        budget,
+        CASES,
+        IMAGE,
+        "none",
+        PIN,
+        meta,
+        ledger_file(tmp_path),
     )
-    ledger.validate(entry)
+    ledger.validate(entry, legacy=False)
+    records = ledger.load(ledger_file(tmp_path))
+    assert records[0]["kind"] == "started"
+    assert records[-1] == entry
+    spent_runs = sum(r["oversold_runs"] for r in records if r["kind"] == "spend")
+    assert spent_runs == entry["oversold_runs"] == budget.attempt_used
     return entry, stop, runner, budget
 
 
@@ -297,21 +316,22 @@ def sweep_setup(tmp_path, monkeypatch, outcomes):
 def test_run_sweep_stops_at_the_session_cap_and_writes_every_attempt(tmp_path, monkeypatch, capsys):
     paths = sweep_setup(tmp_path, monkeypatch, ["pass"] * 5)
     assert score.run_sweep(tmp_path, paths, "2.21.2", 0, "s", max_runs=10) == 0
-    entries = ledger.load(tmp_path / "runs" / "ledger.jsonl")
+    entries = ledger.attempts(ledger.load(tmp_path / "runs" / "ledger.jsonl"))
     assert [e["attempt_id"] for e in entries] == ["s-001", "s-002", "s-003"]
     assert all(e["verdict"] == "no match" for e in entries)
     assert sum(e["oversold_runs"] for e in entries) == 9
     out = capsys.readouterr().out
     assert "5 candidates, 3 attempted, 3 screened, 0 scored, 2 skipped" in out
     assert "session runs: used 9 of 10" in out
-    assert "dollars: used 0.00 of 0.00" in out
+    assert "dollars this session: used 0.00 of 0.00" in out
+    assert "dollars across all sessions: 0.00 of 20.00" in out
 
 
 def test_three_inconclusive_attempts_in_a_row_stop_the_sweep(tmp_path, monkeypatch, capsys):
     outcomes = ["inconclusive", "pass", "inconclusive", "inconclusive", "inconclusive", "pass"]
     paths = sweep_setup(tmp_path, monkeypatch, outcomes)
     assert score.run_sweep(tmp_path, paths, "2.21.2", 0, "s") == 0
-    entries = ledger.load(tmp_path / "runs" / "ledger.jsonl")
+    entries = ledger.attempts(ledger.load(tmp_path / "runs" / "ledger.jsonl"))
     assert [e["verdict"] for e in entries] == [
         "inconclusive",
         "no match",
@@ -326,7 +346,97 @@ def test_unpreparable_candidates_do_not_stop_the_sweep(tmp_path, monkeypatch, ca
     outcomes = ["setup-failed"] * 4 + ["pass"]
     paths = sweep_setup(tmp_path, monkeypatch, outcomes)
     assert score.run_sweep(tmp_path, paths, "2.21.2", 0, "s") == 0
-    entries = ledger.load(tmp_path / "runs" / "ledger.jsonl")
+    entries = ledger.attempts(ledger.load(tmp_path / "runs" / "ledger.jsonl"))
     assert [e["verdict"] for e in entries] == ["unpreparable"] * 4 + ["no match"]
     assert [e["oversold_runs"] for e in entries] == [1, 1, 1, 1, 3]
     assert "stopped" not in capsys.readouterr().out
+
+
+class KilledRunner(FixtureRunner):
+    def __init__(self, queues, die_on_call: int):
+        super().__init__(queues)
+        self.die_on_call = die_on_call
+
+    def run(self, scenario, runs, version):
+        if len(self.calls) + 1 == self.die_on_call:
+            self.calls.append((scenario.stem, runs))
+            raise KeyboardInterrupt
+        return super().run(scenario, runs, version)
+
+
+def test_a_killed_attempt_still_shows_its_spend(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    runner = KilledRunner(queues(path, many(("fail-no-oversell-and-reserved", 13))), 3)
+    meta = {"attempt_id": "s-001", "source": "sweep", "seed": 0, "rerun_of": None}
+    with pytest.raises(KeyboardInterrupt):
+        score.score_candidate(
+            tmp_path,
+            path,
+            "2.21.2",
+            runner,
+            Budget(),
+            CASES,
+            IMAGE,
+            "none",
+            PIN,
+            meta,
+            ledger_file(tmp_path),
+        )
+    records = ledger.load(ledger_file(tmp_path))
+    assert [r["kind"] for r in records] == ["started", "spend", "spend", "spend"]
+    assert [r["set"] for r in records[1:]] == ["screen", "screen", "score"]
+    [a] = ledger.attempts(records)
+    assert a["verdict"] == ledger.INTERRUPTED
+    assert a["oversold_runs"] == 13
+    assert ledger.summary(records)["oversold_runs"] == 13
+
+
+def test_each_run_set_is_in_the_ledger_before_it_runs(tmp_path, candidates):
+    path = candidates["s2-solo-c2-ample-together"]
+    seen = []
+
+    class Watching(FixtureRunner):
+        def run(self, scenario, runs, version):
+            records = ledger.load(ledger_file(tmp_path))
+            seen.append(sum(r["oversold_runs"] for r in records if r["kind"] == "spend"))
+            return super().run(scenario, runs, version)
+
+    attempt(tmp_path, path, None, runner=Watching(queues(path, many(("pass", 3)))))
+    assert seen == [1, 3]
+
+
+def test_cap_before_the_first_run_writes_started_and_final_with_no_spend(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    entry, stop, runner, _ = attempt(
+        tmp_path, path, queues(path, many(("pass", 3))), Budget(session_runs=0)
+    )
+    assert stop and stop.startswith("session runs cap reached")
+    assert runner.calls == []
+    records = ledger.load(ledger_file(tmp_path))
+    assert [r["kind"] for r in records] == ["started", "final"]
+    assert entry["oversold_runs"] == 0
+
+
+def test_orphaned_order_failure_is_flagged_for_a_manual_check(tmp_path, candidates, capsys):
+    path = candidates["s2-solo-c10-short-together"]
+    entry, stop, _, _ = attempt(
+        tmp_path,
+        path,
+        queues(path, many(("constructed-fail-orphaned", 1), ("pass", 12))),
+    )
+    assert stop is None
+    assert entry["verdict"] == "no match"
+    assert len(entry["manual_check"]) == 1
+    note = entry["manual_check"][0]
+    assert note.startswith("no_orphaned_orders failed 1 of 3 runs in the screen set")
+    assert "issues/16825" in note and "never reproduced" in note
+
+
+def test_run_sweep_lists_manual_checks(tmp_path, monkeypatch, capsys):
+    paths = sweep_setup(tmp_path, monkeypatch, ["constructed-fail-orphaned"])
+    FakeOversold.queues[paths[0].stem] = many(("constructed-fail-orphaned", 1), ("pass", 12))
+    assert score.run_sweep(tmp_path, paths, "2.21.2", 0, "s") == 0
+    out = capsys.readouterr().out
+    assert (
+        "sweep: manual check: s-001 grid-001-s2-solo-c2-short-together: no_orphaned_orders" in out
+    )

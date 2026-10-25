@@ -1,0 +1,42 @@
+{
+  "schema": "oversold.history/v1",
+  "oversold": {
+    "commit": "a18d5c9f3892dbca86effa0766e975985f8324bd",
+    "dirty": false
+  },
+  "target": {
+    "version": "2.21.2",
+    "servers": [
+      {
+        "image_id": "sha256:8b684bf5b7c6af1b401200325dc4ff285f96bdf8c44e0a68f42b2408d77e0796",
+        "medusa_version": "2.21.2"
+      }
+    ]
+  },
+  "verdicts": [
+    {
+      "check": "no_oversell",
+      "version": 1,
+      "result": "pass",
+      "reason": "SOLO live 1 of 1 stocked; WIDGET live 0 of 10 stocked; SOLO orders need 1 of 1"
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 1,
+      "result": "pass",
+      "reason": "SOLO reserved 1 = live 1; WIDGET reserved 0 = live 0"
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 1,
+      "result": "pass",
+      "reason": "cart a: 0 order; cart b: 1 order"
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 1,
+      "result": "fail",
+      "reason": "constructed fixture: an order whose cart completion failed"
+    }
+  ]
+}

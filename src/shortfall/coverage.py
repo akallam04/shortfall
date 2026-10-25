@@ -2,6 +2,8 @@ ISSUE_17032 = "https://github.com/medusajs/medusa/issues/17032"
 ISSUE_16502 = "https://github.com/medusajs/medusa/issues/16502"
 ISSUE_16825 = "https://github.com/medusajs/medusa/issues/16825"
 
+MANUAL_CHECK = frozenset({ISSUE_16825})
+
 
 def covering_issues(shape: dict, rule: str) -> tuple[str, ...]:
     issues = []

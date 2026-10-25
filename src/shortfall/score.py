@@ -1,4 +1,3 @@
-import datetime
 import hashlib
 import json
 import os
@@ -15,8 +14,9 @@ from shortfall import ledger
 from shortfall.budget import ATTEMPT, Budget, CapReached, from_flags
 from shortfall.cases import RULES, load_case
 from shortfall.control import one_server
-from shortfall.coverage import covering_issues
+from shortfall.coverage import MANUAL_CHECK, covering_issues
 from shortfall.pin import read_pin
+from shortfall.spend import Meter, now
 from shortfall.sweep import SKUS
 
 SCREEN_RUNS = 3
@@ -180,10 +180,6 @@ class OversoldRunner:
         return RunSet(folder=relative(self.root, folder), histories=histories)
 
 
-def now() -> str:
-    return datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
-
-
 def score_candidate(
     root: Path,
     scenario: Path,
@@ -195,6 +191,7 @@ def score_candidate(
     image_digest: str,
     pin: str,
     meta: dict,
+    ledger_path: Path,
 ) -> tuple[dict, str | None]:
     text = scenario.read_text(encoding="utf-8")
     data = yaml.safe_load(text)
@@ -223,13 +220,27 @@ def score_candidate(
         run_folders=[],
         stop_reason=None,
         setup_error=None,
+        manual_check=[],
     )
     budget.start_attempt()
+    meter = Meter(ledger_path, budget, entry["attempt_id"])
+    meter.start(
+        {
+            "source": entry["source"],
+            "seed": entry["seed"],
+            "scenario": entry["scenario"],
+            "scenario_sha256": entry["scenario_sha256"],
+            "medusa_version": version,
+            "medusa_image_id": image_id,
+            "oversold_commit": pin,
+            "rerun_of": entry.get("rerun_of"),
+        }
+    )
     start = time.monotonic()
     stop = None
 
-    def run_once(path: Path, runs: int) -> list[dict]:
-        budget.charge_runs(runs)
+    def run_once(name: str, path: Path, runs: int) -> list[dict]:
+        meter.runs(name, runs)
         result = runner.run(path, runs, version)
         entry["run_folders"].append(result.folder)
         return result.histories
@@ -247,16 +258,25 @@ def score_candidate(
             entry["rules_failed"] = sorted(
                 set(entry["rules_failed"]) | set(failed_rules(c)), key=RULES.index
             )
+        entry["manual_check"] = [
+            note for note in entry["manual_check"] if f" in the {name} set," not in note
+        ]
         for rule in failed_rules(c):
-            if not covering_issues(set_shape, rule):
+            issues = covering_issues(set_shape, rule)
+            if not issues:
                 raise UncoveredFailure(
                     f"uncovered failure: {rule} failed {c[rule]['fail']} of {runs} runs in the "
                     f"{name} set, and no issue in the coverage map covers this shape"
                 )
+            if set(issues) <= MANUAL_CHECK:
+                entry["manual_check"].append(
+                    f"{rule} failed {c[rule]['fail']} of {runs} runs in the {name} set, "
+                    f"covered only by {', '.join(issues)}, which Oversold has never reproduced"
+                )
         return c
 
     def run_set(name: str, path: Path, runs: int, set_shape: dict) -> dict:
-        return record(name, run_once(path, runs), set_shape)
+        return record(name, run_once(name, path, runs), set_shape)
 
     def unpreparable(histories: list[dict]) -> bool:
         errors = [setup_error(h) for h in histories if setup_error(h)]
@@ -265,11 +285,11 @@ def score_candidate(
         return bool(errors)
 
     def decide() -> str:
-        first = run_once(scenario, 1)
+        first = run_once("screen", scenario, 1)
         record("screen", first, sh)
         if unpreparable(first):
             return "unpreparable"
-        rest = run_once(scenario, SCREEN_RUNS - 1)
+        rest = run_once("screen", scenario, SCREEN_RUNS - 1)
         screen = record("screen", first + rest, sh)
         if unpreparable(rest):
             return "unpreparable"
@@ -321,6 +341,7 @@ def score_candidate(
     entry["wall_seconds"] = round(time.monotonic() - start, 1)
     entry["oversold_runs"] = budget.attempt_used
     entry["timestamp"] = now()
+    meter.finish(entry)
     return entry, stop
 
 
@@ -338,11 +359,26 @@ def describe_entry(entry: dict) -> str:
         f"score {_fails_text(entry['candidate_fails']['score'])} | "
         f"control {_fails_text(entry['control_fails'])}"
         f"{' | stop: ' + entry['stop_reason'] if entry['stop_reason'] else ''}"
+        f"{' | manual check' if entry.get('manual_check') else ''}"
     )
 
 
+def ledger_path_for(root: Path) -> Path:
+    return Path(root) / "runs" / "ledger.jsonl"
+
+
 def _start(root: Path, version: str, max_runs, raise_dollar_cap):
-    budget = from_flags(max_runs, raise_dollar_cap)
+    totals = ledger.spent(ledger.load(ledger_path_for(root)))
+    budget = from_flags(max_runs, raise_dollar_cap, totals["dollars"])
+    print(
+        f"sweep: ledger so far: {totals['oversold_runs']} Oversold runs, "
+        f"{totals['dollars']:.2f} of {budget.total_dollar_cap:.2f} dollars"
+        + (
+            f", {totals['unsettled_calls']} paid calls never settled, counted at their reservation"
+            if totals["unsettled_calls"]
+            else ""
+        )
+    )
     runner = OversoldRunner(root)
     image_id, digest = runner.image(version)
     print(f"sweep: medusa {version} image {image_id} digest {digest}")
@@ -371,7 +407,7 @@ def run_sweep(
     except RuntimeError as err:
         print(f"sweep: {err}")
         return 2
-    ledger_path = Path(root) / "runs" / "ledger.jsonl"
+    ledger_path = ledger_path_for(root)
     entries = []
     stop = None
     streak = 0
@@ -388,9 +424,18 @@ def run_sweep(
             "rerun_of": None,
         }
         entry, stop = score_candidate(
-            root, path, version, runner, budget, cases, image_id, digest, runner.pin, meta
+            root,
+            path,
+            version,
+            runner,
+            budget,
+            cases,
+            image_id,
+            digest,
+            runner.pin,
+            meta,
+            ledger_path,
         )
-        ledger.append(ledger_path, entry)
         entries.append(entry)
         print(describe_entry(entry), flush=True)
         if stop:
@@ -407,7 +452,11 @@ def run_sweep(
     )
     if stop:
         print(f"sweep: stopped: {stop}")
-    print(json.dumps(ledger.summary(entries), indent=2))
+    for e in entries:
+        for note in e["manual_check"]:
+            print(f"sweep: manual check: {e['attempt_id']} {Path(e['scenario']).stem}: {note}")
+    session = [r for r in ledger.load(ledger_path) if r["attempt_id"].startswith(f"{stamp}-")]
+    print(json.dumps(ledger.summary(session), indent=2))
     print(budget.describe())
     if stop and stop.startswith("uncovered"):
         return 3
@@ -415,7 +464,7 @@ def run_sweep(
 
 
 def rerun(root: Path, attempt_id: str, stamp: str, max_runs=None, raise_dollar_cap=None) -> int:
-    ledger_path = Path(root) / "runs" / "ledger.jsonl"
+    ledger_path = ledger_path_for(root)
     old = ledger.find(ledger.load(ledger_path), attempt_id)
     path = Path(root) / old["scenario"]
     if sha256_text(path.read_text(encoding="utf-8")) != old["scenario_sha256"]:
@@ -438,10 +487,21 @@ def rerun(root: Path, attempt_id: str, stamp: str, max_runs=None, raise_dollar_c
         "rerun_of": attempt_id,
     }
     entry, stop = score_candidate(
-        root, path, old["medusa_version"], runner, budget, cases, image_id, digest, runner.pin, meta
+        root,
+        path,
+        old["medusa_version"],
+        runner,
+        budget,
+        cases,
+        image_id,
+        digest,
+        runner.pin,
+        meta,
+        ledger_path,
     )
-    ledger.append(ledger_path, entry)
     print(describe_entry(entry))
+    for note in entry["manual_check"]:
+        print(f"rerun: manual check: {note}")
     same = entry["verdict"] == old["verdict"] and entry["case"] == old["case"]
     print(f"rerun: before {old['verdict']} {old['case']}, now {entry['verdict']} {entry['case']}")
     print(f"rerun: same verdict: {'yes' if same else 'no'}")
