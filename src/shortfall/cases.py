@@ -99,6 +99,10 @@ def _construct_mapping(loader, node, deep=False):
 _StrictLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping)
 
 
+def strict_load(text: str):
+    return yaml.load(text, Loader=_StrictLoader)
+
+
 def _is_text(value) -> bool:
     return isinstance(value, str) and value.strip() != ""
 
@@ -160,7 +164,7 @@ def load_case(folder: str | Path) -> Case:
     except OSError as err:
         raise ValueError(f"{path}: cannot read: {err}") from err
     try:
-        data = yaml.load(text, Loader=_StrictLoader)
+        data = strict_load(text)
     except yaml.YAMLError as err:
         raise ValueError(f"{path}: invalid YAML: {err}") from err
 
