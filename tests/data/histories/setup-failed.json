@@ -1,0 +1,47 @@
+{
+  "schema": "oversold.history/v1",
+  "oversold": {
+    "commit": "a18d5c9f3892dbca86effa0766e975985f8324bd",
+    "dirty": false
+  },
+  "target": {
+    "version": "2.21.2",
+    "servers": [
+      {
+        "image_id": "sha256:8b684bf5b7c6af1b401200325dc4ff285f96bdf8c44e0a68f42b2408d77e0796",
+        "medusa_version": "2.21.2"
+      },
+      {
+        "image_id": "sha256:8b684bf5b7c6af1b401200325dc4ff285f96bdf8c44e0a68f42b2408d77e0796",
+        "medusa_version": "2.21.2"
+      }
+    ]
+  },
+  "harness_error": "prepare cart buyer-a: add_line_item: outcome failed: http 400 not_allowed: Some variant does not have the required inventory",
+  "verdicts": [
+    {
+      "check": "no_oversell",
+      "version": 1,
+      "result": "inconclusive",
+      "reason": "harness error: prepare cart buyer-a: add_line_item: outcome failed: http 400 not_allowed: Some variant does not have the required inventory"
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 1,
+      "result": "inconclusive",
+      "reason": "harness error: prepare cart buyer-a: add_line_item: outcome failed: http 400 not_allowed: Some variant does not have the required inventory"
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 1,
+      "result": "inconclusive",
+      "reason": "harness error: prepare cart buyer-a: add_line_item: outcome failed: http 400 not_allowed: Some variant does not have the required inventory"
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 1,
+      "result": "inconclusive",
+      "reason": "harness error: prepare cart buyer-a: add_line_item: outcome failed: http 400 not_allowed: Some variant does not have the required inventory"
+    }
+  ]
+}

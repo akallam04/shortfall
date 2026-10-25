@@ -8,6 +8,7 @@
     "version": "2.21.2",
     "servers": []
   },
+  "harness_error": "reset: connect to postgres, run make up first: failed to connect to `user=oversold database=oversold`: 127.0.0.1:55433 (127.0.0.1): dial error: dial tcp 127.0.0.1:55433: connect: connection refused",
   "verdicts": [
     {
       "check": "no_oversell",

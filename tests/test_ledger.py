@@ -1,3 +1,4 @@
+import json
 import os
 
 import pytest
@@ -33,6 +34,7 @@ def entry(n: int, verdict: str = "no match", case: str | None = None, runs: int 
         "medusa_image_digest": "none",
         "run_folders": ["runs/x"],
         "stop_reason": None,
+        "setup_error": None,
         "rerun_of": None,
         "timestamp": "2026-10-25T00:00:00+00:00",
     }
@@ -55,6 +57,14 @@ def test_round_trip(tmp_path):
         ledger.find(loaded, "nope")
 
 
+def test_lines_written_before_setup_error_existed_still_load(tmp_path):
+    path = tmp_path / "ledger.jsonl"
+    old = entry(1, "inconclusive")
+    old.pop("setup_error", None)
+    path.write_text(json.dumps(old) + "\n", encoding="utf-8")
+    assert ledger.load(path) == [old]
+
+
 def test_missing_ledger_loads_empty(tmp_path):
     assert ledger.load(tmp_path / "ledger.jsonl") == []
 
@@ -67,21 +77,23 @@ def test_summary_adds_up():
         entry(4, "match", "medusa-17032-counter", 23),
         entry(5, "reproduction only", "medusa-16502-lines", 13),
         entry(6, "inconclusive"),
+        entry(7, "unpreparable", runs=1),
     ]
     s = ledger.summary(entries)
-    assert s["attempts"] == 6
-    assert sum(s["by_verdict"].values()) == 6
+    assert s["attempts"] == 7
+    assert sum(s["by_verdict"].values()) == 7
     assert s["by_verdict"] == {
         "match": 2,
         "no match": 2,
         "reproduction only": 1,
         "inconclusive": 1,
+        "unpreparable": 1,
     }
-    assert sum(sum(v.values()) for v in s["by_case"].values()) == 6
-    assert s["by_case"]["none"] == {"inconclusive": 1, "no match": 2}
+    assert sum(sum(v.values()) for v in s["by_case"].values()) == 7
+    assert s["by_case"]["none"] == {"inconclusive": 1, "no match": 2, "unpreparable": 1}
     assert s["by_case"]["medusa-17032-last-unit"] == {"match": 1}
-    assert s["oversold_runs"] == 3 + 3 + 23 + 23 + 13 + 3
-    assert s["wall_seconds"] == 75.0
+    assert s["oversold_runs"] == 3 + 3 + 23 + 23 + 13 + 3 + 1
+    assert s["wall_seconds"] == 87.5
 
 
 @pytest.mark.parametrize(

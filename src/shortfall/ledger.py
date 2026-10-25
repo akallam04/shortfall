@@ -3,7 +3,7 @@ import os
 from collections import Counter
 from pathlib import Path
 
-VERDICTS = ("match", "no match", "reproduction only", "inconclusive")
+VERDICTS = ("match", "no match", "reproduction only", "inconclusive", "unpreparable")
 SOURCES = ("sweep",)
 
 FIELDS = (
@@ -33,11 +33,12 @@ FIELDS = (
     "medusa_image_digest",
     "run_folders",
     "stop_reason",
+    "setup_error",
     "rerun_of",
     "timestamp",
 )
 
-REQUIRED = tuple(f for f in FIELDS if f not in ("rerun_of", "stop_reason"))
+REQUIRED = tuple(f for f in FIELDS if f not in ("rerun_of", "stop_reason", "setup_error"))
 
 
 def _local_markers() -> list[str]:

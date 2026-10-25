@@ -21,6 +21,7 @@ from shortfall.sweep import SKUS
 
 SCREEN_RUNS = 3
 HARNESS_STREAK = 3
+SETUP_ERROR = "prepare cart "
 SCORE_RUNS = 10
 CONTROL_RUNS = 10
 RESULTS = ("fail", "pass", "inconclusive")
@@ -81,6 +82,19 @@ def shape(data: dict) -> dict:
         "release": data["timing"]["release"],
         "item_on_several_lines": several,
     }
+
+
+def setup_error(history: dict) -> str | None:
+    error = history.get("harness_error")
+    if isinstance(error, str) and error.startswith(SETUP_ERROR):
+        return error
+    for verdict in history.get("verdicts") or []:
+        reason = verdict.get("reason") or ""
+        if verdict.get("result") == "inconclusive" and reason.startswith(
+            "harness error: " + SETUP_ERROR
+        ):
+            return reason.removeprefix("harness error: ")
+    return None
 
 
 def counts(histories: list[dict]) -> dict[str, dict[str, int]]:
@@ -208,17 +222,22 @@ def score_candidate(
         medusa_image_digest=image_digest,
         run_folders=[],
         stop_reason=None,
+        setup_error=None,
     )
     budget.start_attempt()
     start = time.monotonic()
     stop = None
 
-    def run_set(name: str, path: Path, runs: int, set_shape: dict) -> dict:
+    def run_once(path: Path, runs: int) -> list[dict]:
         budget.charge_runs(runs)
         result = runner.run(path, runs, version)
         entry["run_folders"].append(result.folder)
-        c = counts(result.histories)
-        entry["inconclusive"][name] = inconclusive_runs(result.histories)
+        return result.histories
+
+    def record(name: str, histories: list[dict], set_shape: dict) -> dict:
+        runs = len(histories)
+        c = counts(histories)
+        entry["inconclusive"][name] = inconclusive_runs(histories)
         if name == "control":
             entry["control_runs"] = runs
             entry["control_fails"] = fails(c)
@@ -236,8 +255,24 @@ def score_candidate(
                 )
         return c
 
+    def run_set(name: str, path: Path, runs: int, set_shape: dict) -> dict:
+        return record(name, run_once(path, runs), set_shape)
+
+    def unpreparable(histories: list[dict]) -> bool:
+        errors = [setup_error(h) for h in histories if setup_error(h)]
+        if errors:
+            entry["setup_error"] = clean(errors[0], root)
+        return bool(errors)
+
     def decide() -> str:
-        screen = run_set("screen", scenario, SCREEN_RUNS, sh)
+        first = run_once(scenario, 1)
+        record("screen", first, sh)
+        if unpreparable(first):
+            return "unpreparable"
+        rest = run_once(scenario, SCREEN_RUNS - 1)
+        screen = record("screen", first + rest, sh)
+        if unpreparable(rest):
+            return "unpreparable"
         if not failed_rules(screen):
             return "inconclusive" if entry["inconclusive"]["screen"] else "no match"
         scored = run_set("score", scenario, SCORE_RUNS, sh)
@@ -316,6 +351,8 @@ def _start(root: Path, version: str, max_runs, raise_dollar_cap):
 
 
 def only_inconclusive(entry: dict) -> bool:
+    if entry["verdict"] == "unpreparable":
+        return False
     used = entry["screen_runs"] + entry["score_runs"] + entry["control_runs"]
     return used > 0 and sum(entry["inconclusive"].values()) == used
 
