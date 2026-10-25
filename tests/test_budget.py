@@ -7,6 +7,8 @@ from shortfall.budget import (
     DEFAULT_SESSION_RUNS,
     DOLLARS,
     SESSION,
+    TOTAL_DOLLAR_CAP,
+    TOTAL_DOLLARS,
     Budget,
     CapReached,
     from_flags,
@@ -18,6 +20,8 @@ def test_defaults():
     b = Budget()
     assert (b.session_runs, b.attempt_runs, b.dollars) == (600, 25, 0.0)
     assert (DEFAULT_SESSION_RUNS, DEFAULT_ATTEMPT_RUNS, DEFAULT_DOLLARS) == (600, 25, 0.0)
+    assert b.total_dollar_cap == TOTAL_DOLLAR_CAP == 20.0
+    assert b.dollars_before == 0.0
 
 
 def test_session_cap_stops_and_never_goes_over():
@@ -54,21 +58,57 @@ def test_attempt_cap_stops_and_resets():
     assert b.attempts == 2
 
 
-def test_dollar_cap_defaults_to_zero():
+def test_session_dollar_allowance_defaults_to_zero():
     b = Budget()
     b.charge_dollars(0)
     with pytest.raises(CapReached) as err:
         b.charge_dollars(0.01)
     assert err.value.cap == DOLLARS
-    assert b.dollars_used == 0
+    with pytest.raises(CapReached):
+        b.reserve_dollars(0.01)
+    assert b.dollars_used == 0 and b.dollars_reserved == 0
 
 
-def test_raised_dollar_cap_still_stops():
+def test_raised_session_allowance_still_stops():
     b = from_flags(raise_dollar_cap=1.0)
     b.charge_dollars(0.6)
-    with pytest.raises(CapReached):
+    with pytest.raises(CapReached) as err:
         b.charge_dollars(0.5)
+    assert err.value.cap == DOLLARS
     assert b.dollars_used == pytest.approx(0.6)
+
+
+def test_total_cap_counts_dollars_from_earlier_sessions():
+    b = from_flags(raise_dollar_cap=10.0, dollars_before=19.5)
+    with pytest.raises(CapReached) as err:
+        b.reserve_dollars(0.6)
+    assert err.value.cap == TOTAL_DOLLARS
+    assert b.dollars_reserved == 0
+    b.reserve_dollars(0.5)
+    b.settle_dollars(0.5, 0.5)
+    assert b.total_dollars() == pytest.approx(20.0)
+    with pytest.raises(CapReached) as err:
+        b.reserve_dollars(0.01)
+    assert err.value.cap == TOTAL_DOLLARS
+
+
+def test_reservations_count_until_settled():
+    b = from_flags(raise_dollar_cap=1.0)
+    b.reserve_dollars(0.8)
+    with pytest.raises(CapReached):
+        b.reserve_dollars(0.3)
+    b.settle_dollars(0.8, 0.1)
+    assert b.dollars_used == pytest.approx(0.1)
+    assert b.dollars_reserved == 0
+    b.reserve_dollars(0.3)
+    with pytest.raises(ValueError):
+        b.settle_dollars(0.5, 0.1)
+
+
+def test_total_cap_cannot_be_raised():
+    with pytest.raises(ValueError):
+        Budget(total_dollar_cap=25.0)
+    assert from_flags(raise_dollar_cap=100.0).total_dollar_cap == 20.0
 
 
 def test_max_runs_overrides_session_cap_only():
@@ -92,7 +132,7 @@ def test_flags():
 
 @pytest.mark.parametrize(
     "kwargs",
-    [{"session_runs": -1}, {"attempt_runs": 2.5}, {"dollars": -0.5}],
+    [{"session_runs": -1}, {"attempt_runs": 2.5}, {"dollars": -0.5}, {"dollars_before": -1}],
 )
 def test_bad_caps(kwargs):
     with pytest.raises(ValueError):
@@ -105,13 +145,17 @@ def test_bad_charges():
         b.charge_runs(0)
     with pytest.raises(ValueError):
         b.charge_dollars(-1)
+    with pytest.raises(ValueError):
+        b.reserve_dollars(0)
 
 
 def test_describe_reports_each_cap():
-    b = Budget(session_runs=10)
+    b = from_flags(max_runs=10, raise_dollar_cap=2.0, dollars_before=3.25)
     b.start_attempt()
     b.charge_runs(3)
+    b.charge_dollars(0.5)
     text = b.describe()
     assert "session runs: used 3 of 10" in text
     assert "attempt runs: last attempt used 3 of 25" in text
-    assert "dollars: used 0.00 of 0.00" in text
+    assert "dollars this session: used 0.50 of 2.00" in text
+    assert "dollars across all sessions: 3.75 of 20.00" in text
