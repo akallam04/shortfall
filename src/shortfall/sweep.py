@@ -78,7 +78,12 @@ def grid_stock(level: str, groups) -> tuple[tuple[str, int], ...]:
     for item, total in sorted(total_demand(groups).items()):
         one = max(cart_demand(g.lines).get(item, 0) for g in groups)
         if level == "under":
-            value = max(one - 1, 0)
+            value = one - 1
+            biggest_line = max(
+                SKUS[sku][1] * qty for g in groups for sku, qty in g.lines if SKUS[sku][0] == item
+            )
+            if value < biggest_line:
+                raise ValueError(f"under stock for {item} is below a single line's need")
         elif level == "short":
             value = max(total - one, 0)
         elif level == "ample":
@@ -112,6 +117,8 @@ def grid(seed: int = 0, version: str = "2.21.2") -> list[Candidate]:
         for shape, lines in GRID_LINES:
             for carts in GRID_CARTS:
                 for level in GRID_STOCK:
+                    if level == "under" and len(lines) < 2:
+                        continue
                     combos.append((servers, shape, lines, carts, level, "together"))
     for servers in GRID_SERVERS:
         for shape, lines in GRID_LINES:

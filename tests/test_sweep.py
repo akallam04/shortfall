@@ -36,7 +36,7 @@ def test_grid_same_seed_same_files(tmp_path):
     a = files(sweep.grid(0), tmp_path / "a")
     b = files(sweep.grid(0), tmp_path / "b")
     assert a == b
-    assert len(a) == 40
+    assert len(a) == 32
 
 
 def test_grid_different_seed_different_files(tmp_path):
@@ -60,25 +60,48 @@ def test_random_different_seed_different_files(tmp_path):
 
 def test_grid_order_is_stated():
     names = [c.name for c in sweep.grid(0)]
-    assert names[0] == "grid-001-s2-solo-c2-under-together"
-    assert names[17] == "grid-018-s2-piece-twopack-c10-ample-together"
-    assert names[18] == "grid-019-s1-solo-c2-under-together"
-    assert names[35] == "grid-036-s1-piece-twopack-c10-ample-together"
-    assert names[36:] == [
-        "grid-037-s2-solo-c2-short-sequential",
-        "grid-038-s2-piece-twopack-c2-short-sequential",
-        "grid-039-s1-solo-c2-short-sequential",
-        "grid-040-s1-piece-twopack-c2-short-sequential",
+    assert names[:4] == [
+        "grid-001-s2-solo-c2-short-together",
+        "grid-002-s2-solo-c2-ample-together",
+        "grid-003-s2-solo-c10-short-together",
+        "grid-004-s2-solo-c10-ample-together",
     ]
+    assert names[8] == "grid-009-s2-piece-twopack-c2-under-together"
+    assert names[13] == "grid-014-s2-piece-twopack-c10-ample-together"
+    assert names[14] == "grid-015-s1-solo-c2-short-together"
+    assert names[27] == "grid-028-s1-piece-twopack-c10-ample-together"
+    assert names[28:] == [
+        "grid-029-s2-solo-c2-short-sequential",
+        "grid-030-s2-piece-twopack-c2-short-sequential",
+        "grid-031-s1-solo-c2-short-sequential",
+        "grid-032-s1-piece-twopack-c2-short-sequential",
+    ]
+
+
+def test_under_only_for_carts_with_more_than_one_line():
+    under = [c for c in sweep.grid(0) if "-under-" in c.name]
+    assert len(under) == 4
+    assert all(len(g.lines) > 1 for c in under for g in c.groups)
+    singles = [c for c in sweep.grid(0) if all(len(g.lines) == 1 for g in c.groups)]
+    assert singles and not any("-under-" in c.name for c in singles)
+
+
+def test_every_grid_line_fits_the_stock_on_its_own():
+    for c in sweep.grid(0):
+        stock = dict(c.stock)
+        for g in c.groups:
+            for sku, qty in g.lines:
+                item, units = sweep.SKUS[sku]
+                assert stock[item] >= units * qty, c.name
 
 
 def test_grid_stock_levels():
     by_name = {c.name: c for c in sweep.grid(0)}
-    assert dict(by_name["grid-001-s2-solo-c2-under-together"].stock) == {"SOLO": 0}
-    assert dict(by_name["grid-002-s2-solo-c2-short-together"].stock) == {"SOLO": 1}
-    assert dict(by_name["grid-003-s2-solo-c2-ample-together"].stock) == {"SOLO": 20}
-    assert dict(by_name["grid-013-s2-piece-twopack-c2-under-together"].stock) == {"WIDGET": 2}
-    assert dict(by_name["grid-017-s2-piece-twopack-c10-short-together"].stock) == {"WIDGET": 27}
+    assert dict(by_name["grid-001-s2-solo-c2-short-together"].stock) == {"SOLO": 1}
+    assert dict(by_name["grid-002-s2-solo-c2-ample-together"].stock) == {"SOLO": 20}
+    assert dict(by_name["grid-009-s2-piece-twopack-c2-under-together"].stock) == {"WIDGET": 2}
+    assert dict(by_name["grid-013-s2-piece-twopack-c10-short-together"].stock) == {"WIDGET": 27}
+    assert dict(by_name["grid-014-s2-piece-twopack-c10-ample-together"].stock) == {"WIDGET": 300}
 
 
 def all_candidate_sets():
@@ -135,7 +158,7 @@ def test_every_generated_file_passes_the_strict_loader(tmp_path):
     paths = []
     for i, candidates in enumerate(all_candidate_sets()):
         paths += sweep.write(candidates, tmp_path / f"c{i}")
-    assert len(paths) == 160
+    assert len(paths) == 152
     for path in paths:
         text = path.read_text(encoding="utf-8")
         data = strict_load(text)
