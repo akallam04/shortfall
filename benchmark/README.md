@@ -83,6 +83,8 @@ A case is reproduced on a version when its rule failed in at least one reference
 
 Every history records the Medusa image ID of each server and the Oversold commit. All 300 match the images above and the pin, with no local changes.
 
+Run sets from different sessions are comparable only when the Medusa image ID matches. `sh scripts/oversold.sh up` builds the image for the version in `.oversold/.env` only when it is missing and otherwise starts the existing one, and it prints the image ID and digest every time. `sh scripts/oversold.sh up --rebuild` forces a build, which gives a new image ID.
+
 ## How to recheck
 
 No Docker engine is needed. From the repo root:

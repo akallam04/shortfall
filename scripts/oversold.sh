@@ -97,12 +97,67 @@ check_engine() {
 	[ "$name" = "$vm_name" ] || fail "docker info through $socket reports '$name', expected '$vm_name', run make engine-up"
 }
 
+env_version() {
+	[ -f "$dest/.env" ] || fail ".oversold/.env is missing, run make oversold"
+	v=$(sed -n 's/^MEDUSA_VERSION=//p' "$dest/.env" | tail -n 1)
+	printf '%s' "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || fail "MEDUSA_VERSION in .oversold/.env is not a version"
+	echo "$v"
+}
+
+print_image() {
+	info=$(docker image inspect --format '{{.Id}} {{join .RepoDigests ","}}' "oversold-medusa:$1" 2>/dev/null) || fail "image oversold-medusa:$1 is missing"
+	id=${info%% *}
+	digest=${info#* }
+	[ -n "$digest" ] && [ "$digest" != "$id" ] || digest="none"
+	echo "image oversold-medusa:$1 id $id digest $digest"
+}
+
 case "$sub" in
-up | down)
-	[ "$#" -eq 1 ] || fail "$sub takes no arguments"
+up)
+	rebuild=0
+	case "$#" in
+	1) ;;
+	2)
+		[ "$2" = "--rebuild" ] || fail "up takes only --rebuild"
+		rebuild=1
+		;;
+	*)
+		fail "up takes only --rebuild"
+		;;
+	esac
+	check_engine
+	version=$(env_version)
+	cd "$dest"
+	if [ "$rebuild" -eq 1 ]; then
+		echo "up: rebuilding oversold-medusa:$version because --rebuild was given"
+		docker compose up -d --build --wait medusa
+	elif docker image inspect "oversold-medusa:$version" >/dev/null 2>&1; then
+		echo "up: oversold-medusa:$version exists, starting it without a build"
+		docker compose up -d --no-build --wait medusa
+	else
+		echo "up: oversold-medusa:$version is missing, building it"
+		docker compose up -d --build --wait medusa
+	fi
+	print_image "$version"
+	exit 0
+	;;
+down)
+	[ "$#" -eq 1 ] || fail "down takes no arguments"
 	check_engine
 	cd "$dest"
-	exec make "$sub"
+	exec make down
+	;;
+image)
+	[ "$#" -le 2 ] || fail "usage: sh scripts/oversold.sh image [version]"
+	check_engine
+	if [ "$#" -eq 2 ]; then
+		version=$2
+		printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || fail "image takes a version like 2.21.2"
+	else
+		version=$(env_version)
+	fi
+	print_image "$version"
+	exit 0
 	;;
 run)
 	check_engine
