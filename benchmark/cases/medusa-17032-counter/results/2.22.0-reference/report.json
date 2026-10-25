@@ -1,0 +1,1005 @@
+{
+  "schema": "oversold.report/v1",
+  "scenario": {
+    "name": "counter-two-servers",
+    "file": "reference.yaml",
+    "sha256": "faf4698ecae2f78c77f7ba4a0a6f4a9084ad8c203992bbc0d05c2970f4a6bde1",
+    "version": "2.21.2"
+  },
+  "oversold": [
+    {
+      "commit": "27169174ca97a2147ac39d70fae3fd29573131d4",
+      "dirty": false
+    }
+  ],
+  "checked_by": {
+    "commit": "27169174ca97a2147ac39d70fae3fd29573131d4",
+    "dirty": false
+  },
+  "versions_used": [
+    "2.22.0"
+  ],
+  "servers": [
+    {
+      "service": "medusa",
+      "medusa_version": "2.22.0",
+      "image_id": "sha256:26e01f1395dc0cbd8c7f6503f6635280eba4196511b2a0b48148d342a51ac258"
+    },
+    {
+      "service": "medusa-2",
+      "medusa_version": "2.22.0",
+      "image_id": "sha256:26e01f1395dc0cbd8c7f6503f6635280eba4196511b2a0b48148d342a51ac258"
+    }
+  ],
+  "postgres_version": "15.19",
+  "runs_planned": 30,
+  "runs_recorded": 30,
+  "checks": [
+    {
+      "check": "no_oversell",
+      "version": 1,
+      "runs": 30,
+      "fail": 0,
+      "pass": 30,
+      "inconclusive": 0
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 1,
+      "runs": 30,
+      "fail": 30,
+      "pass": 0,
+      "inconclusive": 0
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 1,
+      "runs": 30,
+      "fail": 0,
+      "pass": 30,
+      "inconclusive": 0
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 1,
+      "runs": 30,
+      "fail": 0,
+      "pass": 30,
+      "inconclusive": 0
+    }
+  ],
+  "runs": [
+    {
+      "index": 1,
+      "file": "run-001.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "file": "run-002.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "file": "run-003.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "file": "run-004.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "file": "run-005.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "file": "run-006.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "file": "run-007.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "file": "run-008.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "file": "run-009.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "file": "run-010.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "file": "run-011.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "file": "run-012.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "file": "run-013.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "file": "run-014.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 5 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "file": "run-015.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 7 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "file": "run-016.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "file": "run-017.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 7 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "file": "run-018.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "file": "run-019.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "file": "run-020.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 5 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "file": "run-021.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 7 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "file": "run-022.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 5 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "file": "run-023.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 5 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "file": "run-024.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "file": "run-025.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "file": "run-026.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 7 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 27,
+      "file": "run-027.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 5 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 28,
+      "file": "run-028.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 29,
+      "file": "run-029.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 6 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    },
+    {
+      "index": 30,
+      "file": "run-030.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 1,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 10 of 100 stocked; WIDGET orders need 10 of 100"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 1,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 7 but live reservations sum to 10"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 1,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "10 orders, each linked to a scenario cart and holding the reservations its lines need"
+        }
+      ]
+    }
+  ],
+  "exit_code": 1,
+  "generated": "2026-10-25T22:57:46.542975000Z"
+}
