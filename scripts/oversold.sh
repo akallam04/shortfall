@@ -104,12 +104,20 @@ env_version() {
 	echo "$v"
 }
 
+image_prefix() {
+	[ -f "$dest/.env" ] || fail ".oversold/.env is missing, run make oversold"
+	p=$(sed -n 's/^OVERSOLD_IMAGE_PREFIX=//p' "$dest/.env" | tail -n 1)
+	[ -n "$p" ] || p="oversold-medusa"
+	printf '%s' "$p" | grep -Eq '^[a-z0-9]+([._-][a-z0-9]+)*$' || fail "OVERSOLD_IMAGE_PREFIX in .oversold/.env is not an image name"
+	echo "$p"
+}
+
 print_image() {
-	info=$(docker image inspect --format '{{.Id}} {{join .RepoDigests ","}}' "oversold-medusa:$1" 2>/dev/null) || fail "image oversold-medusa:$1 is missing"
+	info=$(docker image inspect --format '{{.Id}} {{join .RepoDigests ","}}' "$prefix:$1" 2>/dev/null) || fail "image $prefix:$1 is missing"
 	id=${info%% *}
 	digest=${info#* }
 	[ -n "$digest" ] && [ "$digest" != "$id" ] || digest="none"
-	echo "image oversold-medusa:$1 id $id digest $digest"
+	echo "image $prefix:$1 id $id digest $digest"
 }
 
 case "$sub" in
@@ -127,15 +135,17 @@ up)
 	esac
 	check_engine
 	version=$(env_version)
+	prefix=$(image_prefix)
+	export OVERSOLD_IMAGE_PREFIX="$prefix"
 	cd "$dest"
 	if [ "$rebuild" -eq 1 ]; then
-		echo "up: rebuilding oversold-medusa:$version because --rebuild was given"
+		echo "up: rebuilding $prefix:$version because --rebuild was given"
 		docker compose up -d --build --wait medusa
-	elif docker image inspect "oversold-medusa:$version" >/dev/null 2>&1; then
-		echo "up: oversold-medusa:$version exists, starting it without a build"
+	elif docker image inspect "$prefix:$version" >/dev/null 2>&1; then
+		echo "up: $prefix:$version exists, starting it without a build"
 		docker compose up -d --no-build --wait medusa
 	else
-		echo "up: oversold-medusa:$version is missing, building it"
+		echo "up: $prefix:$version is missing, building it"
 		docker compose up -d --build --wait medusa
 	fi
 	print_image "$version"
@@ -156,6 +166,7 @@ image)
 	else
 		version=$(env_version)
 	fi
+	prefix=$(image_prefix)
 	print_image "$version"
 	exit 0
 	;;
