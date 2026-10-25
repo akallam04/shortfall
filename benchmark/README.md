@@ -91,17 +91,18 @@ Run sets from different sessions are comparable only when the Medusa image ID ma
 
 Candidates go in `runs/sweep/<UTC time>/`. Both modes give the same files in the same order for the same `--seed`.
 
-- `--mode grid` walks 40 candidates in this order: 2 servers, then 1. Within each, carts holding OVS-SOLO 1, then OVS-PIECE 1, then OVS-PIECE 1 and OVS-TWOPACK 1. Within each, 2 carts, then 10, split evenly across the servers. Within each, stock `under`, `short`, then `ample`, all completions released together. Then 4 candidates released one after another, with 2 carts and `short` stock: 2 servers with OVS-SOLO 1, 2 servers with OVS-PIECE 1 and OVS-TWOPACK 1, then the same two on 1 server.
+- `--mode grid` walks 32 candidates in this order: 2 servers, then 1. Within each, carts holding OVS-SOLO 1, then OVS-PIECE 1, then OVS-PIECE 1 and OVS-TWOPACK 1. Within each, 2 carts, then 10, split evenly across the servers. Within each, stock `under` (only for the two-line carts), `short`, then `ample`, all completions released together. Then 4 candidates released one after another, with 2 carts and `short` stock: 2 servers with OVS-SOLO 1, 2 servers with OVS-PIECE 1 and OVS-TWOPACK 1, then the same two on 1 server.
 - Stock levels, per inventory item: `under` is one cart's need minus 1, `short` is the total need minus one cart's need, and `ample` is 10 times the total need.
+- `under` is used only for carts with more than one line. Medusa will not add a line to a cart when the stock is below that line's quantity, so a one-line cart with `under` stock can never be prepared. With two lines on the same item, each line still fits on its own while the cart as a whole does not, which is the shape behind #16502. The grid checks that every line fits the stock on its own.
 - `--mode random --count N` samples N candidates from the same space with up to two cart groups, quantities from 1 to 3 and random stock and release.
 
 ### Scoring
 
-1. Screen: run the candidate 3 times. If no check fails, the verdict is `no match`.
+1. Screen: run the candidate once, then 2 more times. If any screen run fails while preparing a cart, the verdict is `unpreparable` and the rest of the screen is skipped. This applies to every candidate, from the sweep or from an agent. Otherwise, if no check fails in the 3 runs, the verdict is `no match`.
 2. Score: run the candidate 10 times. For a two-server candidate, generate its one-server control with `python -m shortfall.control` and run that 10 times.
 3. A candidate matches a case when the case's rule failed in at least 1 of the 10 candidate runs and in 0 of the 10 control runs, with no inconclusive control run.
 4. A one-server candidate has no one-server control, so a rule failure there is `reproduction only`, never a match. `medusa-16502-lines` has no control yet either.
-5. A result that cannot be decided because runs were inconclusive is `inconclusive`. Inconclusive runs count against the caps like any other run. The sweep stops when 3 attempts in a row have only inconclusive runs.
+5. A result that cannot be decided because runs were inconclusive is `inconclusive`. Inconclusive runs count against the caps like any other run, and so does the run that shows a candidate is `unpreparable`. The sweep stops when 3 attempts in a row have only inconclusive runs, not counting `unpreparable` ones.
 
 A candidate is mapped to a case by the case's rule and the server count of the case's reference scenario:
 
@@ -127,7 +128,7 @@ Every failed check in every set is compared with this map of public issues. A fa
 
 Every Oversold run goes through a guard in `src/shortfall/budget.py`, which never starts a run set that would go over a cap: 600 Oversold runs per session (`--max-runs` overrides it), 25 per attempt, and 0 dollars, which only `--raise-dollar-cap` can raise. When the session cap is reached the sweep stops, writes what it has and prints what was used against each cap.
 
-Each attempt appends one JSON line to `runs/ledger.jsonl`, which is not committed: the attempt id, the scenario path and its sha256, the case or none, the Medusa version and image, the cart and server counts, the runs used in the screen, the score and the control, each check's failures, the verdict, the wall time, the Oversold runs used, the Oversold commit and a UTC timestamp. `python -m shortfall.sweep --rerun <attempt id>` reruns one attempt from its ledger line on the same image and says whether the verdict came back the same.
+Each attempt appends one JSON line to `runs/ledger.jsonl`, which is not committed: the attempt id, the scenario path and its sha256, the case or none, the Medusa version and image, the cart and server counts, the runs used in the screen, the score and the control, each check's failures, the verdict, the cart setup error for an `unpreparable` candidate, the wall time, the Oversold runs used, the Oversold commit and a UTC timestamp. `python -m shortfall.sweep --rerun <attempt id>` reruns one attempt from its ledger line on the same image and says whether the verdict came back the same.
 
 ## How to recheck
 
