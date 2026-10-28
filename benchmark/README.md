@@ -96,6 +96,44 @@ Run sets from different sessions are comparable only when the Medusa image ID ma
 
 Images are named `<prefix>:<version>`. The prefix is `OVERSOLD_IMAGE_PREFIX` in `.oversold/.env`, `oversold-medusa` by default, and `scripts/oversold.sh` reads it from there.
 
+## What the agent reads
+
+In the guided setting the agent reads the case's issue and the Medusa source for the case's version. In the unguided setting it reads only the source. Neither reads git history, changelogs or changesets. The snapshots go in `snapshots/`, which is not committed. Their manifests are in [snapshots/](snapshots/).
+
+### Source snapshots
+
+`python -m shortfall.snapshot source <version>` makes a shallow, sparse clone of `https://github.com/medusajs/medusa.git` at tag `v<version>` with only the `packages/` folder, and checks that the clone is at the commit the tag points to. It removes `.git`, every `CHANGELOG.md` and every `.changeset` folder, and writes the result to `snapshots/medusa-<version>/packages/`.
+
+`benchmark/snapshots/medusa-<version>.json` records the tag, its commit, what was removed, the file count, the total bytes, size numbers for `.ts` files and one sha256. That sha256 is taken over one line per file, `<sha256 of the file>  <path relative to the snapshot>`, sorted by path. Building a snapshot a second time gave the same manifest for all three versions.
+
+| Version | Tag commit | Files | Bytes | CHANGELOG.md removed | .ts files | .ts median characters | .ts 90th percentile characters |
+|---|---|---|---|---|---|---|---|
+| 2.22.0 | `205aff40bacf` | 9148 | 32917653 | 82 | 5994 | 986 | 6677 |
+| 2.21.2 | `020565398e43` | 8934 | 32125509 | 82 | 5971 | 983 | 6676 |
+| 2.19.0 | `87d77fa1b56e` | 8760 | 29706300 | 81 | 5815 | 953 | 6373 |
+
+No `.changeset` folder and no links were found under `packages/` in any of the three. The 90th percentile is the nearest-rank value.
+
+### Issue snapshots
+
+`python -m shortfall.snapshot issue <case-id>` fetches the title and opening post of the case's issue from the public GitHub API, without comments, and writes `snapshots/issues/<case-id>.md`: the title, the issue URL, the fetch time and the post. `benchmark/snapshots/issues.json` records the title, the issue's last update time, the fetch time, the snapshot's character count and its sha256. The issue text itself is not committed.
+
+| Case | Issue | Characters |
+|---|---|---|
+| medusa-17032-last-unit | [#17032](https://github.com/medusajs/medusa/issues/17032) | 3908 |
+| medusa-17032-counter | [#17032](https://github.com/medusajs/medusa/issues/17032) | 3908 |
+| medusa-16502-lines | [#16502](https://github.com/medusajs/medusa/issues/16502) | 5382 |
+
+### Tools
+
+`src/shortfall/tools.py` gives the agent three read-only tools, each working inside one snapshot folder:
+
+- `list_files(path)`: the files and folders directly under a folder, with each file's size.
+- `read_file(path, start, end)`: numbered lines from `start` to `end`, at most 400 lines per call.
+- `search(text, path)`: a plain-text, case-sensitive search under a file or folder, at most 50 matches, each with its file and line number and the line cut to 300 characters. Binary files are skipped.
+
+Every result is plain text, cut at 40,000 characters with a note saying it was cut. Every path is relative to the snapshot folder. Absolute paths and `..` are refused, and so is any link that points outside the snapshot, so the tools cannot reach the cases, the results, the issue snapshots, the ledger, `.env`, `.oversold/` or anything else outside it.
+
 ## Baseline sweep
 
 `python -m shortfall.sweep` is a baseline that uses no model. It writes candidate scenario files from a fixed parameter space and scores each one through the pinned Oversold. It uses only fields the scenario format already has: the three seeded SKUs, cart count, lines per cart and their quantities, starting stock, server count and completion order. The generator in `src/shortfall/sweep.py` does not read the cases, their reference files or their controls. Only the scoring step in `src/shortfall/score.py` maps a result to a case.
