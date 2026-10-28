@@ -98,19 +98,21 @@ Images are named `<prefix>:<version>`. The prefix is `OVERSOLD_IMAGE_PREFIX` in 
 
 ## What the agent reads
 
-In the guided setting the agent reads the case's issue and the Medusa source for the case's version. In the unguided setting it reads only the source. Neither reads git history, changelogs or changesets. The snapshots go in `snapshots/`, which is not committed. Their manifests are in [snapshots/](snapshots/).
+In the guided setting the agent reads the case's issue and the Medusa source for the case's version. In the unguided setting it reads only the source. Neither reads git history, changelogs, changesets or guides written for AI coding tools. The snapshots go in `snapshots/`, which is not committed. Their manifests are in [snapshots/](snapshots/).
 
 ### Source snapshots
 
-`python -m shortfall.snapshot source <version>` makes a shallow, sparse clone of `https://github.com/medusajs/medusa.git` at tag `v<version>` with only the `packages/` folder, and checks that the clone is at the commit the tag points to. It removes `.git`, every `CHANGELOG.md` and every `.changeset` folder, and writes the result to `snapshots/medusa-<version>/packages/`.
+`python -m shortfall.snapshot source <version>` makes a shallow, sparse clone of `https://github.com/medusajs/medusa.git` at tag `v<version>` with only the `packages/` folder, and checks that the clone is at the commit the tag points to. It removes `.git`, every `CHANGELOG.md`, `AGENTS.md` and `CLAUDE.md`, and every `.changeset` folder, and writes the result to `snapshots/medusa-<version>/packages/`.
 
-`benchmark/snapshots/medusa-<version>.json` records the tag, its commit, what was removed, the file count, the total bytes, size numbers for `.ts` files and one sha256. That sha256 is taken over one line per file, `<sha256 of the file>  <path relative to the snapshot>`, sorted by path. Building a snapshot a second time gave the same manifest for all three versions.
+`AGENTS.md` and `CLAUDE.md` are guides written for AI coding tools. Only 2.22.0 ships them: 82 of each, 345791 bytes in all, describing each package's internals, such as which cart workflows take a lock. Keeping them would give the 2.22.0 agent hints the other versions don't get, so every snapshot removes them.
 
-| Version | Tag commit | Files | Bytes | CHANGELOG.md removed | .ts files | .ts median characters | .ts 90th percentile characters |
-|---|---|---|---|---|---|---|---|
-| 2.22.0 | `205aff40bacf` | 9148 | 32917653 | 82 | 5994 | 986 | 6677 |
-| 2.21.2 | `020565398e43` | 8934 | 32125509 | 82 | 5971 | 983 | 6676 |
-| 2.19.0 | `87d77fa1b56e` | 8760 | 29706300 | 81 | 5815 | 953 | 6373 |
+`benchmark/snapshots/medusa-<version>.json` records the tag, its commit, each kind of file or folder removed with how many and why, the file count, the total bytes, size numbers for `.ts` files and one sha256. That sha256 is taken over one line per file, `<sha256 of the file>  <path relative to the snapshot>`, sorted by path. Building a snapshot a second time gave the same manifest for all three versions.
+
+| Version | Tag commit | Files | Bytes | CHANGELOG.md removed | AGENTS.md and CLAUDE.md removed | .ts files | .ts median characters | .ts 90th percentile characters |
+|---|---|---|---|---|---|---|---|---|
+| 2.22.0 | `205aff40bacf` | 8984 | 32571862 | 82 | 82 and 82 | 5994 | 986 | 6677 |
+| 2.21.2 | `020565398e43` | 8934 | 32125509 | 82 | 0 and 0 | 5971 | 983 | 6676 |
+| 2.19.0 | `87d77fa1b56e` | 8760 | 29706300 | 81 | 0 and 0 | 5815 | 953 | 6373 |
 
 No `.changeset` folder and no links were found under `packages/` in any of the three. The 90th percentile is the nearest-rank value.
 
