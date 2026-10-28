@@ -66,7 +66,14 @@ SOURCE = {
     "packages/modules/inventory/.changeset/x.md": "nested changeset\n",
     "packages/modules/inventory/src/service.ts": "export class S {}\n",
     "packages/modules/inventory/README.md": "inventory\n",
+    "packages/core/AGENTS.md": "# Core\n\nHints for coding tools.\n",
+    "packages/core/CLAUDE.md": "@AGENTS.md\n",
+    "packages/modules/inventory/Agents.md": "# Inventory\n",
 }
+
+
+def counts(removed: list[dict]) -> dict[str, int]:
+    return {r["name"]: r["count"] for r in removed}
 
 
 @pytest.fixture
@@ -104,7 +111,16 @@ def test_source_snapshot_keeps_only_packages_without_history(upstream):
     tag_commit = git(repo, "rev-parse", "v1.2.3").strip()
     assert record["tag"] == "v1.2.3"
     assert record["commit"] == tag_commit
-    assert record["removed"] == {"CHANGELOG.md": 2, ".changeset": 1}
+    assert counts(record["removed"]) == {
+        "CHANGELOG.md": 2,
+        "AGENTS.md": 2,
+        "CLAUDE.md": 1,
+        ".changeset": 1,
+    }
+    guides = [r for r in record["removed"] if r["name"] in ("AGENTS.md", "CLAUDE.md")]
+    assert {r["reason"] for r in guides} == {snapshot.GUIDE_REASON}
+    assert "AI coding tools" in snapshot.GUIDE_REASON
+    assert all(r["reason"] for r in record["removed"])
     assert record["files"] == 4
     assert record["bytes"] == sum((out / f).stat().st_size for f in files)
     assert record["ts_files"] == {"count": 3, "median_chars": 19, "p90_chars": 501}
@@ -178,10 +194,21 @@ def test_clean_counts_what_it_removes(tmp_path):
             "packages/b/Changelog.md": "",
             "packages/b/.changeset/one.md": "",
             "packages/b/src/changelog.ts": "",
+            "packages/a/AGENTS.md": "",
+            "packages/a/CLAUDE.md": "",
+            "packages/b/claude.md": "",
+            "packages/b/src/agents.ts": "",
         },
     )
-    assert snapshot.clean(tmp_path) == {"CHANGELOG.md": 2, ".changeset": 1}
-    assert [p.name for p in tmp_path.rglob("*") if p.is_file()] == ["changelog.ts"]
+    removed = snapshot.clean(tmp_path)
+    assert [(r["name"], r["kind"], r["count"]) for r in removed] == [
+        ("CHANGELOG.md", "file", 2),
+        ("AGENTS.md", "file", 1),
+        ("CLAUDE.md", "file", 2),
+        (".changeset", "folder", 1),
+    ]
+    left = sorted(p.name for p in tmp_path.rglob("*") if p.is_file())
+    assert left == ["agents.ts", "changelog.ts"]
 
 
 def test_nearest_rank_percentile():
@@ -278,6 +305,16 @@ def test_committed_manifests_cover_every_case_version():
         assert m["repo"] == snapshot.MEDUSA_REPO
         assert m["folders"] == ["packages"]
         assert m["files"] > 0 and m["bytes"] > 0
+        assert [r["name"] for r in m["removed"]] == [
+            "CHANGELOG.md",
+            "AGENTS.md",
+            "CLAUDE.md",
+            ".changeset",
+        ]
+        assert all(r["reason"] for r in m["removed"])
+        guides = 82 if v == "2.22.0" else 0
+        assert counts(m["removed"])["AGENTS.md"] == guides
+        assert counts(m["removed"])["CLAUDE.md"] == guides
         home = os.path.expanduser("~")
         assert home not in text and os.path.dirname(home) + "/" not in text
 

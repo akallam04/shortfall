@@ -31,23 +31,37 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
-def is_changelog(name: str) -> bool:
-    return name.lower() == "changelog.md"
+GUIDE_REASON = (
+    "guides written for AI coding tools; only 2.22.0 ships them, so keeping them would give "
+    "the 2.22.0 agent hints the other versions don't get"
+)
+REMOVED_FILES = {
+    "CHANGELOG.md": "release history, which the agent does not read",
+    "AGENTS.md": GUIDE_REASON,
+    "CLAUDE.md": GUIDE_REASON,
+}
+REMOVED_FOLDERS = {".changeset": "notes on unreleased changes, which the agent does not read"}
 
 
-def clean(folder: Path) -> dict[str, int]:
-    removed = {"CHANGELOG.md": 0, ".changeset": 0}
+def clean(folder: Path) -> list[dict]:
+    counts = dict.fromkeys([*REMOVED_FILES, *REMOVED_FOLDERS], 0)
+    by_lower = {name.lower(): name for name in REMOVED_FILES}
     for dirpath, dirnames, filenames in os.walk(folder):
         for d in sorted(dirnames):
-            if d == ".changeset":
+            if d in REMOVED_FOLDERS:
                 shutil.rmtree(Path(dirpath) / d)
                 dirnames.remove(d)
-                removed[".changeset"] += 1
+                counts[d] += 1
         for f in filenames:
-            if is_changelog(f):
+            name = by_lower.get(f.lower())
+            if name:
                 (Path(dirpath) / f).unlink()
-                removed["CHANGELOG.md"] += 1
-    return removed
+                counts[name] += 1
+    return [
+        {"name": name, "kind": kind, "count": counts[name], "reason": reason}
+        for kind, table in (("file", REMOVED_FILES), ("folder", REMOVED_FOLDERS))
+        for name, reason in table.items()
+    ]
 
 
 def entries(folder: Path) -> list[tuple[str, Path]]:

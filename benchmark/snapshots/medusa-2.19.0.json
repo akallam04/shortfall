@@ -8,10 +8,32 @@
   "folders": [
     "packages"
   ],
-  "removed": {
-    "CHANGELOG.md": 81,
-    ".changeset": 0
-  },
+  "removed": [
+    {
+      "name": "CHANGELOG.md",
+      "kind": "file",
+      "count": 81,
+      "reason": "release history, which the agent does not read"
+    },
+    {
+      "name": "AGENTS.md",
+      "kind": "file",
+      "count": 0,
+      "reason": "guides written for AI coding tools; only 2.22.0 ships them, so keeping them would give the 2.22.0 agent hints the other versions don't get"
+    },
+    {
+      "name": "CLAUDE.md",
+      "kind": "file",
+      "count": 0,
+      "reason": "guides written for AI coding tools; only 2.22.0 ships them, so keeping them would give the 2.22.0 agent hints the other versions don't get"
+    },
+    {
+      "name": ".changeset",
+      "kind": "folder",
+      "count": 0,
+      "reason": "notes on unreleased changes, which the agent does not read"
+    }
+  ],
   "files": 8760,
   "links": 0,
   "bytes": 29706300,
