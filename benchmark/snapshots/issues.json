@@ -1,0 +1,29 @@
+{
+  "schema": "shortfall.issues/v1",
+  "issues": {
+    "medusa-16502-lines": {
+      "url": "https://github.com/medusajs/medusa/issues/16502",
+      "title": "[Bug]: Cart with two line items sharing an inventory item (bundle) oversells \u2013 batch reservation skips the summed availability check",
+      "issue_updated_at": "2026-09-27T01:47:21Z",
+      "fetched": "2026-10-28T21:26:56+00:00",
+      "characters": 5382,
+      "sha256": "3e5003d600596f490a334b15a56d5f143547330c768824e6e452480a7069e15b"
+    },
+    "medusa-17032-counter": {
+      "url": "https://github.com/medusajs/medusa/issues/17032",
+      "title": "[Bug]: Concurrent carts oversell an inventory item held on more than one line; reserved_quantity also loses updates across processes",
+      "issue_updated_at": "2026-10-18T01:41:26Z",
+      "fetched": "2026-10-28T21:26:55+00:00",
+      "characters": 3908,
+      "sha256": "89799ce7b555dc4a326e9858b5d2c224c820d6e81662e2c2ffec447c3f56a67e"
+    },
+    "medusa-17032-last-unit": {
+      "url": "https://github.com/medusajs/medusa/issues/17032",
+      "title": "[Bug]: Concurrent carts oversell an inventory item held on more than one line; reserved_quantity also loses updates across processes",
+      "issue_updated_at": "2026-10-18T01:41:26Z",
+      "fetched": "2026-10-28T21:26:55+00:00",
+      "characters": 3908,
+      "sha256": "89799ce7b555dc4a326e9858b5d2c224c820d6e81662e2c2ffec447c3f56a67e"
+    }
+  }
+}

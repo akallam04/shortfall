@@ -1,0 +1,24 @@
+{
+  "schema": "shortfall.snapshot/v1",
+  "engine": "medusa",
+  "version": "2.21.2",
+  "repo": "https://github.com/medusajs/medusa.git",
+  "tag": "v2.21.2",
+  "commit": "020565398e436a2bc65777a3b1ad347b4735d6df",
+  "folders": [
+    "packages"
+  ],
+  "removed": {
+    "CHANGELOG.md": 82,
+    ".changeset": 0
+  },
+  "files": 8934,
+  "links": 0,
+  "bytes": 32125509,
+  "sha256": "f00a849c004715cab952fab44ea93b100bfc76cb1f38ff54985d3246eaaeddb8",
+  "ts_files": {
+    "count": 5971,
+    "median_chars": 983,
+    "p90_chars": 6676
+  }
+}
