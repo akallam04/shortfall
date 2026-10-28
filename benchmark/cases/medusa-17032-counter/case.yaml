@@ -1,6 +1,6 @@
 schema: shortfall.case/v1
 id: medusa-17032-counter
-title: Reserved counter loses updates when two servers share one database
+title: Reserved counter loses updates when two servers share one database with in-memory locking
 engine: medusa
 versions:
   - 2.21.2
@@ -24,3 +24,4 @@ agent_sees:
   unguided:
     - the Medusa source code for the case's version, without git history, changelogs or changesets
     - Oversold's scenario format and check rules at the pin
+notes: Measured with Medusa's default in-memory locking provider. Medusa's docs recommend the Redis locking provider when more than one server runs.

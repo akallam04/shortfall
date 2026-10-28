@@ -75,6 +75,8 @@ A case is reproduced on a version when its rule failed in at least one reference
 | medusa-17032-counter | reproduced | reproduced | reproduced |
 | medusa-16502-lines | reproduced, no control yet | reproduced, no control yet | reproduced, no control yet |
 
+The two #17032 cases, medusa-17032-last-unit and medusa-17032-counter, were measured with Medusa's default in-memory locking provider, which only locks inside one process. Oversold's Medusa config sets no locking provider. Medusa's docs recommend the Redis locking provider when more than one server runs.
+
 ## Setup
 
 - Oversold at commit `27169174ca97a2147ac39d70fae3fd29573131d4`, from `oversold.lock`. The 2.22.0 sets ran at this commit. The 2.21.2 and 2.19.0 sets ran at the earlier pin `a18d5c9f3892dbca86effa0766e975985f8324bd`. The check rules are the same at both pins: nothing under `internal/checks`, `internal/history` or `internal/report` changed between them, nor `docs/checks.md`, `docs/history-format.md`, `targets/medusa/Dockerfile` or `targets/medusa/app`, and `check --verify` at the new pin passes on every earlier folder.
@@ -121,6 +123,8 @@ A candidate is mapped to a case by the case's rule and the server count of the c
 | `reserved_matches_reservations` | 2 | medusa-17032-counter |
 | `no_oversell` | 1 | medusa-16502-lines |
 
+Both two-server cases were measured with Medusa's default in-memory locking provider.
+
 A two-server candidate can match both two-server cases when both rules fail on it and on neither in its control.
 
 ### Failures outside the public issues
@@ -129,7 +133,7 @@ Every failed check in every set is compared with this map of public issues. A fa
 
 | Rule | Shape | Issue |
 |---|---|---|
-| `no_oversell`, `reserved_matches_reservations` | 2 servers on one database | [#17032](https://github.com/medusajs/medusa/issues/17032) |
+| `no_oversell`, `reserved_matches_reservations` | 2 servers on one database, with in-memory locking | [#17032](https://github.com/medusajs/medusa/issues/17032) |
 | `no_oversell` | a cart with two lines on the same inventory item | [#16502](https://github.com/medusajs/medusa/issues/16502), and [#17032](https://github.com/medusajs/medusa/issues/17032) with more than one cart |
 | `no_orphaned_orders` | more than one cart, completed together | [#16825](https://github.com/medusajs/medusa/issues/16825) |
 
