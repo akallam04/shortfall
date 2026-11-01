@@ -1,0 +1,41 @@
+schema: oversold.scenario/v1
+name: counter-two-servers
+description: >
+  Targets Medusa issue #17032, where reserved_quantity loses updates across
+  processes. 100 WIDGET in stock. Carts buyer-a-1 to buyer-a-5 on server 1 and
+  buyer-b-1 to buyer-b-5 on server 2 each hold OVS-PIECE 1 and are completed
+  together on their own servers. Medusa's rules expect ten orders and a
+  reserved counter of 10 that matches the ten reservations.
+target:
+  engine: medusa
+  version: 2.21.2
+  servers: 2
+stock:
+  WIDGET: 100
+carts:
+  buyer-a:
+    server: 1
+    count: 5
+    lines:
+      - sku: OVS-PIECE
+        qty: 1
+  buyer-b:
+    server: 2
+    count: 5
+    lines:
+      - sku: OVS-PIECE
+        qty: 1
+race:
+  - id: complete-a
+    server: 1
+    do: complete
+    cart: buyer-a
+  - id: complete-b
+    server: 2
+    do: complete
+    cart: buyer-b
+timing:
+  release: together
+faults: []
+runs: 30
+seed: 12
