@@ -9,7 +9,7 @@ A case is a folder in [cases/](cases/) named after its id.
 - `case.yaml`: what the case is.
 - `reference.yaml`: an Oversold scenario written by hand that reproduces the bug.
 - `control.yaml`: the control scenario, for cases with a one-server control.
-- `results/<version>-reference/` and `results/<version>-control/`: the measured runs, exported with `oversold export`: the scenario, `report.json`, `report.md` and every run's history, gzipped.
+- `results/<pin>/<version>-<set>/`: the measured runs, grouped under the short Oversold commit they ran at and exported with `oversold export`: the scenario, `report.json`, `report.md` and every run's history, gzipped.
 
 Fields in `case.yaml`:
 
@@ -51,21 +51,21 @@ Each row is one set of 30 runs. "Rule failed" counts the runs where the case's r
 
 | Case | Version | Set | Rule failed | Other checks failed | Inconclusive runs | Report |
 |---|---|---|---|---|---|---|
-| medusa-17032-last-unit | 2.21.2 | reference | 20 of 30 | reserved_matches_reservations 20 | 0 | [report](cases/medusa-17032-last-unit/results/2.21.2-reference/report.md) |
-| medusa-17032-last-unit | 2.21.2 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/2.21.2-control/report.md) |
-| medusa-17032-last-unit | 2.19.0 | reference | 25 of 30 | reserved_matches_reservations 25 | 0 | [report](cases/medusa-17032-last-unit/results/2.19.0-reference/report.md) |
-| medusa-17032-last-unit | 2.19.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/2.19.0-control/report.md) |
-| medusa-17032-last-unit | 2.22.0 | reference | 24 of 30 | reserved_matches_reservations 24 | 0 | [report](cases/medusa-17032-last-unit/results/2.22.0-reference/report.md) |
-| medusa-17032-last-unit | 2.22.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/2.22.0-control/report.md) |
-| medusa-17032-counter | 2.21.2 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.21.2-reference/report.md) |
-| medusa-17032-counter | 2.21.2 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.21.2-control/report.md) |
-| medusa-17032-counter | 2.19.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.19.0-reference/report.md) |
-| medusa-17032-counter | 2.19.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.19.0-control/report.md) |
-| medusa-17032-counter | 2.22.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.22.0-reference/report.md) |
-| medusa-17032-counter | 2.22.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2.22.0-control/report.md) |
-| medusa-16502-lines | 2.21.2 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/2.21.2-reference/report.md) |
-| medusa-16502-lines | 2.19.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/2.19.0-reference/report.md) |
-| medusa-16502-lines | 2.22.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/2.22.0-reference/report.md) |
+| medusa-17032-last-unit | 2.21.2 | reference | 20 of 30 | reserved_matches_reservations 20 | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.21.2-reference/report.md) |
+| medusa-17032-last-unit | 2.21.2 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.21.2-control/report.md) |
+| medusa-17032-last-unit | 2.19.0 | reference | 25 of 30 | reserved_matches_reservations 25 | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.19.0-reference/report.md) |
+| medusa-17032-last-unit | 2.19.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.19.0-control/report.md) |
+| medusa-17032-last-unit | 2.22.0 | reference | 24 of 30 | reserved_matches_reservations 24 | 0 | [report](cases/medusa-17032-last-unit/results/2716917/2.22.0-reference/report.md) |
+| medusa-17032-last-unit | 2.22.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/2716917/2.22.0-control/report.md) |
+| medusa-17032-counter | 2.21.2 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.21.2-reference/report.md) |
+| medusa-17032-counter | 2.21.2 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.21.2-control/report.md) |
+| medusa-17032-counter | 2.19.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.19.0-reference/report.md) |
+| medusa-17032-counter | 2.19.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.19.0-control/report.md) |
+| medusa-17032-counter | 2.22.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2716917/2.22.0-reference/report.md) |
+| medusa-17032-counter | 2.22.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2716917/2.22.0-control/report.md) |
+| medusa-16502-lines | 2.21.2 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/a18d5c9/2.21.2-reference/report.md) |
+| medusa-16502-lines | 2.19.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/a18d5c9/2.19.0-reference/report.md) |
+| medusa-16502-lines | 2.22.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/2716917/2.22.0-reference/report.md) |
 
 A case is reproduced on a version when its rule failed in at least one reference run and in no control run. A case with no control is "reproduced, no control yet".
 
@@ -197,7 +197,7 @@ No Docker engine is needed. From the repo root:
 
 ```sh
 make oversold
-for d in benchmark/cases/*/results/*; do sh scripts/oversold.sh check --verify "$d"; done
+for d in $(find benchmark/cases -name report.json -exec dirname {} \; | sort); do sh scripts/oversold.sh check --verify "$d"; done
 ```
 
 `check --verify` recomputes every verdict and report from the saved histories and exits 0 only when they match the stored ones.

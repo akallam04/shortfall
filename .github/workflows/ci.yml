@@ -40,7 +40,7 @@ jobs:
         run: |
           set -eu
           count=0
-          for d in $(find benchmark/cases -mindepth 3 -maxdepth 3 -type d -path '*/results/*' | sort); do
+          for d in $(find benchmark/cases -name report.json -exec dirname {} \; | sort); do
             sh scripts/oversold.sh check --verify "$d"
             count=$((count + 1))
           done
