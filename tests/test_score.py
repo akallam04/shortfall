@@ -578,3 +578,80 @@ def test_shape_records_the_locking_mode():
         redis = yaml.safe_load((cases / case / "redis-control.yaml").read_text())
         assert score.shape(ref)["locking"] == "in-memory"
         assert score.shape(redis)["locking"] == "redis"
+
+
+def test_a_variant_history_reads_like_any_other():
+    h = hist("pr-16961-stock-drop")
+    target = h["target"]
+    assert target["variant"]["name"] == "pr-16961"
+    assert h["stock_before_race"] == {"WIDGET": 6}
+    assert {s["image_inputs"] for s in target["servers"]} == {target["image_inputs"]}
+    c = score.counts([h])
+    assert {rule: c[rule]["pass"] for rule in c} == dict.fromkeys(c, 1)
+    assert score.inconclusive_runs([h]) == 0
+    assert score.setup_error(h) is None
+    assert score.lock_error(h) is None
+    assert score.image_error(h) is None
+    [image] = {s["image_id"] for s in target["servers"]}
+    score.check_histories([h], 1, h["oversold"]["commit"], image)
+
+
+def test_a_label_or_replaced_file_mismatch_is_refused():
+    h = hist("pr-16961-stock-drop")
+    pin = h["oversold"]["commit"]
+    h["target"]["servers"][0]["image_inputs"] = "0" * 64
+    with pytest.raises(RuntimeError, match="image inputs"):
+        score.check_histories([h], 1, pin, None)
+    h = hist("pr-16961-stock-drop")
+    h["target"]["servers"][0]["variant_files"][0]["sha256"] = "0" * 64
+    with pytest.raises(RuntimeError, match="replaced files"):
+        score.check_histories([h], 1, pin, None)
+    h = hist("pr-16961-stock-drop")
+    del h["target"]["servers"][0]["variant_files"]
+    with pytest.raises(RuntimeError, match="replaced files"):
+        score.check_histories([h], 1, pin, None)
+    old = hist("redis-locking-pass")
+    assert "image_inputs" not in old["target"]
+    score.check_histories([old], 1, old["oversold"]["commit"], None)
+
+
+def image_mismatch() -> dict:
+    h = hist("pass")
+    h["harness_error"] = (
+        'medusa runs an image with oversold.image-inputs "", this run set\'s image inputs are '
+        + "a" * 64
+    )
+    for v in h["verdicts"]:
+        v["result"] = "inconclusive"
+        v["reason"] = "harness error: " + h["harness_error"]
+    return h
+
+
+def test_an_image_label_harness_error_stops_the_sweep(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    q = queues(path, many(("fail-no-oversell-and-reserved", 13)), [image_mismatch()] * 10)
+    entry, stop, _, _ = attempt(tmp_path, path, q)
+    assert stop.startswith(
+        "error: harness: 10 of 10 runs in the control set had an image or variant file mismatch"
+    )
+    files = (
+        "medusa: @medusajs/inventory/dist/services/inventory-module.js inside the container "
+        "does not have the sha256 abc that variant pr-16961 lists"
+    )
+    assert score.image_error({"harness_error": files}) == files
+    replaced = "variant pr-16961 replaces x.js, which has sha256 a in img, variant.yaml expects b"
+    assert score.image_error({"harness_error": replaced}) == replaced
+
+
+def test_a_cart_setup_error_about_a_variant_is_not_an_image_error():
+    h = hist("setup-failed")
+    assert "variant" in json.dumps(h)
+    assert score.setup_error(h)
+    assert score.image_error(h) is None
+
+
+def test_shape_records_the_variant():
+    data = yaml.safe_load((ROOT / "benchmark/cases/medusa-16502-lines/reference.yaml").read_text())
+    assert score.shape(data)["variant"] is None
+    data["target"]["variant"] = "pr-16961"
+    assert score.shape(data)["variant"] == "pr-16961"

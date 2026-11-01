@@ -23,6 +23,9 @@ SCREEN_RUNS = 3
 HARNESS_STREAK = 3
 SETUP_ERROR = "prepare cart "
 LOCK_ERROR = "redis locking: "
+IMAGE_ERROR = re.compile(
+    r"image inputs|oversold\.image-inputs|that variant \S+ lists|variant \S+ replaces"
+)
 SCORE_RUNS = 10
 CONTROL_RUNS = 10
 RESULTS = ("fail", "pass", "inconclusive")
@@ -87,6 +90,7 @@ def shape(data: dict) -> dict:
         "release": data["timing"]["release"],
         "item_on_several_lines": several,
         "locking": data["target"].get("locking", "in-memory"),
+        "variant": data["target"].get("variant"),
     }
 
 
@@ -109,6 +113,20 @@ def setup_error(history: dict) -> str | None:
 
 def lock_error(history: dict) -> str | None:
     return harness_error(history, LOCK_ERROR)
+
+
+def image_error(history: dict) -> str | None:
+    texts = [history.get("harness_error")]
+    texts += [
+        (v.get("reason") or "").removeprefix("harness error: ")
+        for v in history.get("verdicts") or []
+        if v.get("result") == "inconclusive"
+        and (v.get("reason") or "").startswith("harness error: ")
+    ]
+    for text in texts:
+        if isinstance(text, str) and IMAGE_ERROR.search(text):
+            return text
+    return None
 
 
 def counts(histories: list[dict]) -> dict[str, dict[str, int]]:
@@ -162,9 +180,28 @@ def check_histories(histories: list[dict], runs: int, pin: str, image_id: str | 
     for h in histories:
         if h.get("oversold") != {"commit": pin, "dirty": False}:
             raise RuntimeError("a history does not record the pinned Oversold commit")
-        ids = {s.get("image_id") for s in ((h.get("target") or {}).get("servers") or [])}
+        target = h.get("target") or {}
+        servers = target.get("servers") or []
+        ids = {s.get("image_id") for s in servers}
         if ids and image_id and ids != {image_id}:
             raise RuntimeError(f"a history ran on image {sorted(ids)}, not {image_id}")
+        if "image_inputs" in target:
+            labels = {s.get("image_inputs") for s in servers}
+            if labels != {target["image_inputs"]}:
+                raise RuntimeError(
+                    f"a history's servers have image inputs {sorted(map(str, labels))}, "
+                    f"not {target['image_inputs']}"
+                )
+        variant = target.get("variant")
+        if variant:
+            want = {f["path"]: f["sha256"] for f in variant.get("files") or []}
+            for s in servers:
+                got = {f["path"]: f["sha256"] for f in s.get("variant_files") or []}
+                if got != want:
+                    raise RuntimeError(
+                        f"{s.get('service')} has replaced files {got}, variant "
+                        f"{variant.get('name')} lists {want}"
+                    )
 
 
 class OversoldRunner:
@@ -279,6 +316,12 @@ def score_candidate(
             raise RuntimeError(
                 f"harness: {len(locks)} of {runs} runs in the {name} set made no lock calls "
                 f"through Redis: {locks[0]}"
+            )
+        images = [image_error(h) for h in histories if image_error(h)]
+        if images:
+            raise RuntimeError(
+                f"harness: {len(images)} of {runs} runs in the {name} set had an image or "
+                f"variant file mismatch: {images[0]}"
             )
         c = counts(histories)
         entry["inconclusive"][name] = inconclusive_runs(histories)
