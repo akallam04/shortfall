@@ -8,7 +8,8 @@ A case is a folder in [cases/](cases/) named after its id.
 
 - `case.yaml`: what the case is.
 - `reference.yaml`: an Oversold scenario written by hand that reproduces the bug.
-- `control.yaml`: the control scenario, for cases with a one-server control.
+- `redis-control.yaml`: the control scenario, for cases with a Redis locking control.
+- `control.yaml`: a one-server control. The two #17032 cases used one before they moved to Redis locking controls, and it is kept with its results.
 - `results/<pin>/<version>-<set>/`: the measured runs, grouped under the short Oversold commit they ran at and exported with `oversold export`: the scenario, `report.json`, `report.md` and every run's history, gzipped.
 
 Fields in `case.yaml`:
@@ -24,7 +25,7 @@ Fields in `case.yaml`:
 | `issue.opened` | The date the issue was opened. |
 | `issue.state` | The issue's state when the case was added. |
 | `rule` | The Oversold check the bug breaks: `no_oversell`, `reserved_matches_reservations`, `one_order_per_cart` or `no_orphaned_orders`. |
-| `control.kind` | `one-server`, `fixed-version` or `none`. |
+| `control.kind` | `one-server`, `redis-locking`, `fixed-version` or `none`. |
 | `control.version` | With `fixed-version` only: a version where the bug is fixed. |
 | `control.reason` | With `none` only: why the case has no control. |
 | `reference.file` | The reference scenario's file in the folder. |
@@ -40,32 +41,37 @@ Fields in `case.yaml`:
 A control is a scenario that should not fail the case's rule, so a failure in the reference comes from the bug and not from the scenario.
 
 - `one-server`: the reference runs on two servers, and the control is the same scenario on one server. `python -m shortfall.control reference.yaml` writes it: every server field becomes 1, the name gets `-control` and the description says what it is. Everything else stays the same.
+- `redis-locking`: the reference runs with Medusa's default in-memory locking provider, which only locks inside one server process, and the control is the same scenario with `target.locking: redis`, so every Medusa server uses Medusa's Redis locking provider. Medusa's docs recommend that provider when more than one server runs. `python -m shortfall.control --redis-locking reference.yaml` writes it: it adds `target.locking: redis`, the name gets `-redis-control` and the description says what it is. Everything else stays the same, in the same order. It refuses a scenario that already uses Redis locking.
 - `fixed-version`: the same scenario on a version where the bug is fixed.
 - `none`: no control yet, with the reason in `control.reason`.
+
+The two #17032 cases use `redis-locking`. Before Oversold `a35d162` they used `one-server` controls, which are kept with their results in the table of earlier sets.
 
 An agent's scenario will count as finding a case when the case's rule fails in at least 1 of 10 runs on the case's version and in 0 of 10 runs of its control. Reference runs use 30.
 
 ## Results
 
-Each row is one set of 30 runs. "Rule failed" counts the runs where the case's rule failed. "Other checks failed" lists every other check that failed, with its number of failed runs.
+Each row is one set of 30 runs at Oversold `a35d162`. "Rule failed" counts the runs where the case's rule failed. "Other checks failed" lists every other check that failed, with its number of failed runs.
 
-| Case | Version | Set | Rule failed | Other checks failed | Inconclusive runs | Report |
-|---|---|---|---|---|---|---|
-| medusa-17032-last-unit | 2.21.2 | reference | 20 of 30 | reserved_matches_reservations 20 | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.21.2-reference/report.md) |
-| medusa-17032-last-unit | 2.21.2 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.21.2-control/report.md) |
-| medusa-17032-last-unit | 2.19.0 | reference | 25 of 30 | reserved_matches_reservations 25 | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.19.0-reference/report.md) |
-| medusa-17032-last-unit | 2.19.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.19.0-control/report.md) |
-| medusa-17032-last-unit | 2.22.0 | reference | 24 of 30 | reserved_matches_reservations 24 | 0 | [report](cases/medusa-17032-last-unit/results/2716917/2.22.0-reference/report.md) |
-| medusa-17032-last-unit | 2.22.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/2716917/2.22.0-control/report.md) |
-| medusa-17032-counter | 2.21.2 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.21.2-reference/report.md) |
-| medusa-17032-counter | 2.21.2 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.21.2-control/report.md) |
-| medusa-17032-counter | 2.19.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.19.0-reference/report.md) |
-| medusa-17032-counter | 2.19.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.19.0-control/report.md) |
-| medusa-17032-counter | 2.22.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2716917/2.22.0-reference/report.md) |
-| medusa-17032-counter | 2.22.0 | control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2716917/2.22.0-control/report.md) |
-| medusa-16502-lines | 2.21.2 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/a18d5c9/2.21.2-reference/report.md) |
-| medusa-16502-lines | 2.19.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/a18d5c9/2.19.0-reference/report.md) |
-| medusa-16502-lines | 2.22.0 | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/2716917/2.22.0-reference/report.md) |
+| Case | Version | Set | Locking | Rule failed | Other checks failed | Inconclusive runs | Report |
+|---|---|---|---|---|---|---|---|
+| medusa-17032-last-unit | 2.21.2 | reference | in-memory | 25 of 30 | reserved_matches_reservations 25 | 0 | [report](cases/medusa-17032-last-unit/results/a35d162/2.21.2-reference/report.md) |
+| medusa-17032-last-unit | 2.21.2 | redis-control | redis | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/a35d162/2.21.2-redis-control/report.md) |
+| medusa-17032-last-unit | 2.19.0 | reference | in-memory | 24 of 30 | reserved_matches_reservations 24 | 0 | [report](cases/medusa-17032-last-unit/results/a35d162/2.19.0-reference/report.md) |
+| medusa-17032-last-unit | 2.19.0 | redis-control | redis | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/a35d162/2.19.0-redis-control/report.md) |
+| medusa-17032-last-unit | 2.22.0 | reference | in-memory | 24 of 30 | reserved_matches_reservations 24 | 0 | [report](cases/medusa-17032-last-unit/results/a35d162/2.22.0-reference/report.md) |
+| medusa-17032-last-unit | 2.22.0 | redis-control | redis | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/a35d162/2.22.0-redis-control/report.md) |
+| medusa-17032-counter | 2.21.2 | reference | in-memory | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a35d162/2.21.2-reference/report.md) |
+| medusa-17032-counter | 2.21.2 | redis-control | redis | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a35d162/2.21.2-redis-control/report.md) |
+| medusa-17032-counter | 2.19.0 | reference | in-memory | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a35d162/2.19.0-reference/report.md) |
+| medusa-17032-counter | 2.19.0 | redis-control | redis | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a35d162/2.19.0-redis-control/report.md) |
+| medusa-17032-counter | 2.22.0 | reference | in-memory | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a35d162/2.22.0-reference/report.md) |
+| medusa-17032-counter | 2.22.0 | redis-control | redis | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a35d162/2.22.0-redis-control/report.md) |
+| medusa-16502-lines | 2.21.2 | reference | in-memory | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/a35d162/2.21.2-reference/report.md) |
+| medusa-16502-lines | 2.19.0 | reference | in-memory | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/a35d162/2.19.0-reference/report.md) |
+| medusa-16502-lines | 2.22.0 | reference | in-memory | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/a35d162/2.22.0-reference/report.md) |
+
+In every Redis control run Medusa made scripted lock calls through Redis, read from Redis's `INFO commandstats` before and after the race: 8 to 10 per run for medusa-17032-last-unit and 59 to 66 per run for medusa-17032-counter. No run had a harness error.
 
 A case is reproduced on a version when its rule failed in at least one reference run and in no control run. A case with no control is "reproduced, no control yet".
 
@@ -75,22 +81,51 @@ A case is reproduced on a version when its rule failed in at least one reference
 | medusa-17032-counter | reproduced | reproduced | reproduced |
 | medusa-16502-lines | reproduced, no control yet | reproduced, no control yet | reproduced, no control yet |
 
-The two #17032 cases, medusa-17032-last-unit and medusa-17032-counter, were measured with Medusa's default in-memory locking provider, which only locks inside one process. Oversold's Medusa config sets no locking provider. Medusa's docs recommend the Redis locking provider when more than one server runs.
+The two #17032 cases fail with Medusa's default in-memory locking provider and not with its Redis locking provider. medusa-17032-last-unit's rule failed in 25, 24 and 24 of 30 reference runs on 2.21.2, 2.19.0 and 2.22.0, and in 0 of 30 Redis control runs on each. medusa-17032-counter's rule failed in 30 of 30 reference runs and in 0 of 30 Redis control runs on all three versions. Oversold's Medusa config uses the in-memory provider unless a scenario sets `target.locking: redis`. Medusa's docs recommend the Redis locking provider when more than one server runs.
+
+### Earlier sets
+
+These sets ran at earlier Oversold pins, on images built from those pins, with in-memory locking. The #17032 cases were controlled then by running the same scenario on one server.
+
+| Case | Version | Oversold | Set | Rule failed | Other checks failed | Inconclusive runs | Report |
+|---|---|---|---|---|---|---|---|
+| medusa-17032-last-unit | 2.21.2 | `a18d5c9` | reference | 20 of 30 | reserved_matches_reservations 20 | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.21.2-reference/report.md) |
+| medusa-17032-last-unit | 2.21.2 | `a18d5c9` | one-server control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.21.2-control/report.md) |
+| medusa-17032-last-unit | 2.19.0 | `a18d5c9` | reference | 25 of 30 | reserved_matches_reservations 25 | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.19.0-reference/report.md) |
+| medusa-17032-last-unit | 2.19.0 | `a18d5c9` | one-server control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/a18d5c9/2.19.0-control/report.md) |
+| medusa-17032-last-unit | 2.22.0 | `2716917` | reference | 24 of 30 | reserved_matches_reservations 24 | 0 | [report](cases/medusa-17032-last-unit/results/2716917/2.22.0-reference/report.md) |
+| medusa-17032-last-unit | 2.22.0 | `2716917` | one-server control | 0 of 30 | none | 0 | [report](cases/medusa-17032-last-unit/results/2716917/2.22.0-control/report.md) |
+| medusa-17032-counter | 2.21.2 | `a18d5c9` | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.21.2-reference/report.md) |
+| medusa-17032-counter | 2.21.2 | `a18d5c9` | one-server control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.21.2-control/report.md) |
+| medusa-17032-counter | 2.19.0 | `a18d5c9` | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.19.0-reference/report.md) |
+| medusa-17032-counter | 2.19.0 | `a18d5c9` | one-server control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/a18d5c9/2.19.0-control/report.md) |
+| medusa-17032-counter | 2.22.0 | `2716917` | reference | 30 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2716917/2.22.0-reference/report.md) |
+| medusa-17032-counter | 2.22.0 | `2716917` | one-server control | 0 of 30 | none | 0 | [report](cases/medusa-17032-counter/results/2716917/2.22.0-control/report.md) |
+| medusa-16502-lines | 2.21.2 | `a18d5c9` | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/a18d5c9/2.21.2-reference/report.md) |
+| medusa-16502-lines | 2.19.0 | `a18d5c9` | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/a18d5c9/2.19.0-reference/report.md) |
+| medusa-16502-lines | 2.22.0 | `2716917` | reference | 30 of 30 | none | 0 | [report](cases/medusa-16502-lines/results/2716917/2.22.0-reference/report.md) |
 
 ## Setup
 
-- Oversold at commit `27169174ca97a2147ac39d70fae3fd29573131d4`, from `oversold.lock`. The 2.22.0 sets ran at this commit. The 2.21.2 and 2.19.0 sets ran at the earlier pin `a18d5c9f3892dbca86effa0766e975985f8324bd`. The check rules are the same at both pins: nothing under `internal/checks`, `internal/history` or `internal/report` changed between them, nor `docs/checks.md`, `docs/history-format.md`, `targets/medusa/Dockerfile` or `targets/medusa/app`, and `check --verify` at the new pin passes on every earlier folder.
+- Oversold at commit `a35d162cb5be383e7d3f9c6ffd91b306377144a8`, from `oversold.lock`. The sets in the main results table ran at this commit. The earlier sets ran at `a18d5c9f3892dbca86effa0766e975985f8324bd` (2.21.2 and 2.19.0) and `27169174ca97a2147ac39d70fae3fd29573131d4` (2.22.0).
+- The check rules are the same at all three pins: nothing under `internal/checks` or in `docs/checks.md` changed between them, and `check --verify` at `a35d162` passes on every earlier folder. Between `2716917` and `a35d162` Oversold added `target.locking`, a Redis service with no published port, and the `locking`, `redis_version` and `lock_calls` fields in histories and reports. It also changed `targets/medusa/app/medusa-config.ts`, which is built into the Medusa image, so every image was built again.
 - Colima 0.10.3, profile `shortfall`: 4 CPUs, 6 GiB memory, 40 GiB disk, `vz` VM, `virtiofs` mount of this repo, read-only.
 - Docker client 29.8.2.
 - macOS 27.0.1 on Apple silicon.
-- `oversold-medusa:2.21.2`: `sha256:8b684bf5b7c6af1b401200325dc4ff285f96bdf8c44e0a68f42b2408d77e0796`
-- `oversold-medusa:2.19.0`: `sha256:170f4d29b9d544cdf96e06f7a75d4d3306f28abd80024cfdbe46044c0096e112`
-- `oversold-medusa:2.22.0`: `sha256:26e01f1395dc0cbd8c7f6503f6635280eba4196511b2a0b48148d342a51ac258`
-- `postgres:15.19-alpine`: image `sha256:d2c2ced0372e855e4c257a9e9b5725f403847c01cfb64facbf2b21dbdadb2d74`, digest `postgres@sha256:d2c2ced0372e855e4c257a9e9b5725f403847c01cfb64facbf2b21dbdadb2d74`
-- 2.21.2 and 2.19.0 runs from 2026-10-22 06:28:45 UTC to 2026-10-22 06:59:12 UTC.
-- 2.22.0 runs from 2026-10-25 22:20:08 UTC to 2026-10-25 23:04:22 UTC.
+- Images for the `a35d162` sets, built in Shortfall's engine from the `a35d162` clone after the earlier images were removed:
+  - `oversold-medusa:2.21.2`: `sha256:c89e6efff2f8fd2df6ad9d375feabde2c6abd1427312b9f7a4a9aef521090a66`
+  - `oversold-medusa:2.19.0`: `sha256:049de24eda1a6acd0accff0e90d036cd3ead1da1754ad01163ac819896f04876`
+  - `oversold-medusa:2.22.0`: `sha256:0d05f169766253ac3a4a9ecb852e8cc4a72879e4b9173556af9e486023f84b2f`
+  - `redis:7.4.11-alpine`: image `sha256:d9436322172a5b482c187bf1f363d3c4fea086fcca6b9c8a94de8f0f39ed3193`, digest `redis@sha256:d9436322172a5b482c187bf1f363d3c4fea086fcca6b9c8a94de8f0f39ed3193`. Every Redis history records Redis 7.4.11.
+  - `postgres:15.19-alpine`: image `sha256:d2c2ced0372e855e4c257a9e9b5725f403847c01cfb64facbf2b21dbdadb2d74`, digest `postgres@sha256:d2c2ced0372e855e4c257a9e9b5725f403847c01cfb64facbf2b21dbdadb2d74`
+- Images for the earlier sets:
+  - `oversold-medusa:2.21.2` at `a18d5c9`: `sha256:8b684bf5b7c6af1b401200325dc4ff285f96bdf8c44e0a68f42b2408d77e0796`
+  - `oversold-medusa:2.19.0` at `a18d5c9`: `sha256:170f4d29b9d544cdf96e06f7a75d4d3306f28abd80024cfdbe46044c0096e112`
+  - `oversold-medusa:2.22.0` at `2716917`: `sha256:26e01f1395dc0cbd8c7f6503f6635280eba4196511b2a0b48148d342a51ac258`
+- `a35d162` runs from 2026-11-01 21:49:59 UTC to 2026-11-01 22:41:53 UTC.
+- Earlier 2.21.2 and 2.19.0 runs from 2026-10-22 06:28:45 UTC to 2026-10-22 06:59:12 UTC, and 2.22.0 runs from 2026-10-25 22:20:08 UTC to 2026-10-25 23:04:22 UTC.
 
-Every history records the Medusa image ID of each server and the Oversold commit. All 450 match the images above and the pin their set ran at, with no local changes.
+Every history records the Medusa image ID of each server and the Oversold commit. All 900 match the images listed for the pin their set ran at, with no local changes.
 
 Run sets from different sessions are comparable only when the Medusa image ID matches. `sh scripts/oversold.sh up` builds the image for the version in `.oversold/.env` only when it is missing and otherwise starts the existing one, and it prints the image ID and digest every time. `sh scripts/oversold.sh up --rebuild` forces a build, which gives a new image ID.
 
@@ -150,7 +185,7 @@ Candidates go in `runs/sweep/<UTC time>/`. Both modes give the same files in the
 ### Scoring
 
 1. Screen: run the candidate once, then 2 more times. If any screen run fails while preparing a cart, the verdict is `unpreparable` and the rest of the screen is skipped. This applies to every candidate, from the sweep or from an agent. Otherwise, if no check fails in the 3 runs, the verdict is `no match`.
-2. Score: run the candidate 10 times. For a two-server candidate, generate its one-server control with `python -m shortfall.control` and run that 10 times.
+2. Score: run the candidate 10 times. For a two-server candidate, build the control that the matched case's `control.kind` asks for with `src/shortfall/control.py` and run it 10 times: with `redis-locking`, the candidate with `target.locking: redis`; with `one-server`, the candidate on one server. If the case's control kind cannot be built, or the candidate already uses Redis locking, the verdict is `reproduction only`.
 3. A candidate matches a case when the case's rule failed in at least 1 of the 10 candidate runs and in 0 of the 10 control runs, with no inconclusive control run.
 4. A one-server candidate has no one-server control, so a rule failure there is `reproduction only`, never a match. `medusa-16502-lines` has no control yet either.
 5. A result that cannot be decided because runs were inconclusive is `inconclusive`. Inconclusive runs count against the caps like any other run, and so does the run that shows a candidate is `unpreparable`. The sweep stops when 3 attempts in a row have only inconclusive runs, not counting `unpreparable` ones.
@@ -163,7 +198,7 @@ A candidate is mapped to a case by the case's rule and the server count of the c
 | `reserved_matches_reservations` | 2 | medusa-17032-counter |
 | `no_oversell` | 1 | medusa-16502-lines |
 
-Both two-server cases were measured with Medusa's default in-memory locking provider.
+Both two-server cases fail with Medusa's default in-memory locking provider, and both use Redis locking controls.
 
 A two-server candidate can match both two-server cases when both rules fail on it and on neither in its control.
 
@@ -176,6 +211,8 @@ Every failed check in every set is compared with this map of public issues. A fa
 | `no_oversell`, `reserved_matches_reservations` | 2 servers on one database, with in-memory locking | [#17032](https://github.com/medusajs/medusa/issues/17032) |
 | `no_oversell` | a cart with two lines on the same inventory item | [#16502](https://github.com/medusajs/medusa/issues/16502), and [#17032](https://github.com/medusajs/medusa/issues/17032) with more than one cart |
 | `no_orphaned_orders` | more than one cart, completed together | [#16825](https://github.com/medusajs/medusa/issues/16825) |
+
+A scenario with `target.locking: redis` is never covered by #17032. #16502 still covers a cart with two lines on the same inventory item with either locking provider, so a stock failure in the Redis control of a one-line scenario stops the sweep.
 
 Oversold has never reproduced #16825, so a `no_orphaned_orders` failure does not stop the sweep but is listed for a manual check, in the attempt's `manual_check` field and at the end of the sweep's output.
 
