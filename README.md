@@ -12,7 +12,7 @@ Three benchmark cases from public Medusa issues, each reproduced by hand with Ov
 
 Shortfall runs Oversold only through its command line, from a clone pinned to one public commit in `oversold.lock`. `make oversold` clones that commit into `.oversold/`, checks it, builds it and makes the clone read-only.
 
-Oversold runs on Shortfall's own Docker engine, a [Colima](https://github.com/abiosoft/colima) VM named `shortfall` that can see only this folder. Every image a run uses comes from the pinned clone: the Medusa images it builds and the public base images its Compose file and Dockerfile name. `make engine-up` starts the engine and `make engine-down` stops it. `scripts/oversold.sh` is the only way Shortfall runs Oversold: it checks the pin, sends every run to that engine and writes run folders to `runs/`. `sh scripts/oversold.sh up` starts Oversold's stack in the engine before runs, and `sh scripts/oversold.sh down` removes it.
+Oversold runs on Shortfall's own Docker engine, a [Colima](https://github.com/abiosoft/colima) VM named `shortfall` that can see only this folder. Every image a run uses comes from the pinned clone: the Medusa images it builds and the public base images its Compose file and Dockerfile name. `make engine-up` starts the engine and `make engine-down` stops it. `scripts/oversold.sh` is the only way Shortfall runs Oversold: it checks the pin, sends every run to that engine and writes run folders to `runs/`. `sh scripts/oversold.sh up` starts Oversold's Postgres in the engine before runs, Oversold's runs build the Medusa images and start the servers themselves, and `sh scripts/oversold.sh down` removes the stack.
 
 ## Benchmark
 

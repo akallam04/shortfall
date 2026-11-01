@@ -97,13 +97,6 @@ check_engine() {
 	[ "$name" = "$vm_name" ] || fail "docker info through $socket reports '$name', expected '$vm_name', run make engine-up"
 }
 
-env_version() {
-	[ -f "$dest/.env" ] || fail ".oversold/.env is missing, run make oversold"
-	v=$(sed -n 's/^MEDUSA_VERSION=//p' "$dest/.env" | tail -n 1)
-	printf '%s' "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || fail "MEDUSA_VERSION in .oversold/.env is not a version"
-	echo "$v"
-}
-
 image_prefix() {
 	[ -f "$dest/.env" ] || fail ".oversold/.env is missing, run make oversold"
 	p=$(sed -n 's/^OVERSOLD_IMAGE_PREFIX=//p' "$dest/.env" | tail -n 1)
@@ -113,42 +106,25 @@ image_prefix() {
 }
 
 print_image() {
-	info=$(docker image inspect --format '{{.Id}} {{join .RepoDigests ","}}' "$prefix:$1" 2>/dev/null) || fail "image $prefix:$1 is missing"
-	id=${info%% *}
-	digest=${info#* }
+	info=$(docker image inspect --format '{{.Id}}|{{join .RepoDigests ","}}|{{index .Config.Labels "oversold.image-inputs"}}' "$prefix:$1" 2>/dev/null) || fail "image $prefix:$1 is missing"
+	id=${info%%|*}
+	rest=${info#*|}
+	digest=${rest%%|*}
+	inputs=${rest#*|}
 	[ -n "$digest" ] && [ "$digest" != "$id" ] || digest="none"
-	echo "image $prefix:$1 id $id digest $digest"
+	case "$inputs" in
+	"" | "<no value>") inputs="none" ;;
+	esac
+	echo "image $prefix:$1 id $id digest $digest inputs $inputs"
 }
 
 case "$sub" in
 up)
-	rebuild=0
-	case "$#" in
-	1) ;;
-	2)
-		[ "$2" = "--rebuild" ] || fail "up takes only --rebuild"
-		rebuild=1
-		;;
-	*)
-		fail "up takes only --rebuild"
-		;;
-	esac
+	[ "$#" -eq 1 ] || fail "up takes no arguments"
 	check_engine
-	version=$(env_version)
-	prefix=$(image_prefix)
-	export OVERSOLD_IMAGE_PREFIX="$prefix"
 	cd "$dest"
-	if [ "$rebuild" -eq 1 ]; then
-		echo "up: rebuilding $prefix:$version because --rebuild was given"
-		docker compose up -d --build --wait medusa
-	elif docker image inspect "$prefix:$version" >/dev/null 2>&1; then
-		echo "up: $prefix:$version exists, starting it without a build"
-		docker compose up -d --no-build --wait medusa
-	else
-		echo "up: $prefix:$version is missing, building it"
-		docker compose up -d --build --wait medusa
-	fi
-	print_image "$version"
+	echo "up: starting postgres only, Oversold builds each Medusa image, its template and the servers on its first run"
+	docker compose up -d --wait postgres
 	exit 0
 	;;
 down)
@@ -158,16 +134,17 @@ down)
 	exec make down
 	;;
 image)
-	[ "$#" -le 2 ] || fail "usage: sh scripts/oversold.sh image [version]"
+	[ "$#" -eq 2 ] || [ "$#" -eq 3 ] || fail "usage: sh scripts/oversold.sh image <version> [variant]"
 	check_engine
-	if [ "$#" -eq 2 ]; then
-		version=$2
-		printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || fail "image takes a version like 2.21.2"
-	else
-		version=$(env_version)
+	version=$2
+	printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || fail "image takes a version like 2.21.2"
+	tag=$version
+	if [ "$#" -eq 3 ]; then
+		printf '%s' "$3" | grep -Eq '^[a-z0-9]+(-[a-z0-9]+)*$' || fail "image takes a variant name like pr-16961"
+		tag="$version-$3"
 	fi
 	prefix=$(image_prefix)
-	print_image "$version"
+	print_image "$tag"
 	exit 0
 	;;
 run)
