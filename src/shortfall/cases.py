@@ -13,7 +13,7 @@ RULES = (
     "one_order_per_cart",
     "no_orphaned_orders",
 )
-CONTROL_KINDS = ("one-server", "fixed-version", "none")
+CONTROL_KINDS = ("one-server", "redis-locking", "fixed-version", "none")
 
 _ID = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 _VERSION = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")

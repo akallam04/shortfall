@@ -27,7 +27,7 @@ def test_real_case_fields():
     assert lines.notes
     counter = load_case(CASES / "medusa-17032-counter")
     assert counter.rule == "reserved_matches_reservations"
-    assert counter.control.kind == "one-server"
+    assert counter.control.kind == "redis-locking"
     assert counter.control.version is None
 
 
@@ -158,6 +158,18 @@ def test_fixed_version_with_version_loads(tmp_path):
     data = good_data()
     data["control"] = {"kind": "fixed-version", "version": "2.22.0"}
     assert load_case(write_case(tmp_path, data)).control.version == "2.22.0"
+
+
+@pytest.mark.parametrize("kind", ["one-server", "redis-locking"])
+def test_control_kinds_without_extra_fields_load(tmp_path, kind):
+    data = good_data()
+    data["control"] = {"kind": kind}
+    control = load_case(write_case(tmp_path, data)).control
+    assert (control.kind, control.version, control.reason) == (kind, None, None)
+    data["control"] = {"kind": kind, "version": "2.22.0"}
+    (tmp_path / "v").mkdir()
+    with pytest.raises(ValueError, match="control.version is only allowed"):
+        load_case(write_case(tmp_path / "v", data))
 
 
 def test_agent_sees_leaves_out_history_and_coding_guides():

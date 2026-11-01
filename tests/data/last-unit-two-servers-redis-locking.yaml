@@ -1,0 +1,41 @@
+schema: oversold.scenario/v1
+name: last-unit-two-servers-redis-locking
+description: >
+  Copy of last-unit-two-servers, which targets Medusa issue #17032 across
+  processes, with both servers on Medusa's Redis locking provider, which
+  Medusa recommends when more than one server runs. Every other module stays
+  in-memory. One SOLO unit in stock. Cart a on server 1 and cart b on server 2
+  each hold OVS-SOLO 1 and are completed together, each on its own server.
+  Medusa's rules expect exactly one order and the other completion rejected.
+target:
+  engine: medusa
+  version: 2.21.2
+  servers: 2
+  locking: redis
+stock:
+  SOLO: 1
+carts:
+  a:
+    server: 1
+    lines:
+      - sku: OVS-SOLO
+        qty: 1
+  b:
+    server: 2
+    lines:
+      - sku: OVS-SOLO
+        qty: 1
+race:
+  - id: complete-a
+    server: 1
+    do: complete
+    cart: a
+  - id: complete-b
+    server: 2
+    do: complete
+    cart: b
+timing:
+  release: together
+faults: []
+runs: 30
+seed: 11

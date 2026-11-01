@@ -3,12 +3,37 @@ import sys
 import yaml
 
 MAX_NAME = 64
+USAGE = "usage: python -m shortfall.control [--redis-locking] <scenario.yaml>"
 
 
-def one_server(text: str) -> str:
+def _load(text: str) -> dict:
     data = yaml.safe_load(text)
     if not isinstance(data, dict):
         raise ValueError("scenario must be a mapping")
+    return data
+
+
+def _rename(data: dict, suffix: str, label: str) -> None:
+    name = data.get("name")
+    if not isinstance(name, str) or not name:
+        raise ValueError("scenario must have a name")
+    control_name = f"{name}-{suffix}"
+    if len(control_name) > MAX_NAME:
+        raise ValueError(f"control name {control_name!r} is over {MAX_NAME} characters")
+    data["name"] = control_name
+    description = data.get("description")
+    prefix = f"{label} control of {name}. "
+    data["description"] = prefix + description if isinstance(description, str) else prefix.strip()
+
+
+def _dump(data: dict) -> str:
+    return yaml.safe_dump(
+        data, sort_keys=False, default_flow_style=False, allow_unicode=True, width=80
+    )
+
+
+def one_server(text: str) -> str:
+    data = _load(text)
     target = data.get("target")
     if (
         not isinstance(target, dict)
@@ -18,13 +43,7 @@ def one_server(text: str) -> str:
         raise ValueError(
             "scenario must have target.servers 2, a one-server scenario has no one-server control"
         )
-    name = data.get("name")
-    if not isinstance(name, str) or not name:
-        raise ValueError("scenario must have a name")
-    control_name = f"{name}-control"
-    if len(control_name) > MAX_NAME:
-        raise ValueError(f"control name {control_name!r} is over {MAX_NAME} characters")
-
+    _rename(data, "control", "One-server")
     target["servers"] = 1
     carts = data.get("carts")
     if isinstance(carts, dict):
@@ -36,25 +55,35 @@ def one_server(text: str) -> str:
         for action in race:
             if isinstance(action, dict) and "server" in action:
                 action["server"] = 1
+    return _dump(data)
 
-    data["name"] = control_name
-    description = data.get("description")
-    prefix = f"One-server control of {name}. "
-    data["description"] = prefix + description if isinstance(description, str) else prefix.strip()
 
-    return yaml.safe_dump(
-        data, sort_keys=False, default_flow_style=False, allow_unicode=True, width=80
-    )
+def redis_locking(text: str) -> str:
+    data = _load(text)
+    target = data.get("target")
+    if not isinstance(target, dict):
+        raise ValueError("scenario must have a target")
+    if target.get("locking") == "redis":
+        raise ValueError(
+            "scenario already uses target.locking: redis, it has no Redis-locking control"
+        )
+    _rename(data, "redis-control", "Redis-locking")
+    target["locking"] = "redis"
+    return _dump(data)
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 1:
-        print("usage: python -m shortfall.control <scenario.yaml>", file=sys.stderr)
+    build = one_server
+    if argv[:1] == ["--redis-locking"]:
+        build = redis_locking
+        argv = argv[1:]
+    if len(argv) != 1 or argv[0].startswith("-"):
+        print(USAGE, file=sys.stderr)
         return 2
     try:
         with open(argv[0], encoding="utf-8") as f:
             text = f.read()
-        sys.stdout.write(one_server(text))
+        sys.stdout.write(build(text))
     except (OSError, ValueError, yaml.YAMLError) as err:
         print(f"shortfall.control: {err}", file=sys.stderr)
         return 1

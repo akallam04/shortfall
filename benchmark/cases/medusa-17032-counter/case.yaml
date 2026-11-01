@@ -12,7 +12,7 @@ issue:
   state: closed as not planned on 2026-10-18, no fix
 rule: reserved_matches_reservations
 control:
-  kind: one-server
+  kind: redis-locking
 reference:
   file: reference.yaml
   source: Oversold scenarios/medusa/counter-two-servers.yaml at commit a18d5c9f3892dbca86effa0766e975985f8324bd
