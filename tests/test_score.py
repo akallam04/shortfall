@@ -3,13 +3,16 @@ import shutil
 from pathlib import Path
 
 import pytest
+import yaml
 
 from shortfall import ledger, score, sweep
 from shortfall.budget import Budget
+from shortfall.control import redis_locking
 
 ROOT = Path(__file__).resolve().parent.parent
 HISTORIES = Path(__file__).resolve().parent / "data" / "histories"
 CASES = score.case_map(ROOT / "benchmark" / "cases")
+CONTROLS = score.control_map(ROOT / "benchmark" / "cases")
 IMAGE = "sha256:" + "1" * 64
 PIN = "a18d5c9f3892dbca86effa0766e975985f8324bd"
 
@@ -44,10 +47,12 @@ def candidates(tmp_path):
     return {p.stem.split("-", 2)[2]: p for p in paths}
 
 
-def queues(path: Path, candidate: list[dict], control: list[dict] | None = None) -> dict:
+def queues(
+    path: Path, candidate: list[dict], control: list[dict] | None = None, suffix="redis-control"
+) -> dict:
     out = {path.stem: candidate}
     if control is not None:
-        out[f"{path.stem}-control"] = control
+        out[f"{path.stem}-{suffix}"] = control
     return out
 
 
@@ -55,7 +60,7 @@ def ledger_file(tmp_path: Path) -> Path:
     return tmp_path / "runs" / "ledger.jsonl"
 
 
-def attempt(tmp_path, path, q, budget=None, runner=None):
+def attempt(tmp_path, path, q, budget=None, runner=None, controls=None):
     runner = runner or FixtureRunner(q)
     budget = budget or Budget()
     meta = {"attempt_id": "s-001", "source": "sweep", "seed": 0, "rerun_of": None}
@@ -71,6 +76,7 @@ def attempt(tmp_path, path, q, budget=None, runner=None):
         PIN,
         meta,
         ledger_file(tmp_path),
+        controls=CONTROLS if controls is None else controls,
     )
     ledger.validate(entry, legacy=False)
     records = ledger.load(ledger_file(tmp_path))
@@ -113,9 +119,11 @@ def test_one_of_ten_on_candidate_and_clean_control_is_a_match(tmp_path, candidat
         (path.stem, 1),
         (path.stem, 2),
         (path.stem, 10),
-        (f"{path.stem}-control", 10),
+        (f"{path.stem}-redis-control", 10),
     ]
-    assert path.with_name(f"{path.stem}-control.yaml").exists()
+    control = path.with_name(f"{path.stem}-redis-control.yaml").read_text(encoding="utf-8")
+    assert control == redis_locking(path.read_text(encoding="utf-8"))
+    assert yaml.safe_load(control)["target"]["locking"] == "redis"
 
 
 def test_reserved_only_matches_the_counter_case(tmp_path, candidates):
@@ -381,6 +389,7 @@ def test_a_killed_attempt_still_shows_its_spend(tmp_path, candidates):
             PIN,
             meta,
             ledger_file(tmp_path),
+            controls=CONTROLS,
         )
     records = ledger.load(ledger_file(tmp_path))
     assert [r["kind"] for r in records] == ["started", "spend", "spend", "spend"]
@@ -440,3 +449,132 @@ def test_run_sweep_lists_manual_checks(tmp_path, monkeypatch, capsys):
     assert (
         "sweep: manual check: s-001 grid-001-s2-solo-c2-short-together: no_orphaned_orders" in out
     )
+
+
+MATCHING = many(("fail-no-oversell-and-reserved", 1), ("pass", 2)) + many(
+    ("fail-no-oversell-and-reserved", 1), ("pass", 9)
+)
+
+
+def test_the_two_17032_cases_use_redis_locking_controls():
+    assert CONTROLS == {
+        "medusa-16502-lines": "none",
+        "medusa-17032-counter": "redis-locking",
+        "medusa-17032-last-unit": "redis-locking",
+    }
+
+
+def test_one_server_kind_builds_a_one_server_control(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    kinds = {
+        **CONTROLS,
+        "medusa-17032-last-unit": "one-server",
+        "medusa-17032-counter": "one-server",
+    }
+    q = queues(path, MATCHING, many(("pass", 10)), suffix="control")
+    entry, stop, runner, _ = attempt(tmp_path, path, q, controls=kinds)
+    assert stop is None
+    assert entry["verdict"] == "match"
+    assert runner.calls[-1] == (f"{path.stem}-control", 10)
+    control = yaml.safe_load(path.with_name(f"{path.stem}-control.yaml").read_text())
+    assert control["target"]["servers"] == 1
+    assert "locking" not in control["target"]
+
+
+def test_a_case_with_no_control_to_build_is_reproduction_only(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    kinds = {**CONTROLS, "medusa-17032-last-unit": "none", "medusa-17032-counter": "none"}
+    q = queues(path, many(("fail-no-oversell-and-reserved", 13)))
+    entry, stop, runner, _ = attempt(tmp_path, path, q, controls=kinds)
+    assert stop is None
+    assert entry["verdict"] == "reproduction only"
+    assert entry["control_runs"] == 0
+    assert len(runner.calls) == 3
+
+
+def test_cases_that_need_different_controls_stop(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    kinds = {**CONTROLS, "medusa-17032-counter": "one-server"}
+    q = queues(path, many(("fail-no-oversell-and-reserved", 13)))
+    entry, stop, runner, _ = attempt(tmp_path, path, q, controls=kinds)
+    assert stop.startswith("error: cases for no_oversell, reserved_matches_reservations need")
+    assert entry["control_runs"] == 0
+
+
+def test_a_failure_in_the_redis_control_is_outside_the_coverage_map(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    q = queues(
+        path,
+        many(("fail-no-oversell-and-reserved", 13)),
+        many(("fail-no-oversell", 1), ("pass", 9)),
+    )
+    entry, stop, _, _ = attempt(tmp_path, path, q)
+    assert stop.startswith("uncovered failure: no_oversell failed 1 of 10 runs in the control set")
+    assert entry["control_fails"]["no_oversell"] == 1
+
+
+def test_a_redis_candidate_has_no_redis_control(tmp_path, candidates):
+    source = candidates["s2-piece-twopack-c2-short-together"]
+    data = yaml.safe_load(source.read_text(encoding="utf-8"))
+    data["target"]["locking"] = "redis"
+    path = source.with_name("redis-candidate.yaml")
+    path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    entry, stop, runner, _ = attempt(tmp_path, path, queues(path, many(("fail-no-oversell", 13))))
+    assert stop is None
+    assert entry["shape"]["locking"] == "redis"
+    assert entry["verdict"] == "reproduction only"
+    assert len(runner.calls) == 3
+
+
+def no_lock_calls() -> dict:
+    h = hist("pass")
+    h["harness_error"] = (
+        "redis locking: Medusa made no scripted lock calls during the race, so the servers "
+        "did not lock through Redis"
+    )
+    for v in h["verdicts"]:
+        v["result"] = "inconclusive"
+        v["reason"] = "harness error: " + h["harness_error"]
+    return h
+
+
+def test_a_run_with_no_lock_calls_stops_the_sweep(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    q = queues(path, many(("fail-no-oversell-and-reserved", 13)), [no_lock_calls()] * 10)
+    entry, stop, _, _ = attempt(tmp_path, path, q)
+    assert stop.startswith(
+        "error: harness: 10 of 10 runs in the control set made no lock calls through Redis"
+    )
+    assert entry["verdict"] == "inconclusive"
+    assert score.lock_error(no_lock_calls()).startswith("redis locking: ")
+    assert score.setup_error(no_lock_calls()) is None
+
+
+def test_a_redis_locking_history_reads_like_any_other():
+    h = hist("redis-locking-pass")
+    assert h["target"]["locking"] == "redis"
+    assert h["race"]["lock_calls"] > 0
+    assert set(h["race"]["redis_command_stats"]) == {"before", "after"}
+    c = score.counts([h])
+    assert {rule: c[rule]["pass"] for rule in c} == dict.fromkeys(c, 1)
+    assert score.inconclusive_runs([h]) == 0
+    assert score.setup_error(h) is None
+    assert score.lock_error(h) is None
+    pin = h["oversold"]["commit"]
+    [image] = {s["image_id"] for s in h["target"]["servers"]}
+    score.check_histories([h], 1, pin, image)
+    with pytest.raises(RuntimeError, match="not sha256:"):
+        score.check_histories([h], 1, pin, IMAGE)
+    with pytest.raises(RuntimeError, match="pinned Oversold commit"):
+        score.check_histories([h], 1, PIN, image)
+    with pytest.raises(RuntimeError, match="expected 2 histories"):
+        score.check_histories([h], 2, pin, image)
+
+
+def test_shape_records_the_locking_mode():
+    cases = ROOT / "benchmark" / "cases"
+    for case in ("medusa-17032-last-unit", "medusa-17032-counter"):
+        ref = yaml.safe_load((cases / case / "reference.yaml").read_text())
+        redis = yaml.safe_load((cases / case / "redis-control.yaml").read_text())
+        assert score.shape(ref)["locking"] == "in-memory"
+        assert score.shape(redis)["locking"] == "redis"

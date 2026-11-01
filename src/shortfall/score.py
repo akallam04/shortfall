@@ -13,7 +13,7 @@ import yaml
 from shortfall import ledger
 from shortfall.budget import ATTEMPT, Budget, CapReached, from_flags
 from shortfall.cases import RULES, load_case
-from shortfall.control import one_server
+from shortfall.control import one_server, redis_locking
 from shortfall.coverage import MANUAL_CHECK, covering_issues
 from shortfall.pin import read_pin
 from shortfall.spend import Meter, now
@@ -22,9 +22,14 @@ from shortfall.sweep import SKUS
 SCREEN_RUNS = 3
 HARNESS_STREAK = 3
 SETUP_ERROR = "prepare cart "
+LOCK_ERROR = "redis locking: "
 SCORE_RUNS = 10
 CONTROL_RUNS = 10
 RESULTS = ("fail", "pass", "inconclusive")
+CONTROLS = {
+    "one-server": ("control", one_server),
+    "redis-locking": ("redis-control", redis_locking),
+}
 
 
 @dataclass
@@ -81,20 +86,29 @@ def shape(data: dict) -> dict:
         "stock": dict(data.get("stock") or {}),
         "release": data["timing"]["release"],
         "item_on_several_lines": several,
+        "locking": data["target"].get("locking", "in-memory"),
     }
 
 
-def setup_error(history: dict) -> str | None:
+def harness_error(history: dict, prefix: str) -> str | None:
     error = history.get("harness_error")
-    if isinstance(error, str) and error.startswith(SETUP_ERROR):
+    if isinstance(error, str) and error.startswith(prefix):
         return error
     for verdict in history.get("verdicts") or []:
         reason = verdict.get("reason") or ""
         if verdict.get("result") == "inconclusive" and reason.startswith(
-            "harness error: " + SETUP_ERROR
+            "harness error: " + prefix
         ):
             return reason.removeprefix("harness error: ")
     return None
+
+
+def setup_error(history: dict) -> str | None:
+    return harness_error(history, SETUP_ERROR)
+
+
+def lock_error(history: dict) -> str | None:
+    return harness_error(history, LOCK_ERROR)
 
 
 def counts(histories: list[dict]) -> dict[str, dict[str, int]]:
@@ -135,6 +149,24 @@ def case_map(cases_root: Path) -> dict[tuple[str, int], str]:
     return mapping
 
 
+def control_map(cases_root: Path) -> dict[str, str]:
+    return {
+        folder.name: load_case(folder).control.kind
+        for folder in sorted(p for p in Path(cases_root).iterdir() if p.is_dir())
+    }
+
+
+def check_histories(histories: list[dict], runs: int, pin: str, image_id: str | None) -> None:
+    if len(histories) != runs:
+        raise RuntimeError(f"expected {runs} histories, found {len(histories)}")
+    for h in histories:
+        if h.get("oversold") != {"commit": pin, "dirty": False}:
+            raise RuntimeError("a history does not record the pinned Oversold commit")
+        ids = {s.get("image_id") for s in ((h.get("target") or {}).get("servers") or [])}
+        if ids and image_id and ids != {image_id}:
+            raise RuntimeError(f"a history ran on image {sorted(ids)}, not {image_id}")
+
+
 class OversoldRunner:
     def __init__(self, root: Path):
         self.root = Path(root)
@@ -169,14 +201,7 @@ class OversoldRunner:
         histories = [
             json.loads(p.read_text(encoding="utf-8")) for p in sorted(folder.glob("run-*.json"))
         ]
-        if len(histories) != runs:
-            raise RuntimeError(f"expected {runs} histories, found {len(histories)}")
-        for h in histories:
-            if h.get("oversold") != {"commit": self.pin, "dirty": False}:
-                raise RuntimeError("a history does not record the pinned Oversold commit")
-            ids = {s.get("image_id") for s in ((h.get("target") or {}).get("servers") or [])}
-            if ids and self.image_id and ids != {self.image_id}:
-                raise RuntimeError(f"a history ran on image {sorted(ids)}, not {self.image_id}")
+        check_histories(histories, runs, self.pin, self.image_id)
         return RunSet(folder=relative(self.root, folder), histories=histories)
 
 
@@ -192,6 +217,8 @@ def score_candidate(
     pin: str,
     meta: dict,
     ledger_path: Path,
+    *,
+    controls: dict[str, str],
 ) -> tuple[dict, str | None]:
     text = scenario.read_text(encoding="utf-8")
     data = yaml.safe_load(text)
@@ -247,6 +274,12 @@ def score_candidate(
 
     def record(name: str, histories: list[dict], set_shape: dict) -> dict:
         runs = len(histories)
+        locks = [lock_error(h) for h in histories if lock_error(h)]
+        if locks:
+            raise RuntimeError(
+                f"harness: {len(locks)} of {runs} runs in the {name} set made no lock calls "
+                f"through Redis: {locks[0]}"
+            )
         c = counts(histories)
         entry["inconclusive"][name] = inconclusive_runs(histories)
         if name == "control":
@@ -309,8 +342,17 @@ def score_candidate(
             if not score_rules and entry["inconclusive"]["score"]:
                 return "inconclusive"
             return "no match"
-        control_text = one_server(text)
-        control_path = scenario.with_name(f"{scenario.stem}-control.yaml")
+        kinds = sorted({controls.get(cases[(r, 2)], "none") for r in candidate_rules})
+        if len(kinds) != 1:
+            raise RuntimeError(f"cases for {', '.join(candidate_rules)} need controls {kinds}")
+        if kinds[0] not in CONTROLS:
+            return "reproduction only"
+        suffix, build = CONTROLS[kinds[0]]
+        try:
+            control_text = build(text)
+        except ValueError:
+            return "reproduction only"
+        control_path = scenario.with_name(f"{scenario.stem}-{suffix}.yaml")
         if control_path.exists() and control_path.read_text(encoding="utf-8") != control_text:
             raise RuntimeError(f"{control_path.name} exists and differs from the generated control")
         control_path.write_text(control_text, encoding="utf-8")
@@ -383,7 +425,8 @@ def _start(root: Path, version: str, max_runs, raise_dollar_cap):
     image_id, digest = runner.image(version)
     print(f"sweep: medusa {version} image {image_id} digest {digest}")
     cases = case_map(Path(root) / "benchmark" / "cases")
-    return budget, runner, image_id, digest, cases
+    controls = control_map(Path(root) / "benchmark" / "cases")
+    return budget, runner, image_id, digest, cases, controls
 
 
 def only_inconclusive(entry: dict) -> bool:
@@ -403,7 +446,9 @@ def run_sweep(
     raise_dollar_cap=None,
 ) -> int:
     try:
-        budget, runner, image_id, digest, cases = _start(root, version, max_runs, raise_dollar_cap)
+        budget, runner, image_id, digest, cases, controls = _start(
+            root, version, max_runs, raise_dollar_cap
+        )
     except RuntimeError as err:
         print(f"sweep: {err}")
         return 2
@@ -435,6 +480,7 @@ def run_sweep(
             runner.pin,
             meta,
             ledger_path,
+            controls=controls,
         )
         entries.append(entry)
         print(describe_entry(entry), flush=True)
@@ -471,7 +517,7 @@ def rerun(root: Path, attempt_id: str, stamp: str, max_runs=None, raise_dollar_c
         print(f"rerun: {old['scenario']} changed since attempt {attempt_id}")
         return 2
     try:
-        budget, runner, image_id, digest, cases = _start(
+        budget, runner, image_id, digest, cases, controls = _start(
             root, old["medusa_version"], max_runs, raise_dollar_cap
         )
     except RuntimeError as err:
@@ -498,6 +544,7 @@ def rerun(root: Path, attempt_id: str, stamp: str, max_runs=None, raise_dollar_c
         runner.pin,
         meta,
         ledger_path,
+        controls=controls,
     )
     print(describe_entry(entry))
     for note in entry["manual_check"]:
