@@ -19,9 +19,9 @@ reference:
 agent_sees:
   guided:
     - the issue's title and opening post, without comments
-    - the Medusa source code for the case's version, without git history, changelogs or changesets
+    - the Medusa source code for the case's version, without git history, changelogs, changesets or guides written for AI coding tools
     - Oversold's scenario format and check rules at the pin
   unguided:
-    - the Medusa source code for the case's version, without git history, changelogs or changesets
+    - the Medusa source code for the case's version, without git history, changelogs, changesets or guides written for AI coding tools
     - Oversold's scenario format and check rules at the pin
 notes: Measured with Medusa's default in-memory locking provider. Medusa's docs recommend the Redis locking provider when more than one server runs.

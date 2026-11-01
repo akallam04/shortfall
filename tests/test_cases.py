@@ -160,6 +160,16 @@ def test_fixed_version_with_version_loads(tmp_path):
     assert load_case(write_case(tmp_path, data)).control.version == "2.22.0"
 
 
+def test_agent_sees_leaves_out_history_and_coding_guides():
+    for folder in sorted(p for p in CASES.iterdir() if p.is_dir()):
+        case = load_case(folder)
+        for items in (case.agent_sees.guided, case.agent_sees.unguided):
+            assert (
+                "the Medusa source code for the case's version, without git history, changelogs, "
+                "changesets or guides written for AI coding tools"
+            ) in items
+
+
 def test_lists_every_problem(tmp_path):
     data = good_data()
     data["rule"] = "nope"

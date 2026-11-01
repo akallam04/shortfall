@@ -20,9 +20,9 @@ reference:
 agent_sees:
   guided:
     - the issue's title and opening post, without comments
-    - the Medusa source code for the case's version, without git history, changelogs or changesets
+    - the Medusa source code for the case's version, without git history, changelogs, changesets or guides written for AI coding tools
     - Oversold's scenario format and check rules at the pin
   unguided:
-    - the Medusa source code for the case's version, without git history, changelogs or changesets
+    - the Medusa source code for the case's version, without git history, changelogs, changesets or guides written for AI coding tools
     - Oversold's scenario format and check rules at the pin
 notes: Not a race. It fails with one request. Issue #17032 reports the same cause with two carts.
