@@ -39,3 +39,16 @@ def test_no_issue_covers_a_stock_failure_in_a_redis_control(case):
         assert covering_issues(s, rule) == ()
     ref = shape(yaml.safe_load((CASES / case / "reference.yaml").read_text(encoding="utf-8")))
     assert covering_issues(ref, "no_oversell") == (ISSUE_17032,)
+
+
+def test_variant_pr_16961_takes_16502_out_of_the_map():
+    fixed = {**MULTI, "variant": "pr-16961"}
+    assert covering_issues(fixed, "no_oversell") == (ISSUE_17032,)
+    assert covering_issues({**fixed, "servers": 1}, "no_oversell") == ()
+    assert covering_issues({**fixed, "servers": 1, "carts": 1}, "no_oversell") == ()
+    assert covering_issues({**fixed, "locking": "redis"}, "no_oversell") == ()
+    two = {**BASE, "variant": "pr-16961"}
+    assert covering_issues(two, "reserved_matches_reservations") == (ISSUE_17032,)
+    assert covering_issues(two, "no_oversell") == (ISSUE_17032,)
+    other = {**MULTI, "servers": 1, "variant": "another-variant"}
+    assert covering_issues(other, "no_oversell") == (ISSUE_16502, ISSUE_17032)
