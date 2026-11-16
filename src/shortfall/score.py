@@ -587,6 +587,12 @@ class Attempt:
                 outcomes[rule] = INCONCLUSIVE
             else:
                 outcomes[rule] = NOT_ISOLATED
+                note = (
+                    f"{rule} failed {failed[rule]} of {runs} runs on plain Medusa {self.version}: "
+                    f"{NOT_ISOLATED}, no case's scoring control clears it"
+                )
+                if note not in entry["manual_check"]:
+                    entry["manual_check"].append(note)
         entry["reproduced"]["rules"] = outcomes
         hits = [case_id for case_id, r in cases.items() if r == REPRODUCED]
         folders = {case_id: info.folder for case_id, info in self.cases.items()}

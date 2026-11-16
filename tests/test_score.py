@@ -566,6 +566,8 @@ def test_orphaned_order_failure_is_flagged_for_a_manual_check(tmp_path, candidat
         "https://github.com/medusajs/medusa/issues/16825, which Oversold has never reproduced",
         "no_orphaned_orders failed 10 of 10 runs in the score set, covered only by "
         "https://github.com/medusajs/medusa/issues/16825, which Oversold has never reproduced",
+        "no_orphaned_orders failed 13 of 13 runs on plain Medusa 2.22.0: violation, cause "
+        "not isolated, no case's scoring control clears it",
     ]
     assert entry["reproduced"]["rules"] == {"no_orphaned_orders": score.NOT_ISOLATED}
     assert entry["controls"] == []
@@ -920,3 +922,43 @@ def test_unknown_complete_calls_in_a_control_block_reproduction(tmp_path, candid
     assert stop is None
     assert entry["reproduced"]["cases"] == {COUNTER: "inconclusive"}
     assert entry["inconclusive"]["control"] == 1
+
+
+def test_a_cause_not_isolated_always_goes_to_the_manual_checks(tmp_path, candidates):
+    path = candidates["s2-piece-c2-short-together"]
+    q = queues(path, many(("fail-reserved", 13)), pr_17420=many(("fail-reserved", 10)))
+    entry, stop, _, _ = attempt(tmp_path, path, q)
+    assert stop is None
+    assert entry["reproduced"]["rules"] == {"reserved_matches_reservations": score.NOT_ISOLATED}
+    assert entry["manual_check"] == [
+        "reserved_matches_reservations failed 13 of 13 runs on plain Medusa 2.22.0: violation, "
+        "cause not isolated, no case's scoring control clears it"
+    ]
+
+
+def test_a_reproduced_rule_needs_no_manual_check(tmp_path, candidates):
+    path = candidates["s2-piece-c2-short-together"]
+    q = queues(path, many(("fail-reserved", 13)), pr_17420=many(("pass", 10)))
+    entry, _, _, _ = attempt(tmp_path, path, q)
+    assert entry["reproduced"]["rules"] == {"reserved_matches_reservations": "reproduced"}
+    assert entry["manual_check"] == []
+
+
+def test_the_coverage_map_still_stops_before_any_manual_check(tmp_path, candidates):
+    path = candidates["s1-solo-c2-short-together"]
+    entry, stop, _, _ = attempt(tmp_path, path, queues(path, many(("fail-no-oversell", 3))))
+    assert stop.startswith("uncovered failure: no_oversell")
+    assert entry["reproduced"]["rules"] == {"no_oversell": score.NOT_ISOLATED}
+    assert entry["manual_check"][-1].endswith("no case's scoring control clears it")
+
+
+def test_run_sweep_lists_causes_not_isolated(tmp_path, monkeypatch, capsys):
+    paths = sweep_setup(tmp_path, monkeypatch, ["fail-reserved"], per=13)
+    stem = paths[0].stem
+    FakeOversold.queues[f"{stem}-pr-17420-control"] = many(("fail-reserved", 10))
+    assert score.run_sweep(tmp_path, paths, "2.22.0", 0, "s") == 0
+    out = capsys.readouterr().out
+    assert (
+        f"sweep: manual check: s-001 {stem}: reserved_matches_reservations failed 13 of 13 runs "
+        "on plain Medusa 2.22.0: violation, cause not isolated" in out
+    )
