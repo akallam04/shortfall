@@ -1,14 +1,23 @@
 import json
 import os
+import re
 
 import pytest
 
 from shortfall import ledger
 
-STAMP = "20261025T000000Z"
+STAMP = "20261116T000000Z"
+VERSIONS = {"no_oversell": [2], "no_missing_orders": [1]}
 
 
-def entry(n: int, verdict: str = "no match", case: str | None = None, runs: int = 3) -> dict:
+def entry(
+    n: int,
+    result: str = "not reproduced within 3 runs",
+    rules: dict | None = None,
+    cases: dict | None = None,
+    outcomes: dict | None = None,
+    runs: int = 3,
+) -> dict:
     return {
         "kind": "final",
         "attempt_id": f"{STAMP}-{n:03d}",
@@ -16,21 +25,22 @@ def entry(n: int, verdict: str = "no match", case: str | None = None, runs: int 
         "seed": 0,
         "scenario": f"runs/sweep/{STAMP}/grid-{n:03d}.yaml",
         "scenario_sha256": "0" * 64,
-        "case": case,
-        "cases": [case] if case else [],
-        "medusa_version": "2.21.2",
+        "medusa_version": "2.22.0",
         "carts": 2,
         "servers": 2,
         "shape": {"servers": 2, "carts": 2, "groups": [], "stock": {"SOLO": 1}},
         "screen_runs": 3,
+        "retry_runs": 0,
         "score_runs": 10 if runs > 3 else 0,
-        "control_runs": 10 if runs > 13 else 0,
-        "candidate_fails": {"screen": {"no_oversell": 1}, "score": None},
-        "control_fails": None,
-        "inconclusive": {"screen": 0, "score": 0, "control": 0},
-        "rules_failed": [],
-        "check_versions": {"no_oversell": [2], "no_missing_orders": [1]},
-        "verdict": verdict,
+        "control_runs": runs - 13 if runs > 13 else 0,
+        "candidate_fails": {"screen": {"no_oversell": 0}, "retry": None, "score": None},
+        "controls": [],
+        "inconclusive": {"screen": 0, "retry": 0, "score": 0, "control": 0},
+        "rules_failed": sorted(rules or {}),
+        "check_versions": VERSIONS,
+        "violation": {"result": result, "rules": rules or {}, "runs": min(runs, 13)},
+        "reproduced": {"cases": cases or {}, "rules": outcomes or {}},
+        "located": {"result": "not applicable"},
         "wall_seconds": 12.5,
         "oversold_runs": runs,
         "dollars": 0,
@@ -42,15 +52,39 @@ def entry(n: int, verdict: str = "no match", case: str | None = None, runs: int 
         "setup_error": None,
         "manual_check": [],
         "rerun_of": None,
-        "timestamp": "2026-10-25T00:00:00+00:00",
+        "timestamp": "2026-11-16T00:00:00+00:00",
     }
 
 
 def legacy(n: int, verdict: str = "no match", runs: int = 3) -> dict:
-    e = entry(n, verdict, runs=runs)
-    for key in ("kind", "dollars", "manual_check", "setup_error", "check_versions"):
-        e.pop(key)
-    return e
+    return {
+        "attempt_id": f"20261025T000000Z-{n:03d}",
+        "source": "sweep",
+        "seed": 0,
+        "scenario": f"runs/sweep/x/grid-{n:03d}.yaml",
+        "scenario_sha256": "0" * 64,
+        "case": "medusa-17032-last-unit" if verdict == "match" else None,
+        "cases": ["medusa-17032-last-unit"] if verdict == "match" else [],
+        "medusa_version": "2.21.2",
+        "carts": 2,
+        "servers": 2,
+        "shape": {"servers": 2},
+        "screen_runs": 3,
+        "score_runs": 0,
+        "control_runs": 0,
+        "candidate_fails": {"screen": {"no_oversell": 0}, "score": None},
+        "control_fails": None,
+        "inconclusive": {"screen": 0, "score": 0, "control": 0},
+        "rules_failed": [],
+        "verdict": verdict,
+        "wall_seconds": 10.0,
+        "oversold_runs": runs,
+        "oversold_commit": "a" * 40,
+        "medusa_image_id": "sha256:" + "b" * 64,
+        "medusa_image_digest": "none",
+        "run_folders": ["runs/x"],
+        "timestamp": "2026-10-25T00:00:00+00:00",
+    }
 
 
 def started(n: int) -> dict:
@@ -61,11 +95,11 @@ def started(n: int) -> dict:
         "seed": 0,
         "scenario": f"runs/sweep/{STAMP}/grid-{n:03d}.yaml",
         "scenario_sha256": "0" * 64,
-        "medusa_version": "2.21.2",
+        "medusa_version": "2.22.0",
         "medusa_image_id": "sha256:" + "b" * 64,
         "oversold_commit": "a" * 40,
         "rerun_of": None,
-        "timestamp": "2026-10-25T00:00:00+00:00",
+        "timestamp": "2026-11-16T00:00:00+00:00",
     }
 
 
@@ -82,7 +116,7 @@ def runs_spend(n: int, k: int, runs: int, set_name: str = "screen") -> dict:
         "input_tokens": None,
         "output_tokens": None,
         "dollars": 0,
-        "timestamp": "2026-10-25T00:00:00+00:00",
+        "timestamp": "2026-11-16T00:00:00+00:00",
     }
 
 
@@ -99,7 +133,7 @@ def paid(n: int, k: int, state: str, dollars: float, tokens=(None, None)) -> dic
         "input_tokens": tokens[0],
         "output_tokens": tokens[1],
         "dollars": dollars,
-        "timestamp": "2026-10-25T00:00:00+00:00",
+        "timestamp": "2026-11-16T00:00:00+00:00",
     }
 
 
@@ -108,30 +142,54 @@ def write(path, records):
         ledger.append(path, r)
 
 
+REPRODUCED = entry(
+    2,
+    "violation",
+    {"no_oversell": 4},
+    {"medusa-17032-last-unit": "reproduced", "medusa-16502-lines": "not reproduced"},
+    {"no_oversell": "reproduced"},
+    33,
+)
+NOT_ISOLATED = entry(
+    3,
+    "violation",
+    {"reserved_matches_reservations": 2},
+    {"medusa-17032-counter": "not reproduced"},
+    {"reserved_matches_reservations": ledger.NOT_ISOLATED},
+    23,
+)
+
+
 def test_round_trip(tmp_path):
     path = tmp_path / "runs" / "ledger.jsonl"
-    written = [
-        entry(1),
-        entry(2, "match", "medusa-17032-last-unit", 23),
-        entry(3, "reproduction only", "medusa-16502-lines", 13),
-    ]
+    written = [entry(1), REPRODUCED, NOT_ISOLATED]
     write(path, written)
     loaded = ledger.load(path)
     assert loaded == written
     assert list(loaded[0]) == list(ledger.FINAL_FIELDS)
-    assert ledger.find(loaded, written[1]["attempt_id"])["verdict"] == "match"
+    assert ledger.find(loaded, REPRODUCED["attempt_id"])["violation"]["result"] == "violation"
     with pytest.raises(KeyError):
         ledger.find(loaded, "nope")
 
 
-def test_legacy_lines_still_load_and_count(tmp_path):
+def test_lines_from_before_the_three_results_still_load_and_count(tmp_path):
     path = tmp_path / "ledger.jsonl"
     old = [legacy(1, runs=3), legacy(2, "match", runs=23)]
     path.write_text("".join(json.dumps(e) + "\n" for e in old), encoding="utf-8")
+    write(path, [entry(3)])
     records = ledger.load(path)
-    assert records == old
-    assert ledger.spent(records) == {"oversold_runs": 26, "dollars": 0.0, "unsettled_calls": 0}
-    assert ledger.summary(records)["by_verdict"]["match"] == 1
+    assert records[:2] == old
+    assert ledger.spent(records) == {"oversold_runs": 29, "dollars": 0.0, "unsettled_calls": 0}
+    s = ledger.summary(records)
+    assert s["lines from before the three results"] == {"match": 1, "no match": 1}
+    assert s["violation"] == {"not reproduced within 3 runs": 1}
+
+
+def test_a_final_line_cannot_use_the_old_fields(tmp_path):
+    old = legacy(1)
+    old["kind"] = "final"
+    with pytest.raises(ValueError, match="unknown field verdict"):
+        ledger.append(tmp_path / "ledger.jsonl", old)
 
 
 def test_appending_needs_a_kind(tmp_path):
@@ -152,10 +210,10 @@ def test_started_without_final_is_interrupted_with_its_charges(tmp_path):
     )
     records = ledger.load(path)
     [a] = ledger.attempts(records)
-    assert a["verdict"] == ledger.INTERRUPTED
+    assert a["interrupted"] is True
     assert a["oversold_runs"] == 13
     s = ledger.summary(records)
-    assert s["by_verdict"][ledger.INTERRUPTED] == 1
+    assert s["violation"] == {ledger.INTERRUPTED: 1}
     assert s["oversold_runs"] == 13
     with pytest.raises(KeyError):
         ledger.find(records, f"{STAMP}-001")
@@ -175,7 +233,7 @@ def test_finished_attempt_counts_its_spend_lines_once(tmp_path):
         ],
     )
     records = ledger.load(path)
-    assert [a["verdict"] for a in ledger.attempts(records)] == ["no match", ledger.INTERRUPTED]
+    assert [a.get("interrupted", False) for a in ledger.attempts(records)] == [False, True]
     assert ledger.spent(records)["oversold_runs"] == 4
 
 
@@ -201,33 +259,36 @@ def test_missing_ledger_loads_empty(tmp_path):
     assert ledger.load(tmp_path / "ledger.jsonl") == []
 
 
-def test_summary_adds_up():
+def test_summary_shows_the_three_results():
+    graded = entry(5, "violation", {"no_oversell": 1}, {"medusa-16502-lines": "reproduced"})
+    graded["located"] = {
+        "result": "graded",
+        "file": "packages/core/core-flows/src/cart/steps/confirm-inventory.ts",
+        "cases": {"medusa-16502-lines": "accepted"},
+    }
     entries = [
         entry(1),
-        entry(2),
-        entry(3, "match", "medusa-17032-last-unit", 23),
-        entry(4, "match", "medusa-17032-counter", 23),
-        entry(5, "reproduction only", "medusa-16502-lines", 13),
-        entry(6, "inconclusive"),
-        entry(7, "unpreparable", runs=1),
+        entry(6, "not reproduced within 10 runs", runs=10),
+        REPRODUCED,
+        NOT_ISOLATED,
+        entry(4, "unpreparable", runs=1),
+        graded,
     ]
     s = ledger.summary(entries)
-    assert s["attempts"] == 7
-    assert sum(s["by_verdict"].values()) == 7
-    assert s["by_verdict"] == {
-        "match": 2,
-        "no match": 2,
-        "reproduction only": 1,
-        "inconclusive": 1,
+    assert s["attempts"] == 6
+    assert s["violation"] == {
+        "not reproduced within 10 runs": 1,
+        "not reproduced within 3 runs": 1,
         "unpreparable": 1,
-        "interrupted": 0,
+        "violation": 3,
     }
-    assert sum(sum(v.values()) for v in s["by_case"].values()) == 7
-    assert s["by_case"]["none"] == {"inconclusive": 1, "no match": 2, "unpreparable": 1}
-    assert s["by_case"]["medusa-17032-last-unit"] == {"match": 1}
-    assert s["oversold_runs"] == 3 + 3 + 23 + 23 + 13 + 3 + 1
+    assert s["reproduced"] == {"medusa-16502-lines": 1, "medusa-17032-last-unit": 1}
+    assert s[ledger.NOT_ISOLATED] == {"reserved_matches_reservations": 1}
+    assert s["located"] == {"medusa-16502-lines accepted": 1, "not applicable": 5}
+    assert s["oversold_runs"] == 3 + 10 + 33 + 23 + 1 + 3
     assert s["dollars"] == 0
-    assert s["wall_seconds"] == 87.5
+    assert "lines from before the three results" not in s
+    assert not re.search(r"\"(no )?match\"", json.dumps(s))
 
 
 @pytest.mark.parametrize(
@@ -247,8 +308,12 @@ def test_summary_adds_up():
             "local path",
         ),
         (entry(1), lambda e: e.update(extra=1), "unknown field extra"),
-        (entry(1), lambda e: e.update(verdict="maybe"), "verdict"),
-        (entry(1), lambda e: e.update(verdict="interrupted"), "verdict"),
+        (entry(1), lambda e: e.update(verdict="match"), "unknown field verdict"),
+        (entry(1), lambda e: e["violation"].update(result="no match"), "violation.result"),
+        (entry(1), lambda e: e["violation"].update(result="not reproduced"), "violation.result"),
+        (entry(1), lambda e: e["violation"].pop("runs"), "violation needs rules and runs"),
+        (entry(1), lambda e: e["reproduced"].pop("rules"), "reproduced needs cases and rules"),
+        (entry(1), lambda e: e.update(located={"result": "maybe"}), "located.result"),
         (entry(1), lambda e: e.update(source="agent"), "source"),
         (entry(1), lambda e: e.pop("timestamp"), "timestamp is required"),
         (entry(1), lambda e: e.pop("dollars"), "dollars is required"),
@@ -270,3 +335,9 @@ def test_bad_records_refused(tmp_path, record, change, message):
     with pytest.raises(ValueError, match=message):
         ledger.append(path, record)
     assert not path.exists()
+
+
+def test_the_real_ledger_shape_still_loads(tmp_path):
+    path = tmp_path / "ledger.jsonl"
+    path.write_text(json.dumps(legacy(1, "unpreparable", runs=1)) + "\n", encoding="utf-8")
+    assert ledger.attempts(ledger.load(path))[0]["verdict"] == "unpreparable"

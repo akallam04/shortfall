@@ -11,6 +11,7 @@ from typing import Protocol
 import yaml
 
 from shortfall import ledger
+from shortfall.answers import located
 from shortfall.budget import ATTEMPT, Budget, CapReached, from_flags
 from shortfall.cases import RULES, Control, load_case
 from shortfall.control import one_server, redis_locking, variant
@@ -20,6 +21,7 @@ from shortfall.spend import Meter, now
 from shortfall.sweep import SKUS
 
 SCREEN_RUNS = 3
+RETRY_RUNS = 7
 HARNESS_STREAK = 3
 SETUP_ERROR = "prepare cart "
 LOCK_ERROR = "redis locking: "
@@ -29,6 +31,13 @@ IMAGE_ERROR = re.compile(
 SCORE_RUNS = 10
 CONTROL_RUNS = 10
 RESULTS = ("fail", "pass", "inconclusive")
+VIOLATION = "violation"
+UNPREPARABLE = "unpreparable"
+INCONCLUSIVE = "inconclusive"
+REPRODUCED = "reproduced"
+NOT_REPRODUCED = "not reproduced"
+NOT_ISOLATED = "violation, cause not isolated"
+HARNESS_ONLY = ("target.variant", "target.locking")
 CONTROLS = {
     "one-server": ("control", one_server),
     "redis-locking": ("redis-control", redis_locking),
@@ -45,7 +54,7 @@ def control_builder(control: Control | None, version: str):
         def build(text: str) -> str:
             return variant(text, control.variant, control.version)
 
-        return "variant-control", build
+        return f"{control.variant}-control", build
     return None
 
 
@@ -189,23 +198,43 @@ def inconclusive_runs(histories: list[dict]) -> int:
     )
 
 
-def case_map(cases_root: Path) -> dict[tuple[str, int], str]:
-    mapping: dict[tuple[str, int], str] = {}
+def not_reproduced_within(runs: int) -> str:
+    return f"not reproduced within {runs} runs"
+
+
+class CandidateRefused(ValueError):
+    pass
+
+
+def check_candidate(data) -> None:
+    target = data.get("target") if isinstance(data, dict) else None
+    if not isinstance(target, dict):
+        raise CandidateRefused("a candidate needs a target mapping")
+    found = [f"target.{key}" for key in ("variant", "locking") if key in target]
+    if found:
+        raise CandidateRefused(
+            f"a candidate may not set {' or '.join(found)}, only the harness sets them"
+        )
+
+
+@dataclass(frozen=True)
+class CaseInfo:
+    id: str
+    rule: str
+    folder: Path
+    scoring: Control
+
+
+def load_cases(cases_root: Path) -> dict[str, CaseInfo]:
+    out = {}
     for folder in sorted(p for p in Path(cases_root).iterdir() if p.is_dir()):
         case = load_case(folder)
-        ref = yaml.safe_load((folder / case.reference.file).read_text(encoding="utf-8"))
-        key = (case.rule, ref["target"]["servers"])
-        if key in mapping:
-            raise ValueError(f"cases {mapping[key]} and {case.id} share rule and server count")
-        mapping[key] = case.id
-    return mapping
+        out[case.id] = CaseInfo(id=case.id, rule=case.rule, folder=folder, scoring=case.scoring)
+    return out
 
 
-def control_map(cases_root: Path) -> dict[str, Control]:
-    return {
-        folder.name: load_case(folder).control
-        for folder in sorted(p for p in Path(cases_root).iterdir() if p.is_dir())
-    }
+def control_key(control: Control) -> tuple:
+    return (control.kind, control.variant, control.version)
 
 
 def check_histories(histories: list[dict], runs: int, pin: str, image_id: str | None) -> None:
@@ -284,215 +313,290 @@ class OversoldRunner:
         return RunSet(folder=relative(self.root, folder), histories=histories)
 
 
-def score_candidate(
-    root: Path,
-    scenario: Path,
-    version: str,
-    runner: Runner,
-    budget: Budget,
-    cases: dict[tuple[str, int], str],
-    image_id: str,
-    image_digest: str,
-    pin: str,
-    meta: dict,
-    ledger_path: Path,
-    *,
-    controls: dict[str, Control],
-) -> tuple[dict, str | None]:
-    text = scenario.read_text(encoding="utf-8")
-    data = yaml.safe_load(text)
-    sh = shape(data)
-    entry = dict(meta)
-    entry.update(
-        scenario=relative(root, scenario),
-        scenario_sha256=sha256_text(text),
-        case=None,
-        cases=[],
-        medusa_version=version,
-        carts=sh["carts"],
-        servers=sh["servers"],
-        shape=sh,
-        screen_runs=0,
-        score_runs=0,
-        control_runs=0,
-        candidate_fails={"screen": None, "score": None},
-        control_fails=None,
-        inconclusive={"screen": 0, "score": 0, "control": 0},
-        rules_failed=[],
-        check_versions={},
-        verdict="inconclusive",
-        oversold_commit=pin,
-        medusa_image_id=image_id,
-        medusa_image_digest=image_digest,
-        run_folders=[],
-        stop_reason=None,
-        setup_error=None,
-        manual_check=[],
-    )
-    budget.start_attempt()
-    meter = Meter(ledger_path, budget, entry["attempt_id"])
-    meter.start(
-        {
-            "source": entry["source"],
-            "seed": entry["seed"],
-            "scenario": entry["scenario"],
-            "scenario_sha256": entry["scenario_sha256"],
-            "medusa_version": version,
-            "medusa_image_id": image_id,
-            "oversold_commit": pin,
-            "rerun_of": entry.get("rerun_of"),
-        }
-    )
-    start = time.monotonic()
-    stop = None
+class Attempt:
+    def __init__(
+        self,
+        root: Path,
+        scenario: Path,
+        version: str,
+        runner: Runner,
+        budget: Budget,
+        cases: dict[str, CaseInfo],
+        image_id: str,
+        image_digest: str,
+        pin: str,
+        meta: dict,
+        ledger_path: Path,
+        named_file: str | None = None,
+    ):
+        self.root = Path(root)
+        self.scenario = Path(scenario)
+        self.version = version
+        self.runner = runner
+        self.budget = budget
+        self.cases = cases
+        self.named_file = named_file
+        self.text = self.scenario.read_text(encoding="utf-8")
+        data = yaml.safe_load(self.text)
+        check_candidate(data)
+        self.shape = shape(data)
+        self.entry = dict(meta)
+        self.entry.update(
+            scenario=relative(self.root, self.scenario),
+            scenario_sha256=sha256_text(self.text),
+            medusa_version=version,
+            carts=self.shape["carts"],
+            servers=self.shape["servers"],
+            shape=self.shape,
+            screen_runs=0,
+            retry_runs=0,
+            score_runs=0,
+            control_runs=0,
+            candidate_fails={"screen": None, "retry": None, "score": None},
+            controls=[],
+            inconclusive={"screen": 0, "retry": 0, "score": 0, "control": 0},
+            rules_failed=[],
+            check_versions={},
+            violation={"result": INCONCLUSIVE, "rules": {}, "runs": 0},
+            reproduced={"cases": {}, "rules": {}},
+            located={"result": "not applicable"},
+            oversold_commit=pin,
+            medusa_image_id=image_id,
+            medusa_image_digest=image_digest,
+            run_folders=[],
+            stop_reason=None,
+            setup_error=None,
+            manual_check=[],
+        )
+        self.meter = Meter(ledger_path, budget, self.entry["attempt_id"])
+        self.used = 0
+        self.seconds = 0.0
+        self.stop: str | None = None
+        self.done = False
+        self.finished = False
+        self.histories: dict[str, list[dict]] = {"screen": [], "retry": [], "score": []}
+        budget.start_attempt()
+        self.meter.start(
+            {
+                "source": self.entry["source"],
+                "seed": self.entry["seed"],
+                "scenario": self.entry["scenario"],
+                "scenario_sha256": self.entry["scenario_sha256"],
+                "medusa_version": version,
+                "medusa_image_id": image_id,
+                "oversold_commit": pin,
+                "rerun_of": self.entry.get("rerun_of"),
+            }
+        )
 
-    def run_once(name: str, path: Path, runs: int) -> list[dict]:
-        meter.runs(name, runs)
-        result = runner.run(path, runs, version)
-        entry["run_folders"].append(result.folder)
+    def _run(self, name: str, path: Path, runs: int) -> list[dict]:
+        self.meter.runs(name, runs)
+        result = self.runner.run(path, runs, self.version)
+        self.entry["run_folders"].append(result.folder)
         return result.histories
 
-    def record(name: str, histories: list[dict], set_shape: dict) -> dict:
+    def _record(self, name: str, histories: list[dict], set_shape: dict, label: str) -> dict:
         runs = len(histories)
         locks = [lock_error(h) for h in histories if lock_error(h)]
         if locks:
             raise RuntimeError(
-                f"harness: {len(locks)} of {runs} runs in the {name} set made no lock calls "
+                f"harness: {len(locks)} of {runs} runs in the {label} set made no lock calls "
                 f"through Redis: {locks[0]}"
             )
         images = [image_error(h) for h in histories if image_error(h)]
         if images:
             raise RuntimeError(
-                f"harness: {len(images)} of {runs} runs in the {name} set had an image or "
+                f"harness: {len(images)} of {runs} runs in the {label} set had an image or "
                 f"variant file mismatch: {images[0]}"
             )
         c = counts(histories)
+        entry = self.entry
         entry["check_versions"] = merge_versions(entry["check_versions"], check_versions(histories))
-        entry["inconclusive"][name] = inconclusive_runs(histories)
-        if name == "control":
-            entry["control_runs"] = runs
-            entry["control_fails"] = fails(c)
-        else:
+        if name in self.histories:
             entry[f"{name}_runs"] = runs
             entry["candidate_fails"][name] = fails(c)
+            entry["inconclusive"][name] = inconclusive_runs(histories)
             entry["rules_failed"] = sorted(
                 set(entry["rules_failed"]) | set(failed_rules(c)), key=rule_order
             )
         entry["manual_check"] = [
-            note for note in entry["manual_check"] if f" in the {name} set," not in note
+            n for n in entry["manual_check"] if f" in the {label} set," not in n
         ]
         for rule in failed_rules(c):
             issues = covering_issues(set_shape, rule)
             if not issues:
                 raise UncoveredFailure(
                     f"uncovered failure: {rule} failed {c[rule]['fail']} of {runs} runs in the "
-                    f"{name} set, and no issue in the coverage map covers this shape"
+                    f"{label} set, and no issue in the coverage map covers this shape"
                 )
             if set(issues) <= MANUAL_CHECK:
                 entry["manual_check"].append(
-                    f"{rule} failed {c[rule]['fail']} of {runs} runs in the {name} set, "
+                    f"{rule} failed {c[rule]['fail']} of {runs} runs in the {label} set, "
                     f"covered only by {', '.join(issues)}, which Oversold has never reproduced"
                 )
         return c
 
-    def run_set(name: str, path: Path, runs: int, set_shape: dict) -> dict:
-        return record(name, run_once(name, path, runs), set_shape)
-
-    def unpreparable(histories: list[dict]) -> bool:
-        errors = [setup_error(h) for h in histories if setup_error(h)]
+    def _candidate_set(self, name: str, runs: int) -> bool:
+        new = self._run(name, self.scenario, runs)
+        self.histories[name] += new
+        c = self._record(name, self.histories[name], self.shape, name)
+        errors = [setup_error(h) for h in new if setup_error(h)]
         if errors:
-            entry["setup_error"] = clean(errors[0], root)
-        return bool(errors)
+            self.entry["setup_error"] = clean(errors[0], self.root)
+            self.done = True
+            return False
+        return bool(failed_rules(c))
 
-    def decide() -> str:
-        first = run_once("screen", scenario, 1)
-        record("screen", first, sh)
-        if unpreparable(first):
-            return "unpreparable"
-        rest = run_once("screen", scenario, SCREEN_RUNS - 1)
-        screen = record("screen", first + rest, sh)
-        if unpreparable(rest):
-            return "unpreparable"
-        if not failed_rules(screen):
-            return "inconclusive" if entry["inconclusive"]["screen"] else "no match"
-        scored = run_set("score", scenario, SCORE_RUNS, sh)
-        score_rules = failed_rules(scored)
-        servers = sh["servers"]
-        candidate_rules = [r for r in score_rules if (r, servers) in cases]
-        hits = [cases[(r, servers)] for r in candidate_rules]
-
-        def reproduction_only() -> str:
-            entry["cases"] = hits
-            entry["case"] = hits[0] if hits else None
-            return "reproduction only"
-
-        if not candidate_rules:
-            if servers == 1 and score_rules:
-                return reproduction_only()
-            if not score_rules and entry["inconclusive"]["score"]:
-                return "inconclusive"
-            return "no match"
-        picked = {controls.get(case_id) for case_id in hits}
-        if len(picked) != 1:
-            kinds = sorted(c.kind if c else "none" for c in picked)
-            raise RuntimeError(f"cases for {', '.join(candidate_rules)} need controls {kinds}")
-        built = control_builder(picked.pop(), version)
-        if built is None:
-            return reproduction_only()
-        suffix, build = built
+    def _guard(self, action) -> None:
+        self.budget.attempt_used = self.used
+        start = time.monotonic()
         try:
-            control_text = build(text)
-        except ValueError:
-            return reproduction_only()
-        control_path = scenario.with_name(f"{scenario.stem}-{suffix}.yaml")
-        if control_path.exists() and control_path.read_text(encoding="utf-8") != control_text:
-            raise RuntimeError(f"{control_path.name} exists and differs from the generated control")
-        control_path.write_text(control_text, encoding="utf-8")
-        control = run_set(
-            "control", control_path, CONTROL_RUNS, shape(yaml.safe_load(control_text))
-        )
-        clean_control = entry["inconclusive"]["control"] == 0
-        cleared = [r for r in candidate_rules if control.get(r, {"fail": 0})["fail"] == 0]
-        matched = cleared if clean_control else []
-        if matched:
-            entry["cases"] = [cases[(r, servers)] for r in matched]
-            entry["case"] = entry["cases"][0]
-            return "match"
-        if not clean_control and cleared:
-            return "inconclusive"
-        return "no match"
+            action()
+        except CapReached as err:
+            self.entry["stop_reason"] = str(err)
+            self.stop = None if err.cap == ATTEMPT else str(err)
+            self.done = True
+        except UncoveredFailure as err:
+            self.entry["stop_reason"] = str(err)
+            self.stop = str(err)
+            self.done = True
+        except RuntimeError as err:
+            self.entry["stop_reason"] = clean(f"error: {err}", self.root)
+            self.stop = self.entry["stop_reason"]
+            self.done = True
+        finally:
+            self.used = self.budget.attempt_used
+            self.seconds += time.monotonic() - start
 
-    try:
-        entry["verdict"] = decide()
-    except CapReached as err:
-        entry["stop_reason"] = str(err)
-        stop = None if err.cap == ATTEMPT else str(err)
-    except UncoveredFailure as err:
-        entry["stop_reason"] = str(err)
-        stop = str(err)
-    except RuntimeError as err:
-        entry["stop_reason"] = clean(f"error: {err}", root)
-        stop = entry["stop_reason"]
-    entry["wall_seconds"] = round(time.monotonic() - start, 1)
-    entry["oversold_runs"] = budget.attempt_used
-    entry["timestamp"] = now()
-    meter.finish(entry)
-    return entry, stop
+    def first_pass(self) -> None:
+        def action():
+            self._candidate_set("screen", 1)
+            if self.done:
+                return
+            if self._candidate_set("screen", SCREEN_RUNS - 1):
+                self._score()
 
+        self._guard(action)
 
-def _fails_text(f: dict | None) -> str:
-    if not f:
-        return "-"
-    return ",".join(f"{rule}={n}" for rule, n in f.items() if n) or "none"
+    def second_pass(self) -> None:
+        def action():
+            if self._candidate_set("retry", RETRY_RUNS):
+                self._score()
+            self.done = True
+
+        self._guard(action)
+
+    def _score(self) -> None:
+        self.done = True
+        scored = self._candidate_set("score", SCORE_RUNS)
+        if self.done and self.entry["setup_error"]:
+            return
+        score = counts(self.histories["score"])
+        planned: dict[tuple, dict] = {}
+        for rule in failed_rules(score) if scored else []:
+            for case in sorted(self.cases.values(), key=lambda c: c.id):
+                if case.rule != rule:
+                    continue
+                item = planned.setdefault(
+                    control_key(case.scoring), {"control": case.scoring, "cases": []}
+                )
+                item["cases"].append(case.id)
+        results = self.entry["reproduced"]["cases"]
+        for item in planned.values():
+            control = item["control"]
+            built = control_builder(control, self.version)
+            if built is None:
+                for case_id in item["cases"]:
+                    results[case_id] = f"no scoring control on {self.version}"
+                continue
+            suffix, build = built
+            control_text = build(self.text)
+            path = self.scenario.with_name(f"{self.scenario.stem}-{suffix}.yaml")
+            if path.exists() and path.read_text(encoding="utf-8") != control_text:
+                raise RuntimeError(f"{path.name} exists and differs from the generated control")
+            path.write_text(control_text, encoding="utf-8")
+            histories = self._run("control", path, CONTROL_RUNS)
+            c = self._record("control", histories, shape(yaml.safe_load(control_text)), suffix)
+            inconclusive = inconclusive_runs(histories)
+            self.entry["controls"].append(
+                {
+                    "control": suffix,
+                    "kind": control.kind,
+                    "variant": control.variant,
+                    "version": control.version,
+                    "file": relative(self.root, path),
+                    "cases": item["cases"],
+                    "runs": len(histories),
+                    "fails": fails(c),
+                    "inconclusive": inconclusive,
+                }
+            )
+            self.entry["control_runs"] += len(histories)
+            self.entry["inconclusive"]["control"] += inconclusive
+            for case_id in item["cases"]:
+                rule = self.cases[case_id].rule
+                cleared = c.get(rule, {"fail": 0})["fail"] == 0
+                if cleared and inconclusive == 0:
+                    results[case_id] = REPRODUCED
+                elif cleared:
+                    results[case_id] = INCONCLUSIVE
+                else:
+                    results[case_id] = NOT_REPRODUCED
+        self.entry["reproduced"]["cases"] = dict(sorted(results.items()))
+
+    def finish(self) -> dict:
+        if self.finished:
+            return self.entry
+        entry = self.entry
+        runs = sum(len(h) for h in self.histories.values())
+        totals: dict[str, int] = {}
+        for name in self.histories:
+            for rule, n in (entry["candidate_fails"][name] or {}).items():
+                totals[rule] = totals.get(rule, 0) + n
+        failed = {rule: n for rule, n in totals.items() if n}
+        inconclusive = sum(entry["inconclusive"][n] for n in self.histories)
+        if entry["setup_error"]:
+            result = UNPREPARABLE
+        elif failed:
+            result = VIOLATION
+        elif runs == 0 or inconclusive == runs:
+            result = INCONCLUSIVE
+        else:
+            result = not_reproduced_within(runs)
+        entry["violation"] = {"result": result, "rules": failed, "runs": runs}
+        cases = dict(sorted(entry["reproduced"]["cases"].items()))
+        entry["reproduced"]["cases"] = cases
+        outcomes = {}
+        for rule in sorted(failed, key=rule_order):
+            mine = [cases.get(c.id) for c in self.cases.values() if c.rule == rule]
+            if REPRODUCED in mine:
+                outcomes[rule] = REPRODUCED
+            elif INCONCLUSIVE in mine:
+                outcomes[rule] = INCONCLUSIVE
+            else:
+                outcomes[rule] = NOT_ISOLATED
+        entry["reproduced"]["rules"] = outcomes
+        hits = [case_id for case_id, r in cases.items() if r == REPRODUCED]
+        folders = {case_id: info.folder for case_id, info in self.cases.items()}
+        entry["located"] = located(folders, hits, self.named_file)
+        entry["wall_seconds"] = round(self.seconds, 1)
+        entry["oversold_runs"] = self.used
+        entry["timestamp"] = now()
+        self.meter.finish(entry)
+        self.finished = True
+        return entry
 
 
 def describe_entry(entry: dict) -> str:
+    v = entry["violation"]
+    rules = ",".join(f"{r}={n}" for r, n in v["rules"].items()) or "none"
+    reproduced = [c for c, r in entry["reproduced"]["cases"].items() if r == REPRODUCED]
+    isolated = [r for r, o in entry["reproduced"]["rules"].items() if o == NOT_ISOLATED]
     return (
-        f"{entry['attempt_id']} {Path(entry['scenario']).stem}: {entry['verdict']}"
-        f"{' ' + entry['case'] if entry['case'] else ''} | runs {entry['oversold_runs']} | "
-        f"screen {_fails_text(entry['candidate_fails']['screen'])} | "
-        f"score {_fails_text(entry['candidate_fails']['score'])} | "
-        f"control {_fails_text(entry['control_fails'])}"
+        f"{entry['attempt_id']} {Path(entry['scenario']).stem}: {v['result']} ({rules}) | "
+        f"reproduced {','.join(reproduced) or 'none'}"
+        f"{' | ' + NOT_ISOLATED + ': ' + ','.join(isolated) if isolated else ''} | "
+        f"located {entry['located']['result']} | runs {entry['oversold_runs']}"
         f"{' | stop: ' + entry['stop_reason'] if entry['stop_reason'] else ''}"
         f"{' | manual check' if entry.get('manual_check') else ''}"
     )
@@ -517,16 +621,53 @@ def _start(root: Path, version: str, max_runs, raise_dollar_cap):
     runner = OversoldRunner(root)
     image_id, digest = runner.image(version)
     print(f"sweep: medusa {version} image {image_id} digest {digest}")
-    cases = case_map(Path(root) / "benchmark" / "cases")
-    controls = control_map(Path(root) / "benchmark" / "cases")
-    return budget, runner, image_id, digest, cases, controls
+    cases = load_cases(Path(root) / "benchmark" / "cases")
+    return budget, runner, image_id, digest, cases
 
 
-def only_inconclusive(entry: dict) -> bool:
-    if entry["verdict"] == "unpreparable":
+def only_inconclusive(attempt: Attempt) -> bool:
+    if attempt.entry["setup_error"]:
         return False
-    used = entry["screen_runs"] + entry["score_runs"] + entry["control_runs"]
-    return used > 0 and sum(entry["inconclusive"].values()) == used
+    runs = sum(len(h) for h in attempt.histories.values())
+    return runs > 0 and sum(attempt.entry["inconclusive"][n] for n in attempt.histories) == runs
+
+
+def run_attempts(factories, budget: Budget, report=print) -> tuple[list[Attempt], str | None]:
+    attempts: list[Attempt] = []
+    pending: list[Attempt] = []
+    stop = None
+    streak = 0
+    for factory in factories:
+        if budget.session_left() < SCREEN_RUNS:
+            stop = (
+                f"session runs cap: {budget.session_left()} runs left, a screen needs {SCREEN_RUNS}"
+            )
+            break
+        attempt = factory()
+        attempts.append(attempt)
+        attempt.first_pass()
+        if attempt.done:
+            report(describe_entry(attempt.finish()))
+        else:
+            pending.append(attempt)
+        if attempt.stop:
+            stop = attempt.stop
+            break
+        streak = streak + 1 if only_inconclusive(attempt) else 0
+        if streak >= HARNESS_STREAK:
+            stop = f"harness: {streak} attempts in a row had only inconclusive runs"
+            break
+    for attempt in pending:
+        if stop or budget.session_left() < RETRY_RUNS:
+            break
+        attempt.second_pass()
+        report(describe_entry(attempt.finish()))
+        if attempt.stop:
+            stop = attempt.stop
+    for attempt in pending:
+        if not attempt.finished:
+            report(describe_entry(attempt.finish()))
+    return attempts, stop
 
 
 def run_sweep(
@@ -539,61 +680,58 @@ def run_sweep(
     raise_dollar_cap=None,
 ) -> int:
     try:
-        budget, runner, image_id, digest, cases, controls = _start(
-            root, version, max_runs, raise_dollar_cap
-        )
+        budget, runner, image_id, digest, cases = _start(root, version, max_runs, raise_dollar_cap)
     except RuntimeError as err:
         print(f"sweep: {err}")
         return 2
     ledger_path = ledger_path_for(root)
-    entries = []
-    stop = None
-    streak = 0
+    refused = []
+    factories = []
     for index, path in enumerate(paths, start=1):
-        if budget.session_left() < SCREEN_RUNS:
-            stop = (
-                f"session runs cap: {budget.session_left()} runs left, a screen needs {SCREEN_RUNS}"
-            )
-            break
+        try:
+            check_candidate(yaml.safe_load(Path(path).read_text(encoding="utf-8")))
+        except CandidateRefused as err:
+            refused.append(f"{Path(path).stem}: {err}")
+            continue
         meta = {
             "attempt_id": f"{stamp}-{index:03d}",
             "source": "sweep",
             "seed": seed,
             "rerun_of": None,
         }
-        entry, stop = score_candidate(
-            root,
-            path,
-            version,
-            runner,
-            budget,
-            cases,
-            image_id,
-            digest,
-            runner.pin,
-            meta,
-            ledger_path,
-            controls=controls,
-        )
-        entries.append(entry)
-        print(describe_entry(entry), flush=True)
-        if stop:
-            break
-        streak = streak + 1 if only_inconclusive(entry) else 0
-        if streak >= HARNESS_STREAK:
-            stop = f"harness: {streak} attempts in a row had only inconclusive runs"
-            break
-    screened = sum(1 for e in entries if e["screen_runs"])
-    scored = sum(1 for e in entries if e["score_runs"])
+
+        def factory(path=path, meta=meta):
+            return Attempt(
+                root,
+                path,
+                version,
+                runner,
+                budget,
+                cases,
+                image_id,
+                digest,
+                runner.pin,
+                meta,
+                ledger_path,
+            )
+
+        factories.append(factory)
+    for note in refused:
+        print(f"sweep: refused: {note}")
+    attempts, stop = run_attempts(factories, budget)
+    screened = sum(1 for a in attempts if a.entry["screen_runs"])
+    retried = sum(1 for a in attempts if a.entry["retry_runs"])
+    scored = sum(1 for a in attempts if a.entry["score_runs"])
     print(
-        f"sweep: {len(paths)} candidates, {len(entries)} attempted, {screened} screened, "
-        f"{scored} scored, {len(paths) - len(entries)} skipped"
+        f"sweep: {len(paths)} candidates, {len(refused)} refused, {len(attempts)} attempted, "
+        f"{screened} screened, {retried} retried, {scored} scored, "
+        f"{len(factories) - len(attempts)} skipped"
     )
     if stop:
         print(f"sweep: stopped: {stop}")
-    for e in entries:
-        for note in e["manual_check"]:
-            print(f"sweep: manual check: {e['attempt_id']} {Path(e['scenario']).stem}: {note}")
+    for a in attempts:
+        for note in a.entry["manual_check"]:
+            print(f"sweep: manual check: {a.entry['attempt_id']} {Path(a.scenario).stem}: {note}")
     session = [r for r in ledger.load(ledger_path) if r["attempt_id"].startswith(f"{stamp}-")]
     print(json.dumps(ledger.summary(session), indent=2))
     print(budget.describe())
@@ -602,15 +740,26 @@ def run_sweep(
     return 0
 
 
+def outcome(entry: dict) -> tuple:
+    return (
+        entry["violation"]["result"],
+        tuple(sorted(entry["violation"]["rules"])),
+        tuple(sorted(entry["reproduced"]["cases"].items())),
+    )
+
+
 def rerun(root: Path, attempt_id: str, stamp: str, max_runs=None, raise_dollar_cap=None) -> int:
     ledger_path = ledger_path_for(root)
     old = ledger.find(ledger.load(ledger_path), attempt_id)
+    if "violation" not in old:
+        print(f"rerun: {attempt_id} is a line from before the three results, not comparable")
+        return 2
     path = Path(root) / old["scenario"]
     if sha256_text(path.read_text(encoding="utf-8")) != old["scenario_sha256"]:
         print(f"rerun: {old['scenario']} changed since attempt {attempt_id}")
         return 2
     try:
-        budget, runner, image_id, digest, cases, controls = _start(
+        budget, runner, image_id, digest, cases = _start(
             root, old["medusa_version"], max_runs, raise_dollar_cap
         )
     except RuntimeError as err:
@@ -625,26 +774,32 @@ def rerun(root: Path, attempt_id: str, stamp: str, max_runs=None, raise_dollar_c
         "seed": old["seed"],
         "rerun_of": attempt_id,
     }
-    entry, stop = score_candidate(
-        root,
-        path,
-        old["medusa_version"],
-        runner,
-        budget,
-        cases,
-        image_id,
-        digest,
-        runner.pin,
-        meta,
-        ledger_path,
-        controls=controls,
-    )
-    print(describe_entry(entry))
+
+    def factory():
+        return Attempt(
+            root,
+            path,
+            old["medusa_version"],
+            runner,
+            budget,
+            cases,
+            image_id,
+            digest,
+            runner.pin,
+            meta,
+            ledger_path,
+        )
+
+    attempts, stop = run_attempts([factory], budget)
+    if not attempts:
+        print(f"rerun: stopped before the attempt started: {stop}")
+        return 2
+    entry = attempts[0].entry
     for note in entry["manual_check"]:
         print(f"rerun: manual check: {note}")
-    same = entry["verdict"] == old["verdict"] and entry["case"] == old["case"]
-    print(f"rerun: before {old['verdict']} {old['case']}, now {entry['verdict']} {entry['case']}")
-    print(f"rerun: same verdict: {'yes' if same else 'no'}")
+    same = outcome(entry) == outcome(old)
+    print(f"rerun: before {outcome(old)}, now {outcome(entry)}")
+    print(f"rerun: same results: {'yes' if same else 'no'}")
     print(budget.describe())
     if stop:
         print(f"rerun: stopped: {stop}")

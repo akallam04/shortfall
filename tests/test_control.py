@@ -71,27 +71,6 @@ def test_long_name_raises():
     )
 
 
-@pytest.mark.parametrize(
-    "case_id", sorted(p.parent.name for p in CASES.glob("*/one-server-control.yaml"))
-)
-def test_committed_control_matches_generator(case_id):
-    folder = CASES / case_id
-    out = subprocess.run(
-        [sys.executable, "-m", "shortfall.control", str(folder / "reference.yaml")],
-        check=True,
-        capture_output=True,
-    ).stdout
-    assert out == (folder / "one-server-control.yaml").read_bytes()
-
-
-def test_one_server_controls_are_kept_for_the_17032_cases():
-    assert not list(CASES.glob("*/control.yaml"))
-    assert sorted(p.parent.name for p in CASES.glob("*/one-server-control.yaml")) == [
-        "medusa-17032-counter",
-        "medusa-17032-last-unit",
-    ]
-
-
 REDIS = {
     "medusa-17032-last-unit": "last-unit-two-servers-redis-locking.yaml",
     "medusa-17032-counter": "counter-two-servers-redis-locking.yaml",
@@ -149,32 +128,6 @@ def test_redis_rewrite_works_on_one_server_scenarios():
     assert after["target"]["locking"] == "redis"
 
 
-REDIS_CASES = sorted(
-    p.name for p in CASES.iterdir() if p.is_dir() and load_case(p).control.kind == "redis-locking"
-)
-
-
-def test_the_17032_cases_use_redis_locking_controls():
-    assert REDIS_CASES == ["medusa-17032-counter", "medusa-17032-last-unit"]
-
-
-@pytest.mark.parametrize("case_id", REDIS_CASES)
-def test_committed_redis_control_matches_generator(case_id):
-    folder = CASES / case_id
-    out = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "shortfall.control",
-            "--redis-locking",
-            str(folder / "reference.yaml"),
-        ],
-        check=True,
-        capture_output=True,
-    ).stdout
-    assert out == (folder / "redis-control.yaml").read_bytes()
-
-
 @pytest.mark.parametrize(
     "argv",
     [
@@ -218,7 +171,7 @@ def test_variant_goes_right_after_servers():
 
 
 def test_variant_refuses_a_scenario_with_a_variant():
-    text = (LINES / "variant-control.yaml").read_text(encoding="utf-8")
+    text = (LINES / "pr-16961-control.yaml").read_text(encoding="utf-8")
     with pytest.raises(ValueError, match="already has target.variant"):
         variant(text, "pr-16961", "2.22.0")
 
@@ -243,19 +196,60 @@ def test_variant_long_name_raises():
     assert len(out["name"]) == 64
 
 
-def test_committed_variant_control_matches_generator():
-    case = load_case(LINES)
+CONTROLS = [
+    (case.id, control)
+    for case in (load_case(p) for p in sorted(CASES.iterdir()) if p.is_dir())
+    for control in case.controls
+]
+
+
+def control_argv(control) -> list[str]:
+    if control.kind == "variant":
+        return ["--variant", control.variant, control.version]
+    if control.kind == "redis-locking":
+        return ["--redis-locking"]
+    return []
+
+
+def test_each_case_has_its_controls():
+    assert [(case_id, c.file, c.kind, c.role) for case_id, c in CONTROLS] == [
+        ("medusa-16502-lines", "pr-16961-control.yaml", "variant", "scoring"),
+        ("medusa-17032-counter", "pr-17420-control.yaml", "variant", "scoring"),
+        ("medusa-17032-counter", "redis-control.yaml", "redis-locking", "cross-check"),
+        ("medusa-17032-counter", "one-server-control.yaml", "one-server", "history"),
+        ("medusa-17032-last-unit", "pr-17420-control.yaml", "variant", "scoring"),
+        ("medusa-17032-last-unit", "redis-control.yaml", "redis-locking", "cross-check"),
+        ("medusa-17032-last-unit", "one-server-control.yaml", "one-server", "history"),
+    ]
+    assert not list(CASES.glob("*/control.yaml"))
+    assert not list(CASES.glob("*/variant-control.yaml"))
+
+
+@pytest.mark.parametrize("case_id,control", CONTROLS, ids=[f"{c}-{k.file}" for c, k in CONTROLS])
+def test_every_control_file_is_the_rewrite_of_its_reference(case_id, control):
+    folder = CASES / case_id
     out = subprocess.run(
         [
             sys.executable,
             "-m",
             "shortfall.control",
-            "--variant",
-            case.control.variant,
-            case.control.version,
-            str(LINES / "reference.yaml"),
+            *control_argv(control),
+            str(folder / "reference.yaml"),
         ],
         check=True,
         capture_output=True,
     ).stdout
-    assert out == (LINES / "variant-control.yaml").read_bytes()
+    assert out == (folder / control.file).read_bytes()
+
+
+@pytest.mark.parametrize("case_id,control", CONTROLS, ids=[f"{c}-{k.file}" for c, k in CONTROLS])
+def test_every_control_file_passes_oversold_validate(case_id, control):
+    if not (ROOT / ".oversold" / "bin" / "oversold").exists():
+        pytest.skip("needs the pinned Oversold clone")
+    proc = subprocess.run(
+        ["sh", "scripts/oversold.sh", "validate", str(CASES / case_id / control.file)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr

@@ -114,7 +114,7 @@ def test_a_killed_paid_call_counts_its_reservation(tmp_path):
         m.paid_call(MODEL, 2.0, dies)
     records = ledger.load(path)
     [a] = ledger.attempts(records)
-    assert a["verdict"] == ledger.INTERRUPTED
+    assert a["interrupted"] is True
     assert a["dollars"] == pytest.approx(2.0)
     totals = ledger.spent(records)
     assert totals["dollars"] == pytest.approx(2.0)

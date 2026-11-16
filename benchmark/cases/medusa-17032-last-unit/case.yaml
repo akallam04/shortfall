@@ -11,8 +11,18 @@ issue:
   opened: 2026-09-27
   state: closed as not planned on 2026-10-18, no fix
 rule: no_oversell
-control:
-  kind: redis-locking
+controls:
+  - file: pr-17420-control.yaml
+    kind: variant
+    variant: pr-17420
+    version: 2.22.0
+    role: scoring
+  - file: redis-control.yaml
+    kind: redis-locking
+    role: cross-check
+  - file: one-server-control.yaml
+    kind: one-server
+    role: history
 reference:
   file: reference.yaml
   source: Oversold scenarios/medusa/last-unit-two-servers.yaml at commit a18d5c9f3892dbca86effa0766e975985f8324bd
@@ -24,4 +34,4 @@ agent_sees:
   unguided:
     - the Medusa source code for the case's version, without git history, changelogs, changesets or guides written for AI coding tools
     - Oversold's scenario format and check rules at the pin
-notes: "Measured with Medusa's default in-memory locking provider. Medusa's docs recommend the Redis locking provider when more than one server runs. The cross-process lost update is also reported, through direct service calls, in the open issue #16569."
+notes: "Measured with Medusa's default in-memory locking provider. Medusa's docs recommend the Redis locking provider when more than one server runs. The cross-process lost update is also reported, through direct service calls, in the open issue #16569. pr-17420 is Medusa 2.22.0 with the change from medusajs/medusa#17420, a community pull request that was closed without being merged."

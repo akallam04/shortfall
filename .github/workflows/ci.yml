@@ -53,7 +53,7 @@ jobs:
       - name: Validate generated sweep files with the pinned Oversold
         run: |
           test -x .oversold/bin/oversold
-          pytest tests/test_sweep.py -k oversold_validate -rs
+          pytest tests/test_sweep.py tests/test_control.py -k oversold_validate -rs
 
   secrets:
     runs-on: ubuntu-24.04

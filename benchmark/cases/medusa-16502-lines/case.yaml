@@ -11,10 +11,12 @@ issue:
   opened: 2026-08-20
   state: closed as not planned on 2026-09-27, no fix
 rule: no_oversell
-control:
-  kind: variant
-  variant: pr-16961
-  version: 2.22.0
+controls:
+  - file: pr-16961-control.yaml
+    kind: variant
+    variant: pr-16961
+    version: 2.22.0
+    role: scoring
 reference:
   file: reference.yaml
   source: Oversold scenarios/medusa/single-cart-over-demand.yaml at commit a18d5c9f3892dbca86effa0766e975985f8324bd

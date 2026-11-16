@@ -18,8 +18,8 @@ from shortfall.sweep import parse_args
 
 def test_defaults():
     b = Budget()
-    assert (b.session_runs, b.attempt_runs, b.dollars) == (600, 25, 0.0)
-    assert (DEFAULT_SESSION_RUNS, DEFAULT_ATTEMPT_RUNS, DEFAULT_DOLLARS) == (600, 25, 0.0)
+    assert (b.session_runs, b.attempt_runs, b.dollars) == (600, 40, 0.0)
+    assert (DEFAULT_SESSION_RUNS, DEFAULT_ATTEMPT_RUNS, DEFAULT_DOLLARS) == (600, 40, 0.0)
     assert b.total_dollar_cap == TOTAL_DOLLAR_CAP == 20.0
     assert b.dollars_before == 0.0
 
@@ -114,7 +114,7 @@ def test_total_cap_cannot_be_raised():
 def test_max_runs_overrides_session_cap_only():
     b = from_flags(max_runs=50)
     assert b.session_runs == 50
-    assert b.attempt_runs == 25
+    assert b.attempt_runs == 40
     assert b.dollars == 0
 
 
@@ -156,6 +156,6 @@ def test_describe_reports_each_cap():
     b.charge_dollars(0.5)
     text = b.describe()
     assert "session runs: used 3 of 10" in text
-    assert "attempt runs: last attempt used 3 of 25" in text
+    assert "attempt runs: last attempt used 3 of 40" in text
     assert "dollars this session: used 0.50 of 2.00" in text
     assert "dollars across all sessions: 3.75 of 20.00" in text

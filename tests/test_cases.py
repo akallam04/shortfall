@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from shortfall.cases import load_case
+from shortfall.cases import Control, load_case
 
 CASES = Path(__file__).resolve().parent.parent / "benchmark" / "cases"
 GOOD = CASES / "medusa-17032-last-unit"
@@ -22,22 +22,32 @@ def test_real_cases_load():
 
 def test_real_case_fields():
     lines = load_case(CASES / "medusa-16502-lines")
-    assert lines.control.kind == "variant"
-    assert (lines.control.variant, lines.control.version) == ("pr-16961", "2.22.0")
-    assert lines.control.reason is None
+    assert lines.scoring == Control(
+        kind="variant",
+        file="pr-16961-control.yaml",
+        role="scoring",
+        variant="pr-16961",
+        version="2.22.0",
+    )
+    assert len(lines.controls) == 1
     assert lines.notes.endswith(
         "#16961, a community pull request for #16502 that was closed without being merged."
     )
     assert "#17436 (opened 2026-10-22)" in lines.notes
     counter = load_case(CASES / "medusa-17032-counter")
     assert counter.rule == "reserved_matches_reservations"
-    assert counter.control.kind == "redis-locking"
-    assert counter.control.version is None
     for case in ("medusa-17032-counter", "medusa-17032-last-unit"):
-        notes = load_case(CASES / case).notes
-        assert notes.endswith(
-            "The cross-process lost update is also reported, through direct service calls, "
-            "in the open issue #16569."
+        loaded = load_case(CASES / case)
+        assert [(c.file, c.kind, c.role, c.variant, c.version) for c in loaded.controls] == [
+            ("pr-17420-control.yaml", "variant", "scoring", "pr-17420", "2.22.0"),
+            ("redis-control.yaml", "redis-locking", "cross-check", None, None),
+            ("one-server-control.yaml", "one-server", "history", None, None),
+        ]
+        assert loaded.scoring.variant == "pr-17420"
+        assert "in the open issue #16569." in loaded.notes
+        assert loaded.notes.endswith(
+            "pr-17420 is Medusa 2.22.0 with the change from medusajs/medusa#17420, a community "
+            "pull request that was closed without being merged."
         )
 
 
@@ -48,7 +58,9 @@ def good_data() -> dict:
 def write_case(tmp_path: Path, data: dict, name: str = "medusa-17032-last-unit") -> Path:
     folder = tmp_path / name
     folder.mkdir()
-    shutil.copy(GOOD / "reference.yaml", folder / "reference.yaml")
+    for source in GOOD.glob("*.yaml"):
+        if source.name != "case.yaml":
+            shutil.copy(source, folder / source.name)
     (folder / "case.yaml").write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     return folder
 
@@ -76,8 +88,8 @@ BAD = [
     ("unknown nested field", lambda d: set_path(d, "issue.extra", 1), "unknown field issue.extra"),
     (
         "unknown control field",
-        lambda d: set_path(d, "control.extra", 1),
-        "unknown field control.extra",
+        lambda d: set_path(d["controls"][0], "extra", 1),
+        "unknown field controls[0].extra",
     ),
     (
         "unknown reference field",
@@ -116,56 +128,74 @@ BAD = [
     ("issue opened bad day", lambda d: set_path(d, "issue.opened", "2026-02-30"), "issue.opened"),
     ("issue state empty", lambda d: set_path(d, "issue.state", ""), "issue.state"),
     ("rule", lambda d: set_path(d, "rule", "no_double_charge"), "rule"),
-    ("control kind", lambda d: set_path(d, "control.kind", "two-server"), "control.kind"),
-    ("control kind missing", lambda d: del_path(d, "control.kind"), "control.kind is required"),
+    ("controls missing", lambda d: del_path(d, "controls"), "controls is required"),
+    ("controls empty", lambda d: set_path(d, "controls", []), "one or more controls"),
+    ("controls not list", lambda d: set_path(d, "controls", {"kind": "variant"}), "controls must"),
+    ("control not mapping", lambda d: set_path(d, "controls", ["x"]), "controls[0] must be"),
     (
-        "fixed-version without version",
-        lambda d: set_path(d, "control.kind", "fixed-version"),
-        "control.version is required",
+        "control kind",
+        lambda d: set_path(d["controls"][1], "kind", "fixed-version"),
+        "controls[1].kind must be one of",
     ),
     (
-        "version without fixed-version",
-        lambda d: set_path(d, "control.version", "2.19.0"),
-        "control.version is only allowed",
+        "control role",
+        lambda d: set_path(d["controls"][1], "role", "main"),
+        "controls[1].role must be one of",
+    ),
+    (
+        "control file missing",
+        lambda d: set_path(d["controls"][1], "file", "nope.yaml"),
+        "controls[1].file",
+    ),
+    (
+        "control file path",
+        lambda d: set_path(d["controls"][1], "file", "../redis-control.yaml"),
+        "controls[1].file",
+    ),
+    (
+        "no scoring control",
+        lambda d: set_path(d["controls"][0], "role", "cross-check"),
+        "exactly one scoring control, got 0",
+    ),
+    (
+        "two scoring controls",
+        lambda d: set_path(d["controls"][1], "role", "scoring"),
+        "exactly one scoring control, got 2",
+    ),
+    (
+        "repeated control file",
+        lambda d: set_path(d["controls"][2], "file", "redis-control.yaml"),
+        "must not repeat a file",
     ),
     (
         "variant without variant",
-        lambda d: set_path(d, "control", {"kind": "variant", "version": "2.22.0"}),
-        "control.variant is required",
+        lambda d: del_path(d["controls"][0], "variant"),
+        "controls[0].variant must be",
     ),
     (
         "variant without version",
-        lambda d: set_path(d, "control", {"kind": "variant", "variant": "pr-16961"}),
-        "control.version is required with variant",
+        lambda d: del_path(d["controls"][0], "version"),
+        "controls[0].version must be",
     ),
     (
         "variant on a version the case does not run",
-        lambda d: set_path(
-            d, "control", {"kind": "variant", "variant": "pr-16961", "version": "2.18.0"}
-        ),
+        lambda d: set_path(d["controls"][0], "version", "2.18.0"),
         "must be one of the case's versions",
     ),
     (
         "variant name form",
-        lambda d: set_path(
-            d, "control", {"kind": "variant", "variant": "PR 16961", "version": "2.22.0"}
-        ),
-        "control.variant must be a kebab-case",
+        lambda d: set_path(d["controls"][0], "variant", "PR 17420"),
+        "controls[0].variant must be a kebab-case",
     ),
     (
         "variant field without variant kind",
-        lambda d: set_path(d, "control.variant", "pr-16961"),
-        "control.variant is only allowed with variant",
+        lambda d: set_path(d["controls"][1], "variant", "pr-17420"),
+        "controls[1].variant is only allowed with kind variant",
     ),
     (
-        "none without reason",
-        lambda d: set_path(d, "control.kind", "none"),
-        "control.reason is required",
-    ),
-    (
-        "reason without none",
-        lambda d: set_path(d, "control.reason", "because"),
-        "control.reason is only allowed",
+        "version without variant kind",
+        lambda d: set_path(d["controls"][2], "version", "2.22.0"),
+        "controls[2].version is only allowed with kind variant",
     ),
     (
         "reference file missing",
@@ -191,24 +221,6 @@ def test_bad_case_raises(tmp_path, change, expected):
     change(data)
     with pytest.raises(ValueError, match=re.escape(expected)):
         load_case(write_case(tmp_path, data))
-
-
-def test_fixed_version_with_version_loads(tmp_path):
-    data = good_data()
-    data["control"] = {"kind": "fixed-version", "version": "2.22.0"}
-    assert load_case(write_case(tmp_path, data)).control.version == "2.22.0"
-
-
-@pytest.mark.parametrize("kind", ["one-server", "redis-locking"])
-def test_control_kinds_without_extra_fields_load(tmp_path, kind):
-    data = good_data()
-    data["control"] = {"kind": kind}
-    control = load_case(write_case(tmp_path, data)).control
-    assert (control.kind, control.version, control.reason) == (kind, None, None)
-    data["control"] = {"kind": kind, "version": "2.22.0"}
-    (tmp_path / "v").mkdir()
-    with pytest.raises(ValueError, match="control.version is only allowed"):
-        load_case(write_case(tmp_path / "v", data))
 
 
 def test_agent_sees_leaves_out_history_and_coding_guides():
@@ -252,18 +264,6 @@ def test_not_a_mapping(tmp_path):
         load_case(folder)
 
 
-def test_variant_control_loads(tmp_path):
-    data = good_data()
-    data["control"] = {"kind": "variant", "variant": "pr-16961", "version": "2.22.0"}
-    control = load_case(write_case(tmp_path, data)).control
-    assert (control.kind, control.variant, control.version, control.reason) == (
-        "variant",
-        "pr-16961",
-        "2.22.0",
-        None,
-    )
-
-
 def test_every_case_note_is_read_in_full():
     for folder in sorted(p for p in CASES.iterdir() if p.is_dir()):
         case = load_case(folder)
@@ -280,11 +280,11 @@ VARIANTS = CASES.parent.parent / ".oversold" / "targets" / "medusa" / "variants"
 def test_variant_controls_name_a_variant_at_the_pin():
     found = 0
     for folder in sorted(p for p in CASES.iterdir() if p.is_dir()):
-        control = load_case(folder).control
-        if control.kind != "variant":
-            continue
-        spec = yaml.safe_load((VARIANTS / control.variant / "variant.yaml").read_text())
-        assert spec["name"] == control.variant
-        assert spec["base_version"] == control.version
-        found += 1
-    assert found == 1
+        for control in load_case(folder).controls:
+            if control.kind != "variant":
+                continue
+            spec = yaml.safe_load((VARIANTS / control.variant / "variant.yaml").read_text())
+            assert spec["name"] == control.variant
+            assert spec["base_version"] == control.version
+            found += 1
+    assert found == 3

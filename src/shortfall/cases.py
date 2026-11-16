@@ -14,7 +14,8 @@ RULES = (
     "no_orphaned_orders",
     "no_missing_orders",
 )
-CONTROL_KINDS = ("one-server", "redis-locking", "variant", "fixed-version", "none")
+CONTROL_KINDS = ("variant", "redis-locking", "one-server")
+CONTROL_ROLES = ("scoring", "cross-check", "history")
 
 _ID = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 _VERSION = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
@@ -29,13 +30,13 @@ _TOP = (
     "versions",
     "issue",
     "rule",
-    "control",
+    "controls",
     "reference",
     "agent_sees",
     "notes",
 )
 _ISSUE = ("url", "opened", "state")
-_CONTROL = ("kind", "variant", "version", "reason")
+_CONTROL = ("file", "kind", "role", "variant", "version")
 _REFERENCE = ("file", "source")
 _AGENT_SEES = ("guided", "unguided")
 
@@ -50,9 +51,10 @@ class Issue:
 @dataclass(frozen=True)
 class Control:
     kind: str
-    version: str | None
-    reason: str | None
+    file: str
+    role: str = "scoring"
     variant: str | None = None
+    version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -76,10 +78,14 @@ class Case:
     versions: tuple[str, ...]
     issue: Issue
     rule: str
-    control: Control
+    controls: tuple[Control, ...]
     reference: Reference
     agent_sees: AgentSees
     notes: str | None
+
+    @property
+    def scoring(self) -> Control:
+        return next(c for c in self.controls if c.role == "scoring")
 
 
 class _StrictLoader(yaml.SafeLoader):
@@ -156,6 +162,46 @@ def _date(value) -> datetime.date | None:
         except ValueError:
             return None
     return None
+
+
+def _control(item, where: str, folder: Path, versions, problems: list[str]) -> Control | None:
+    raw = _mapping(item, where, _CONTROL, problems)
+    if not isinstance(item, dict):
+        return None
+    before = len(problems)
+    kind = raw.get("kind")
+    if kind not in CONTROL_KINDS:
+        problems.append(f"{where}.kind must be one of {', '.join(CONTROL_KINDS)}")
+    role = raw.get("role")
+    if role not in CONTROL_ROLES:
+        problems.append(f"{where}.role must be one of {', '.join(CONTROL_ROLES)}")
+    name = raw.get("file")
+    if (
+        not isinstance(name, str)
+        or not name.endswith(".yaml")
+        or name != Path(name).name
+        or not (folder / name).is_file()
+    ):
+        problems.append(f"{where}.file must name a .yaml file in the case folder")
+    variant = raw.get("variant")
+    version = raw.get("version")
+    if kind == "variant":
+        if not isinstance(variant, str) or not _ID.fullmatch(variant):
+            problems.append(f"{where}.variant must be a kebab-case variant name like pr-16961")
+        if not isinstance(version, str) or not _VERSION.fullmatch(version):
+            problems.append(f"{where}.version must be a version like 2.22.0")
+        elif versions and version not in versions:
+            problems.append(
+                f"{where}.version {version} must be one of the case's versions, "
+                f"{', '.join(versions)}"
+            )
+    else:
+        for key in ("variant", "version"):
+            if key in raw:
+                problems.append(f"{where}.{key} is only allowed with kind variant")
+    if len(problems) > before:
+        return None
+    return Control(kind=kind, file=name, role=role, variant=variant, version=version)
 
 
 def load_case(folder: str | Path) -> Case:
@@ -242,49 +288,27 @@ def load_case(folder: str | Path) -> Case:
     else:
         rule = top["rule"]
 
-    control = None
-    if "control" not in top:
-        problems.append("control is required")
+    controls: tuple[Control, ...] = ()
+    if "controls" not in top:
+        problems.append("controls is required")
+    elif not isinstance(top["controls"], list) or not top["controls"]:
+        problems.append("controls must be a list of one or more controls")
     else:
-        raw = _mapping(top["control"], "control", _CONTROL, problems)
-        kind = raw.get("kind")
-        if "kind" not in raw:
-            problems.append("control.kind is required")
-        elif kind not in CONTROL_KINDS:
-            problems.append(f"control.kind must be one of {', '.join(CONTROL_KINDS)}")
-            kind = None
-        version = None
-        if kind in ("fixed-version", "variant"):
-            if "version" not in raw:
-                problems.append(f"control.version is required with {kind}")
-            elif not isinstance(raw["version"], str) or not _VERSION.fullmatch(raw["version"]):
-                problems.append("control.version must be a version like 2.21.2")
-            else:
-                version = raw["version"]
-                if kind == "variant" and versions and version not in versions:
-                    problems.append(
-                        f"control.version {version} must be one of the case's versions, "
-                        f"{', '.join(versions)}"
-                    )
-        elif "version" in raw:
-            problems.append("control.version is only allowed with fixed-version or variant")
-        variant = None
-        if kind == "variant":
-            if "variant" not in raw:
-                problems.append("control.variant is required with variant")
-            elif not isinstance(raw["variant"], str) or not _ID.fullmatch(raw["variant"]):
-                problems.append("control.variant must be a kebab-case variant name like pr-16961")
-            else:
-                variant = raw["variant"]
-        elif "variant" in raw:
-            problems.append("control.variant is only allowed with variant")
-        reason = None
-        if kind == "none":
-            reason = _text(raw, "reason", "control.reason", problems)
-        elif "reason" in raw:
-            problems.append("control.reason is only allowed with none")
-        if kind:
-            control = Control(kind=kind, version=version, reason=reason, variant=variant)
+        parsed = []
+        for i, item in enumerate(top["controls"]):
+            control = _control(item, f"controls[{i}]", folder, versions, problems)
+            if control:
+                parsed.append(control)
+        controls = tuple(parsed)
+        if len(parsed) == len(top["controls"]):
+            scoring = [c for c in parsed if c.role == "scoring"]
+            if len(scoring) != 1:
+                problems.append(
+                    f"controls must have exactly one scoring control, got {len(scoring)}"
+                )
+            files = [c.file for c in parsed]
+            if len(set(files)) != len(files):
+                problems.append("controls must not repeat a file")
 
     reference = None
     if "reference" not in top:
@@ -333,7 +357,7 @@ def load_case(folder: str | Path) -> Case:
         versions=versions,
         issue=issue,
         rule=rule,
-        control=control,
+        controls=controls,
         reference=reference,
         agent_sees=agent_sees,
         notes=notes,

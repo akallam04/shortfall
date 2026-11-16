@@ -1,15 +1,19 @@
 import json
 import os
+import re
 from collections import Counter
 from pathlib import Path
 
-VERDICTS = ("match", "no match", "reproduction only", "inconclusive", "unpreparable")
+LEGACY_VERDICTS = ("match", "no match", "reproduction only", "inconclusive", "unpreparable")
 INTERRUPTED = "interrupted"
 SOURCES = ("sweep",)
 KINDS = ("started", "spend", "final")
 SPEND_ITEMS = ("oversold_runs", "paid_call")
+VIOLATION_RESULTS = ("violation", "unpreparable", "inconclusive")
+NOT_REPRODUCED_WITHIN = re.compile(r"not reproduced within [0-9]+ runs")
+NOT_ISOLATED = "violation, cause not isolated"
 
-FINAL_FIELDS = (
+LEGACY_FIELDS = (
     "kind",
     "attempt_id",
     "source",
@@ -29,7 +33,6 @@ FINAL_FIELDS = (
     "control_fails",
     "inconclusive",
     "rules_failed",
-    "check_versions",
     "verdict",
     "wall_seconds",
     "oversold_runs",
@@ -44,17 +47,46 @@ FINAL_FIELDS = (
     "rerun_of",
     "timestamp",
 )
-LEGACY_OPTIONAL = (
+LEGACY_OPTIONAL = ("kind", "dollars", "rerun_of", "stop_reason", "setup_error", "manual_check")
+LEGACY_REQUIRED = tuple(f for f in LEGACY_FIELDS if f not in LEGACY_OPTIONAL)
+
+FINAL_FIELDS = (
     "kind",
+    "attempt_id",
+    "source",
+    "seed",
+    "scenario",
+    "scenario_sha256",
+    "medusa_version",
+    "carts",
+    "servers",
+    "shape",
+    "screen_runs",
+    "retry_runs",
+    "score_runs",
+    "control_runs",
+    "candidate_fails",
+    "controls",
+    "inconclusive",
+    "rules_failed",
+    "check_versions",
+    "violation",
+    "reproduced",
+    "located",
+    "wall_seconds",
+    "oversold_runs",
     "dollars",
-    "rerun_of",
+    "oversold_commit",
+    "medusa_image_id",
+    "medusa_image_digest",
+    "run_folders",
     "stop_reason",
     "setup_error",
     "manual_check",
-    "check_versions",
+    "rerun_of",
+    "timestamp",
 )
-LEGACY_REQUIRED = tuple(f for f in FINAL_FIELDS if f not in LEGACY_OPTIONAL)
-FINAL_REQUIRED = (*LEGACY_REQUIRED, "kind", "dollars", "check_versions")
+FINAL_REQUIRED = tuple(f for f in FINAL_FIELDS if f != "rerun_of")
 
 STARTED_FIELDS = (
     "kind",
@@ -87,6 +119,31 @@ SPEND_FIELDS = (
 )
 
 FIELDS = {"started": STARTED_FIELDS, "spend": SPEND_FIELDS, "final": FINAL_FIELDS}
+
+
+def violation_result_ok(result) -> bool:
+    return isinstance(result, str) and (
+        result in VIOLATION_RESULTS or bool(NOT_REPRODUCED_WITHIN.fullmatch(result))
+    )
+
+
+def _check_final(entry: dict, problems: list[str]) -> None:
+    v = entry.get("violation")
+    if not isinstance(v, dict) or not violation_result_ok(v.get("result")):
+        problems.append(
+            "violation.result must be violation, unpreparable, inconclusive or "
+            "not reproduced within N runs"
+        )
+    elif not isinstance(v.get("rules"), dict) or not _is_count(v.get("runs")):
+        problems.append("violation needs rules and runs")
+    r = entry.get("reproduced")
+    if not isinstance(r, dict) or set(r) != {"cases", "rules"}:
+        problems.append("reproduced needs cases and rules")
+    loc = entry.get("located")
+    if not isinstance(loc, dict) or loc.get("result") not in ("not applicable", "graded"):
+        problems.append("located.result must be not applicable or graded")
+    if not isinstance(entry.get("check_versions"), dict):
+        problems.append("check_versions must be a mapping")
 
 
 def _local_markers() -> list[str]:
@@ -155,7 +212,7 @@ def validate(entry: dict, legacy: bool = True) -> None:
     if kind is not None and kind not in KINDS:
         problems.append(f"kind must be one of {', '.join(KINDS)}")
         raise ValueError("ledger entry: " + "; ".join(problems))
-    fields = FIELDS[kind or "final"]
+    fields = LEGACY_FIELDS if kind is None else FIELDS[kind]
     required = {
         None: LEGACY_REQUIRED,
         "final": FINAL_REQUIRED,
@@ -168,8 +225,10 @@ def validate(entry: dict, legacy: bool = True) -> None:
     for key in required:
         if key not in entry:
             problems.append(f"{key} is required")
-    if kind in (None, "final") and entry.get("verdict") not in VERDICTS:
-        problems.append(f"verdict must be one of {', '.join(VERDICTS)}")
+    if kind is None and entry.get("verdict") not in LEGACY_VERDICTS:
+        problems.append(f"verdict must be one of {', '.join(LEGACY_VERDICTS)}")
+    if kind == "final":
+        _check_final(entry, problems)
     if kind in (None, "final", "started") and entry.get("source") not in SOURCES:
         problems.append(f"source must be one of {', '.join(SOURCES)}")
     if kind == "final" and not _is_dollars(entry.get("dollars")):
@@ -267,9 +326,7 @@ def attempts(records: list[dict]) -> list[dict]:
                     "source": s["source"],
                     "scenario": s["scenario"],
                     "medusa_version": s["medusa_version"],
-                    "verdict": INTERRUPTED,
-                    "case": None,
-                    "cases": [],
+                    "interrupted": True,
                     "oversold_runs": spent["oversold_runs"],
                     "dollars": spent["dollars"],
                     "wall_seconds": 0.0,
@@ -300,24 +357,47 @@ def spent(records: list[dict]) -> dict:
 
 def find(records: list[dict], attempt_id: str) -> dict:
     for entry in attempts(records):
-        if entry["attempt_id"] == attempt_id and entry["verdict"] != INTERRUPTED:
+        if entry["attempt_id"] == attempt_id and not entry.get("interrupted"):
             return entry
     raise KeyError(f"no finished attempt {attempt_id} in the ledger")
 
 
 def summary(records: list[dict]) -> dict:
     entries = attempts(records)
-    by_verdict = Counter(e["verdict"] for e in entries)
-    by_case: dict[str, Counter] = {}
+    violation: Counter = Counter()
+    reproduced: Counter = Counter()
+    not_isolated: Counter = Counter()
+    located: Counter = Counter()
+    legacy: Counter = Counter()
     for e in entries:
-        key = e["case"] if e["case"] is not None else "none"
-        by_case.setdefault(key, Counter())[e["verdict"]] += 1
+        if e.get("interrupted"):
+            violation[INTERRUPTED] += 1
+        elif "violation" in e:
+            violation[e["violation"]["result"]] += 1
+            for case, result in e["reproduced"]["cases"].items():
+                if result == "reproduced":
+                    reproduced[case] += 1
+            for rule, outcome in e["reproduced"]["rules"].items():
+                if outcome == NOT_ISOLATED:
+                    not_isolated[rule] += 1
+            if e["located"]["result"] == "graded":
+                for case, grade in e["located"]["cases"].items():
+                    located[f"{case} {grade}"] += 1
+            else:
+                located[e["located"]["result"]] += 1
+        else:
+            legacy[e["verdict"]] += 1
     totals = spent(records)
-    return {
+    out = {
         "attempts": len(entries),
-        "by_verdict": {v: by_verdict.get(v, 0) for v in (*VERDICTS, INTERRUPTED)},
-        "by_case": {k: dict(sorted(v.items())) for k, v in sorted(by_case.items())},
+        "violation": dict(sorted(violation.items())),
+        "reproduced": dict(sorted(reproduced.items())),
+        NOT_ISOLATED: dict(sorted(not_isolated.items())),
+        "located": dict(sorted(located.items())),
         "oversold_runs": totals["oversold_runs"],
         "dollars": totals["dollars"],
         "wall_seconds": round(sum(e["wall_seconds"] for e in entries), 1),
     }
+    if legacy:
+        out["lines from before the three results"] = dict(sorted(legacy.items()))
+    return out
