@@ -71,7 +71,9 @@ def test_long_name_raises():
     )
 
 
-@pytest.mark.parametrize("case_id", sorted(p.parent.name for p in CASES.glob("*/control.yaml")))
+@pytest.mark.parametrize(
+    "case_id", sorted(p.parent.name for p in CASES.glob("*/one-server-control.yaml"))
+)
 def test_committed_control_matches_generator(case_id):
     folder = CASES / case_id
     out = subprocess.run(
@@ -79,11 +81,12 @@ def test_committed_control_matches_generator(case_id):
         check=True,
         capture_output=True,
     ).stdout
-    assert out == (folder / "control.yaml").read_bytes()
+    assert out == (folder / "one-server-control.yaml").read_bytes()
 
 
 def test_one_server_controls_are_kept_for_the_17032_cases():
-    assert sorted(p.parent.name for p in CASES.glob("*/control.yaml")) == [
+    assert not list(CASES.glob("*/control.yaml"))
+    assert sorted(p.parent.name for p in CASES.glob("*/one-server-control.yaml")) == [
         "medusa-17032-counter",
         "medusa-17032-last-unit",
     ]
