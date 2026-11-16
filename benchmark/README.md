@@ -8,8 +8,8 @@ A case is a folder in [cases/](cases/) named after its id.
 
 - `case.yaml`: what the case is.
 - `reference.yaml`: an Oversold scenario written by hand that reproduces the bug.
-- `redis-control.yaml`: the control scenario, for cases with a Redis locking control.
-- `control.yaml`: a one-server control. The two #17032 cases used one before they moved to Redis locking controls, and it is kept with its results.
+- one file per control, named in `controls`, such as `pr-17420-control.yaml`.
+- `answer.yaml`: the source files accepted as the cause, for the located result.
 - `results/<pin>/<version>-<set>/`: the measured runs, grouped under the short Oversold commit they ran at and exported with `oversold export`: the scenario, `report.json`, `report.md` and every run's history, gzipped.
 
 Fields in `case.yaml`:
@@ -24,10 +24,12 @@ Fields in `case.yaml`:
 | `issue.url` | The public GitHub issue for the bug. |
 | `issue.opened` | The date the issue was opened. |
 | `issue.state` | The issue's state when the case was added. |
-| `rule` | The Oversold check the bug breaks: `no_oversell`, `reserved_matches_reservations`, `one_order_per_cart` or `no_orphaned_orders`. |
-| `control.kind` | `one-server`, `redis-locking`, `fixed-version` or `none`. |
-| `control.version` | With `fixed-version` only: a version where the bug is fixed. |
-| `control.reason` | With `none` only: why the case has no control. |
+| `rule` | The Oversold check the bug breaks: `no_oversell`, `reserved_matches_reservations`, `one_order_per_cart`, `no_orphaned_orders` or `no_missing_orders`. |
+| `controls[].file` | The control scenario's file in the folder. |
+| `controls[].kind` | `variant`, `redis-locking` or `one-server`. |
+| `controls[].role` | `scoring`, `cross-check` or `history`. Exactly one control is `scoring`. |
+| `controls[].variant` | With `variant` only: an Oversold build variant at the pin. |
+| `controls[].version` | With `variant` only: the variant's base version, one of the case's versions. |
 | `reference.file` | The reference scenario's file in the folder. |
 | `reference.source` | Where the reference scenario comes from. |
 | `agent_sees.guided` | What the agent may read in the guided setting. |
@@ -38,18 +40,25 @@ Fields in `case.yaml`:
 
 ## Controls
 
-A control is a scenario that should not fail the case's rule, so a failure in the reference comes from the bug and not from the scenario.
+A control is the same scenario on a build or setup where the bug should not happen, so a failure in the reference comes from the bug and not from the scenario. Every control file equals the rewrite of `reference.yaml` that `python -m shortfall.control` writes, byte for byte, and passes `oversold validate` at the pin.
 
-- `one-server`: the reference runs on two servers, and the control is the same scenario on one server. `python -m shortfall.control reference.yaml` writes it: every server field becomes 1, the name gets `-control` and the description says what it is. Everything else stays the same.
-- `redis-locking`: the reference runs with Medusa's default in-memory locking provider, which only locks inside one server process, and the control is the same scenario with `target.locking: redis`, so every Medusa server uses Medusa's Redis locking provider. Medusa's docs recommend that provider when more than one server runs. `python -m shortfall.control --redis-locking reference.yaml` writes it: it adds `target.locking: redis`, the name gets `-redis-control` and the description says what it is. Everything else stays the same, in the same order. It refuses a scenario that already uses Redis locking.
-- `fixed-version`: the same scenario on a version where the bug is fixed.
-- `none`: no control yet, with the reason in `control.reason`.
+- `variant`: the same scenario on one Oversold build variant that carries a fix, with `target.version` set to the variant's base version and `target.variant` added right after `target.servers`. `python -m shortfall.control --variant <name> <version> reference.yaml` writes it. The name gets `-<variant>-control` and the description says what it is. It refuses a scenario that already has a variant.
+- `redis-locking`: the same scenario with `target.locking: redis`, so every Medusa server uses Medusa's Redis locking provider instead of the default in-memory one, which only locks inside one server process. `python -m shortfall.control --redis-locking reference.yaml` writes it.
+- `one-server`: the same scenario with every server field set to 1. `python -m shortfall.control reference.yaml` writes it.
 
-The two #17032 cases use `redis-locking`. Before Oversold `a35d162` they used `one-server` controls, which are kept with their results in the table of earlier sets.
+| Case | Scoring control | Cross-check | History |
+|---|---|---|---|
+| medusa-17032-last-unit | `pr-17420-control.yaml`: variant pr-17420 on 2.22.0 | `redis-control.yaml` on all three versions | `one-server-control.yaml` |
+| medusa-17032-counter | `pr-17420-control.yaml`: variant pr-17420 on 2.22.0 | `redis-control.yaml` on all three versions | `one-server-control.yaml` |
+| medusa-16502-lines | `pr-16961-control.yaml`: variant pr-16961 on 2.22.0 | none | none |
 
-An agent's scenario will count as finding a case when the case's rule fails in at least 1 of 10 runs on the case's version and in 0 of 10 runs of its control. Reference runs use 30.
+The variants come from Oversold's `variant.yaml` at the pin. pr-17420 is Medusa 2.22.0 with the change from [medusajs/medusa#17420](https://github.com/medusajs/medusa/pull/17420) by haranishi, which locks inventory level and reservation rows with `SELECT ... FOR UPDATE`. pr-16961 is Medusa 2.22.0 with the change from [medusajs/medusa#16961](https://github.com/medusajs/medusa/pull/16961) by pqa-labs, which checks the summed demand of entries that share an inventory item. Both pull requests were closed without being merged.
+
+Each case has a scoring control only on 2.22.0, the base version of both variants.
 
 ## Results
+
+The reference and control sets at Oversold v0.1.1, with the variant controls, are still to come. The sets below ran at earlier pins and were not run again.
 
 Each row is one set of 30 runs at Oversold `a35d162`. "Rule failed" counts the runs where the case's rule failed. "Other checks failed" lists every other check that failed, with its number of failed runs.
 
@@ -107,8 +116,9 @@ These sets ran at earlier Oversold pins, on images built from those pins, with i
 
 ## Setup
 
-- Oversold at commit `a35d162cb5be383e7d3f9c6ffd91b306377144a8`, from `oversold.lock`. The sets in the main results table ran at this commit. The earlier sets ran at `a18d5c9f3892dbca86effa0766e975985f8324bd` (2.21.2 and 2.19.0) and `27169174ca97a2147ac39d70fae3fd29573131d4` (2.22.0).
-- The check rules are the same at all three pins: nothing under `internal/checks` or in `docs/checks.md` changed between them, and `check --verify` at `a35d162` passes on every earlier folder. Between `2716917` and `a35d162` Oversold added `target.locking`, a Redis service with no published port, and the `locking`, `redis_version` and `lock_calls` fields in histories and reports. It also changed `targets/medusa/app/medusa-config.ts`, which is built into the Medusa image, so every image was built again.
+- Oversold at tag v0.1.1, commit `2004ed534b765a3b3341efaadb3f352ffdecef90`, from `oversold.lock`. No sets have run at this pin yet. The sets in the main results table ran at `a35d162cb5be383e7d3f9c6ffd91b306377144a8`. The earlier sets ran at `a18d5c9f3892dbca86effa0766e975985f8324bd` (2.21.2 and 2.19.0) and `27169174ca97a2147ac39d70fae3fd29573131d4` (2.22.0).
+- At v0.1.1 Oversold has five checks: `no_oversell` 2, `reserved_matches_reservations` 2, `one_order_per_cart` 2, `no_orphaned_orders` 2 and `no_missing_orders` 1. Version 2 of the first four adds an inconclusive rule for an after snapshot that is missing rows or has an unreadable level quantity, and `no_orphaned_orders` 2 adds up reservations per order instead of per line. `no_missing_orders` 1 checks that every `ok` completion left exactly one saved order linked to its cart. Every saved history keeps the check names and versions it was judged with, and `check --verify` at v0.1.1 passes on all 30 earlier folders, which keep their version 1 verdicts. Shortfall reads each verdict's name and version from the history and records the versions in the ledger.
+- Up to `a35d162` nothing under `internal/checks` or in `docs/checks.md` changed. Between `2716917` and `a35d162` Oversold added `target.locking`, a Redis service with no published port, and the `locking`, `redis_version` and `lock_calls` fields in histories and reports. It also changed `targets/medusa/app/medusa-config.ts`, which is built into the Medusa image, so every image was built again.
 - Colima 0.10.3, profile `shortfall`: 4 CPUs, 6 GiB memory, 40 GiB disk, `vz` VM, `virtiofs` mount of this repo, read-only.
 - Docker client 29.8.2.
 - macOS 27.0.1 on Apple silicon.
@@ -127,9 +137,9 @@ These sets ran at earlier Oversold pins, on images built from those pins, with i
 
 Every history records the Medusa image ID of each server and the Oversold commit. All 900 match the images listed for the pin their set ran at, with no local changes.
 
-Run sets from different sessions are comparable only when the Medusa image ID matches. `sh scripts/oversold.sh up` builds the image for the version in `.oversold/.env` only when it is missing and otherwise starts the existing one, and it prints the image ID and digest every time. `sh scripts/oversold.sh up --rebuild` forces a build, which gives a new image ID.
+Run sets from different sessions are comparable only when the Medusa image ID matches. Since `61c7d02` Oversold labels each image with a hash of the files it is built from and builds the image, its template database and the servers on the first run that needs them. `sh scripts/oversold.sh up` only starts Postgres, and `sh scripts/oversold.sh image <version> [variant]` prints an image's ID, digest and inputs label. At v0.1.1 Oversold's compose file and Dockerfile name the Node, Postgres and Redis base images by digest. The Postgres digest it names, `sha256:aae6554de426ae1990f1a939ff183a0299146cf7142a6f4c379c3357af9cc2d8`, differs from the one recorded above for the earlier sets.
 
-Images are named `<prefix>:<version>`. The prefix is `OVERSOLD_IMAGE_PREFIX` in `.oversold/.env`, `oversold-medusa` by default, and `scripts/oversold.sh` reads it from there.
+Images are named `<prefix>:<version>`, and a variant image `<prefix>:<version>-<variant>`. The prefix is `OVERSOLD_IMAGE_PREFIX` in `.oversold/.env`, `oversold-medusa` by default, and `scripts/oversold.sh` reads it from there.
 
 ## What the agent reads
 
@@ -173,7 +183,7 @@ Every result is plain text, cut at 40,000 characters with a note saying it was c
 
 ## Baseline sweep
 
-`python -m shortfall.sweep` is a baseline that uses no model. It writes candidate scenario files from a fixed parameter space and scores each one through the pinned Oversold. It uses only fields the scenario format already has: the three seeded SKUs, cart count, lines per cart and their quantities, starting stock, server count and completion order. The generator in `src/shortfall/sweep.py` does not read the cases, their reference files or their controls. Only the scoring step in `src/shortfall/score.py` maps a result to a case.
+`python -m shortfall.sweep` is a baseline that uses no model. It writes candidate scenario files from a fixed parameter space and scores each one through the pinned Oversold on Medusa 2.22.0, the default `--version` and the only version where every case has a scoring control. The baseline and agent comparisons use 2.22.0 at this pin. It uses only fields the scenario format already has: the three seeded SKUs, cart count, lines per cart and their quantities, starting stock, server count and completion order. The generator in `src/shortfall/sweep.py` does not read the cases, their reference files or their controls. Only the scoring step in `src/shortfall/score.py` maps a result to a case. The grid was designed with knowledge of the bug shapes in the cases, so it is an informed baseline, not a blind one.
 
 Candidates go in `runs/sweep/<UTC time>/`. Both modes give the same files in the same order for the same `--seed`.
 
@@ -184,23 +194,31 @@ Candidates go in `runs/sweep/<UTC time>/`. Both modes give the same files in the
 
 ### Scoring
 
-1. Screen: run the candidate once, then 2 more times. If any screen run fails while preparing a cart, the verdict is `unpreparable` and the rest of the screen is skipped. This applies to every candidate, from the sweep or from an agent. Otherwise, if no check fails in the 3 runs, the verdict is `no match`.
-2. Score: run the candidate 10 times. For a two-server candidate, build the control that the matched case's `control.kind` asks for with `src/shortfall/control.py` and run it 10 times: with `redis-locking`, the candidate with `target.locking: redis`; with `one-server`, the candidate on one server. If the case's control kind cannot be built, or the candidate already uses Redis locking, the verdict is `reproduction only`.
-3. A candidate matches a case when the case's rule failed in at least 1 of the 10 candidate runs and in 0 of the 10 control runs, with no inconclusive control run.
-4. A one-server candidate has no one-server control, so a rule failure there is `reproduction only`, never a match. `medusa-16502-lines` has no control yet either.
-5. A result that cannot be decided because runs were inconclusive is `inconclusive`. Inconclusive runs count against the caps like any other run, and so does the run that shows a candidate is `unpreparable`. The sweep stops when 3 attempts in a row have only inconclusive runs, not counting `unpreparable` ones.
+The same code path in `src/shortfall/score.py` scores sweep candidates now and agent attempts later. A candidate that sets `target.variant` or `target.locking` is refused before it runs. Only the harness sets them.
 
-A candidate is mapped to a case by the case's rule and the server count of the case's reference scenario:
+Screen and retry:
 
-| Rule that failed | Candidate servers | Case |
-|---|---|---|
-| `no_oversell` | 2 | medusa-17032-last-unit |
-| `reserved_matches_reservations` | 2 | medusa-17032-counter |
-| `no_oversell` | 1 | medusa-16502-lines |
+1. Screen: run the candidate 3 times, once and then 2 more. If a run fails while preparing a cart, the candidate is `unpreparable` and the rest of its runs are skipped.
+2. A candidate with a failed check in its screen goes to scoring at once.
+3. After every candidate has had its first screen, leftover session runs pay for a second pass: 7 more runs for each candidate with no failure yet, in the original order. A failure there goes to scoring like any other.
+4. A candidate with no failure is `not reproduced within N runs`, with N the runs it got. This never says a bug is absent.
 
-Both two-server cases fail with Medusa's default in-memory locking provider, and both use Redis locking controls.
+Scoring runs the candidate 10 more times on plain Medusa 2.22.0. Then, for each rule that failed in those 10 runs, it runs the scoring control of every case with that rule, 10 times each. A control two cases share runs once. The server count never picks a case.
 
-A two-server candidate can match both two-server cases when both rules fail on it and on neither in its control.
+Each attempt gets three results:
+
+- **violation**: `violation` when at least one check failed in the candidate's runs on plain Medusa, with each failed rule and its count. Otherwise `not reproduced within N runs`, `unpreparable`, or `inconclusive` when every run was inconclusive.
+- **reproduced**, per case: `reproduced` when the case's rule failed in at least 1 of the 10 scoring runs and in 0 of the 10 runs on that case's scoring control, with no inconclusive control run. Otherwise `not reproduced`, or `inconclusive` when the control's rule held but a control run was inconclusive. A failed rule that no case's control clears is `violation, cause not isolated`, and it is not credited to any case.
+- **located**: an attempt may name one source file as the cause. It is graded by exact path against `answer.yaml` for each case it reproduced. Grid and random candidates name no file, so their located result is `not applicable`.
+
+| Case | Accepted files |
+|---|---|
+| medusa-16502-lines | `packages/modules/inventory/src/services/inventory-module.ts`, `packages/core/core-flows/src/cart/steps/confirm-inventory.ts` |
+| medusa-17032-last-unit, medusa-17032-counter | `packages/modules/inventory/src/services/inventory-module.ts`, `packages/core/core-flows/src/cart/steps/reserve-inventory.ts`, `packages/modules/locking/src/providers/in-memory.ts`, the in-memory locking provider |
+
+Every accepted path exists in the 2.22.0 source snapshot.
+
+Inconclusive runs count against the caps like any other run, and so does the run that shows a candidate is `unpreparable`. The sweep stops when 3 attempts in a row have only inconclusive runs in their first screen, not counting `unpreparable` ones.
 
 ### Failures outside the public issues
 
@@ -212,13 +230,13 @@ Every failed check in every set is compared with this map of public issues. A fa
 | `no_oversell` | a cart with two lines on the same inventory item | [#16502](https://github.com/medusajs/medusa/issues/16502), and [#17032](https://github.com/medusajs/medusa/issues/17032) with more than one cart |
 | `no_orphaned_orders` | more than one cart, completed together | [#16825](https://github.com/medusajs/medusa/issues/16825) |
 
-A scenario with `target.locking: redis` is never covered by #17032. #16502 still covers a cart with two lines on the same inventory item with either locking provider, so a stock failure in the Redis control of a one-line scenario stops the sweep.
+A scenario with `target.locking: redis` is never covered by #17032. Two servers with in-memory locking stay covered by #17032, with or without a variant. On variant pr-16961, #16502 covers nothing. No public issue covers a `no_missing_orders` or a `one_order_per_cart` failure, so either stops the sweep.
 
 Oversold has never reproduced #16825, so a `no_orphaned_orders` failure does not stop the sweep but is listed for a manual check, in the attempt's `manual_check` field and at the end of the sweep's output.
 
 ### Caps and the ledger
 
-Every Oversold run and every paid call goes through a guard in `src/shortfall/budget.py`, which never starts a run set or a call that would go over a cap: 600 Oversold runs per session (`--max-runs` overrides it), 25 per attempt, and 0 dollars per session, which only `--raise-dollar-cap` can raise. Dollars also have a total cap of $20 across all sessions. At the start of every session the guard adds up the dollars already in the ledger, and it refuses any paid call that would take that total past $20. A paid call reserves its largest possible cost before it starts and settles to its real cost when it ends. When a cap is reached the run stops, writes what it has and prints what was used against each cap.
+Every Oversold run and every paid call goes through a guard in `src/shortfall/budget.py`, which never starts a run set or a call that would go over a cap: 600 Oversold runs per session (`--max-runs` overrides it), 40 per attempt (3 screen runs, 7 retry runs, 10 scoring runs and up to two scoring controls of 10), and 0 dollars per session, which only `--raise-dollar-cap` can raise. Dollars also have a total cap of $20 across all sessions. At the start of every session the guard adds up the dollars already in the ledger, and it refuses any paid call that would take that total past $20. A paid call reserves its largest possible cost before it starts and settles to its real cost when it ends. When a cap is reached the run stops, writes what it has and prints what was used against each cap.
 
 Each attempt writes to `runs/ledger.jsonl`, which is not committed, as it goes:
 
@@ -226,7 +244,7 @@ Each attempt writes to `runs/ledger.jsonl`, which is not committed, as it goes:
 - a `spend` line for each Oversold run set, written before the set runs, and for each paid call a `reserved` line before the call and a `settled` line after it, with the model, input tokens, output tokens and dollars;
 - a `final` line when it ends.
 
-An attempt with a `started` line and no `final` line counts as interrupted, with every run and dollar it charged. A paid call with no `settled` line counts at its reservation. The `final` line holds the attempt id, the scenario path and its sha256, the case or none, the Medusa version and image, the cart and server counts, the runs used in the screen, the score and the control, each check's failures, the verdict, the cart setup error for an `unpreparable` candidate, the wall time, the Oversold runs and dollars used, any manual check, the Oversold commit and a UTC timestamp. Lines written before these kinds existed hold one complete attempt each and still count. `python -m shortfall.sweep --rerun <attempt id>` reruns one attempt from its ledger line on the same image and says whether the verdict came back the same.
+An attempt with a `started` line and no `final` line counts as interrupted, with every run and dollar it charged. A paid call with no `settled` line counts at its reservation. A candidate that waits for its second pass has a `started` line and its spend lines, and writes its `final` line when its second pass ends. The `final` line holds the attempt id, the scenario path and its sha256, the Medusa version and image, the cart and server counts, the runs in the screen, the retry, the scoring set and the controls, each check's failures per set, each scoring control with its cases, runs and failures, the check names and versions seen, the three results, the cart setup error for an `unpreparable` candidate, the wall time, the Oversold runs and dollars used, any manual check, the Oversold commit and a UTC timestamp. The sweep prints a summary of the three results for its own attempts. Lines written before the three results hold one complete attempt each and still count toward runs and dollars. `python -m shortfall.sweep --rerun <attempt id>` reruns one attempt from its ledger line on the same image and says whether the three results came back the same.
 
 ## How to recheck
 
