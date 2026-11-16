@@ -842,3 +842,25 @@ def test_shape_records_the_locking_mode():
         redis = yaml.safe_load((cases / case / "redis-control.yaml").read_text())
         assert score.shape(ref)["locking"] == "in-memory"
         assert score.shape(redis)["locking"] == "redis"
+
+
+def test_a_candidate_that_sets_checks_is_refused(tmp_path, candidates):
+    source = candidates["s2-solo-c2-short-together"]
+    data = yaml.safe_load(source.read_text(encoding="utf-8"))
+    data["checks"] = ["no_oversell"]
+    path = source.with_name("own-checks.yaml")
+    path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    with pytest.raises(score.CandidateRefused, match="may not set checks"):
+        make(tmp_path, path, FixtureRunner({}), Budget())
+    assert not ledger_file(tmp_path).exists()
+
+
+def test_no_reference_control_or_generated_candidate_sets_checks():
+    files = sorted((ROOT / "benchmark" / "cases").glob("*/*.yaml"))
+    scenarios = [f for f in files if f.name not in ("case.yaml", "answer.yaml")]
+    assert len(scenarios) == 10
+    texts = [f.read_text(encoding="utf-8") for f in scenarios]
+    texts += [sweep.to_yaml(c) for c in sweep.grid(0) + sweep.random_candidates(3, 20)]
+    assert len(texts) == 10 + 32 + 20
+    for text in texts:
+        assert "checks" not in yaml.safe_load(text)

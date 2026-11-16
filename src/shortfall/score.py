@@ -210,6 +210,8 @@ def check_candidate(data) -> None:
     target = data.get("target") if isinstance(data, dict) else None
     if not isinstance(target, dict):
         raise CandidateRefused("a candidate needs a target mapping")
+    if "checks" in data:
+        raise CandidateRefused("a candidate may not set checks, every run uses every check")
     found = [f"target.{key}" for key in ("variant", "locking") if key in target]
     if found:
         raise CandidateRefused(
