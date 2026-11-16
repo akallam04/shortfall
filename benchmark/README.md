@@ -2,6 +2,8 @@
 
 Each case is one public bug in an open-source commerce engine that [Oversold](https://github.com/akallam04/oversold) can reproduce on a local copy. The benchmark grades whether Shortfall can find it.
 
+Today the benchmark is two known inventory failures in Medusa, measured through three scenarios. [#17032](https://github.com/medusajs/medusa/issues/17032) is a lost update across server processes, measured as the last unit sold twice (medusa-17032-last-unit) and as the reserved counter losing updates (medusa-17032-counter). [#16502](https://github.com/medusajs/medusa/issues/16502) is a stock check that looks at each cart line alone (medusa-16502-lines). #16502 needs no concurrency: its scenario completes one cart once.
+
 ## A case
 
 A case is a folder in [cases/](cases/) named after its id.
@@ -58,9 +60,40 @@ Each case has a scoring control only on 2.22.0, the base version of both variant
 
 ## Results
 
-The reference and control sets at Oversold v0.1.1, with the variant controls, are still to come. The sets below ran at earlier pins and were not run again.
+Each row is one set of 30 runs on Medusa 2.22.0 at Oversold v0.1.1, commit `2004ed5`, with all five checks. Each check column counts the runs where that check failed, out of 30.
 
-Each row is one set of 30 runs at Oversold `a35d162`. "Rule failed" counts the runs where the case's rule failed. "Other checks failed" lists every other check that failed, with its number of failed runs.
+| Case | Set | no_oversell 2 | reserved_matches_reservations 2 | one_order_per_cart 2 | no_orphaned_orders 2 | no_missing_orders 1 | Inconclusive runs | Report |
+|---|---|---|---|---|---|---|---|---|
+| medusa-17032-last-unit | reference, plain Medusa | 23 | 23 | 0 | 0 | 0 | 0 | [report](cases/medusa-17032-last-unit/results/2004ed5/2.22.0-reference/report.md) |
+| medusa-17032-last-unit | pr-17420, scoring control | 0 | 0 | 0 | 0 | 0 | 0 | [report](cases/medusa-17032-last-unit/results/2004ed5/2.22.0-pr-17420-control/report.md) |
+| medusa-17032-last-unit | Redis locking, cross-check | 0 | 0 | 0 | 0 | 0 | 0 | [report](cases/medusa-17032-last-unit/results/2004ed5/2.22.0-redis-control/report.md) |
+| medusa-17032-counter | reference, plain Medusa | 0 | 30 | 0 | 0 | 0 | 0 | [report](cases/medusa-17032-counter/results/2004ed5/2.22.0-reference/report.md) |
+| medusa-17032-counter | pr-17420, scoring control | 0 | 0 | 0 | 0 | 0 | 0 | [report](cases/medusa-17032-counter/results/2004ed5/2.22.0-pr-17420-control/report.md) |
+| medusa-17032-counter | Redis locking, cross-check | 0 | 0 | 0 | 0 | 0 | 0 | [report](cases/medusa-17032-counter/results/2004ed5/2.22.0-redis-control/report.md) |
+| medusa-16502-lines | reference, plain Medusa | 30 | 0 | 0 | 0 | 0 | 0 | [report](cases/medusa-16502-lines/results/2004ed5/2.22.0-reference/report.md) |
+| medusa-16502-lines | pr-16961, scoring control | 0 | 0 | 0 | 0 | 0 | 0 | [report](cases/medusa-16502-lines/results/2004ed5/2.22.0-pr-16961-control/report.md) |
+
+No run in these sets was inconclusive, none had a complete call with outcome `unknown`, and none had a harness error. In the Redis control runs Medusa made 9 to 10 scripted lock calls through Redis per run for medusa-17032-last-unit and 57 to 68 for medusa-17032-counter.
+
+Which fix clears which case, on 2.22.0:
+
+- medusa-17032-last-unit: `no_oversell` failed in 23 of 30 runs on plain Medusa and in 0 of 30 with pr-17420. With Redis locking it failed in 0 of 30.
+- medusa-17032-counter: `reserved_matches_reservations` failed in 30 of 30 runs on plain Medusa and in 0 of 30 with pr-17420. With Redis locking it failed in 0 of 30.
+- medusa-16502-lines: `no_oversell` failed in 30 of 30 runs on plain Medusa and in 0 of 30 with pr-16961.
+
+pr-16961 was not run on the #17032 scenarios, and pr-17420 was not run on the #16502 scenario.
+
+| Case | 2.22.0 at v0.1.1 |
+|---|---|
+| medusa-17032-last-unit | reproduced: rule failed in 23 of 30 runs, 0 of 30 on its scoring control |
+| medusa-17032-counter | reproduced: rule failed in 30 of 30 runs, 0 of 30 on its scoring control |
+| medusa-16502-lines | reproduced: rule failed in 30 of 30 runs, 0 of 30 on its scoring control |
+
+No case has a scoring control on 2.19.0 or 2.21.2, so the sets on those versions below are reproductions only.
+
+### Sets at a35d162
+
+Each row is one set of 30 runs at Oversold `a35d162`, judged by version 1 of the four checks that existed then. "Rule failed" counts the runs where the case's rule failed. "Other checks failed" lists every other check that failed, with its number of failed runs.
 
 | Case | Version | Set | Locking | Rule failed | Other checks failed | Inconclusive runs | Report |
 |---|---|---|---|---|---|---|---|
@@ -82,7 +115,7 @@ Each row is one set of 30 runs at Oversold `a35d162`. "Rule failed" counts the r
 
 In every Redis control run Medusa made scripted lock calls through Redis, read from Redis's `INFO commandstats` before and after the race: 8 to 10 per run for medusa-17032-last-unit and 59 to 66 per run for medusa-17032-counter. No run had a harness error.
 
-A case is reproduced on a version when its rule failed in at least one reference run and in no control run. A case with no control is "reproduced, no control yet".
+At this pin a case was counted as reproduced on a version when its rule failed in at least one reference run and in no control run. A case with no control was "reproduced, no control yet".
 
 | Case | 2.21.2 | 2.19.0 | 2.22.0 |
 |---|---|---|---|
@@ -116,12 +149,22 @@ These sets ran at earlier Oversold pins, on images built from those pins, with i
 
 ## Setup
 
-- Oversold at tag v0.1.1, commit `2004ed534b765a3b3341efaadb3f352ffdecef90`, from `oversold.lock`. No sets have run at this pin yet. The sets in the main results table ran at `a35d162cb5be383e7d3f9c6ffd91b306377144a8`. The earlier sets ran at `a18d5c9f3892dbca86effa0766e975985f8324bd` (2.21.2 and 2.19.0) and `27169174ca97a2147ac39d70fae3fd29573131d4` (2.22.0).
+- Oversold at tag v0.1.1, commit `2004ed534b765a3b3341efaadb3f352ffdecef90`, from `oversold.lock`. The sets in the main results table ran at this commit. The sets at `a35d162cb5be383e7d3f9c6ffd91b306377144a8`, `a18d5c9f3892dbca86effa0766e975985f8324bd` (2.21.2 and 2.19.0) and `27169174ca97a2147ac39d70fae3fd29573131d4` (2.22.0) ran at earlier pins and were not run again.
 - At v0.1.1 Oversold has five checks: `no_oversell` 2, `reserved_matches_reservations` 2, `one_order_per_cart` 2, `no_orphaned_orders` 2 and `no_missing_orders` 1. Version 2 of the first four adds an inconclusive rule for an after snapshot that is missing rows or has an unreadable level quantity, and `no_orphaned_orders` 2 adds up reservations per order instead of per line. `no_missing_orders` 1 checks that every `ok` completion left exactly one saved order linked to its cart. Every saved history keeps the check names and versions it was judged with, and `check --verify` at v0.1.1 passes on all 30 earlier folders, which keep their version 1 verdicts. Shortfall reads each verdict's name and version from the history and records the versions in the ledger.
 - Up to `a35d162` nothing under `internal/checks` or in `docs/checks.md` changed. Between `2716917` and `a35d162` Oversold added `target.locking`, a Redis service with no published port, and the `locking`, `redis_version` and `lock_calls` fields in histories and reports. It also changed `targets/medusa/app/medusa-config.ts`, which is built into the Medusa image, so every image was built again.
 - Colima 0.10.3, profile `shortfall`: 4 CPUs, 6 GiB memory, 40 GiB disk, `vz` VM, `virtiofs` mount of this repo, read-only.
 - Docker client 29.8.2.
 - macOS 27.0.1 on Apple silicon.
+- Shortfall's engine was found empty on 2026-11-16, with no images, containers, volumes or build cache. Its Docker data disk had been created that day at the start of the session, so every image at this pin was built in one session, from the v0.1.1 clone. The VM still had one mount, this folder, read-only.
+- Images for the `2004ed5` sets, built by Oversold's first run of each:
+  - `oversold-medusa:2.22.0`: `sha256:c48358f78c193ccba70f4a7bf5e1e0048decb55bf4019cec48cc631658da0527`, inputs label `d701e53cf957c292585cdcafdd628b75a330047e838f35c985b7534153b72be5`
+  - `oversold-medusa:2.22.0-pr-17420`: `sha256:e3bcacbc669133e02b8372ceccf0e7184623625404fdf274a5880f392805e29a`, inputs label `47a24af91270797a42fcf8d465c9f25371b24cee68596902fef016ee7bc0af21`
+  - `oversold-medusa:2.22.0-pr-16961`: `sha256:0075cea17c12ad8e6db26908d310d823cad73216547ab3a6f05042a001e82a9c`, inputs label `ee262621f93e2ba8e44d0e7d090c616f40ad572fe2c2c8706cdd0cb01e5e6ae5`
+  - Every history records the image ID and inputs label of each server, and every variant history the sha256 of each replaced file. All 240 match the images above and the variant files in Oversold's `variant.yaml`.
+- Base images for the `2004ed5` sets, read from the engine, not from the histories, which record only the Postgres and Redis versions. They were read once before the first set and once after the last, and both readings equal the digests pinned in the clone's `compose.yaml` and `Dockerfile`:
+  - `postgres:15.19-alpine`: `postgres@sha256:aae6554de426ae1990f1a939ff183a0299146cf7142a6f4c379c3357af9cc2d8`, the image of the running Postgres container. Every history records Postgres 15.19.
+  - `redis:7.4.11-alpine`: `redis@sha256:d9436322172a5b482c187bf1f363d3c4fea086fcca6b9c8a94de8f0f39ed3193`, the image of the running Redis container at the end. It was not yet in the engine before the first set. Every Redis history records Redis 7.4.11.
+  - `node:22.23.3-bookworm-slim`: not kept in the image store. The build cache records it as pulled from `docker.io/library/node:22.23.3-bookworm-slim@sha256:3ed98443660ff48413b5af19ecefce3b9d50845a901a43420d47cc63a9fddbe9`.
 - Images for the `a35d162` sets, built in Shortfall's engine from the `a35d162` clone after the earlier images were removed:
   - `oversold-medusa:2.21.2`: `sha256:c89e6efff2f8fd2df6ad9d375feabde2c6abd1427312b9f7a4a9aef521090a66`
   - `oversold-medusa:2.19.0`: `sha256:049de24eda1a6acd0accff0e90d036cd3ead1da1754ad01163ac819896f04876`
@@ -132,12 +175,13 @@ These sets ran at earlier Oversold pins, on images built from those pins, with i
   - `oversold-medusa:2.21.2` at `a18d5c9`: `sha256:8b684bf5b7c6af1b401200325dc4ff285f96bdf8c44e0a68f42b2408d77e0796`
   - `oversold-medusa:2.19.0` at `a18d5c9`: `sha256:170f4d29b9d544cdf96e06f7a75d4d3306f28abd80024cfdbe46044c0096e112`
   - `oversold-medusa:2.22.0` at `2716917`: `sha256:26e01f1395dc0cbd8c7f6503f6635280eba4196511b2a0b48148d342a51ac258`
+- `2004ed5` runs from 2026-11-16 19:42:44 UTC to 2026-11-16 20:09:50 UTC.
 - `a35d162` runs from 2026-11-01 21:49:59 UTC to 2026-11-01 22:41:53 UTC.
 - Earlier 2.21.2 and 2.19.0 runs from 2026-10-22 06:28:45 UTC to 2026-10-22 06:59:12 UTC, and 2.22.0 runs from 2026-10-25 22:20:08 UTC to 2026-10-25 23:04:22 UTC.
 
-Every history records the Medusa image ID of each server and the Oversold commit. All 900 match the images listed for the pin their set ran at, with no local changes.
+Every history records the Medusa image ID of each server and the Oversold commit. All 1140 match the images listed for the pin their set ran at, with no local changes.
 
-Run sets from different sessions are comparable only when the Medusa image ID matches. Since `61c7d02` Oversold labels each image with a hash of the files it is built from and builds the image, its template database and the servers on the first run that needs them. `sh scripts/oversold.sh up` only starts Postgres, and `sh scripts/oversold.sh image <version> [variant]` prints an image's ID, digest and inputs label. At v0.1.1 Oversold's compose file and Dockerfile name the Node, Postgres and Redis base images by digest. The Postgres digest it names, `sha256:aae6554de426ae1990f1a939ff183a0299146cf7142a6f4c379c3357af9cc2d8`, differs from the one recorded above for the earlier sets.
+Run sets from different sessions are comparable only when the Medusa image ID matches. Since `61c7d02` Oversold labels each image with a hash of the files it is built from and builds the image, its template database and the servers on the first run that needs them. `sh scripts/oversold.sh up` only starts Postgres, and `sh scripts/oversold.sh image <version> [variant]` prints an image's ID, digest and inputs label. At v0.1.1 Oversold's compose file and Dockerfile name the Node, Postgres and Redis base images by digest. The Postgres digest differs from the one recorded below for the `a35d162` sets.
 
 Images are named `<prefix>:<version>`, and a variant image `<prefix>:<version>-<variant>`. The prefix is `OVERSOLD_IMAGE_PREFIX` in `.oversold/.env`, `oversold-medusa` by default, and `scripts/oversold.sh` reads it from there.
 
@@ -194,7 +238,7 @@ Candidates go in `runs/sweep/<UTC time>/`. Both modes give the same files in the
 
 ### Scoring
 
-The same code path in `src/shortfall/score.py` scores sweep candidates now and agent attempts later. A candidate that sets `target.variant` or `target.locking` is refused before it runs. Only the harness sets them.
+The same code path in `src/shortfall/score.py` scores sweep candidates now and agent attempts later. A candidate that sets `target.variant`, `target.locking` or `checks` is refused before it runs. Only the harness sets the target fields, and every run uses every check. A run with any complete call whose outcome is `unknown` counts as inconclusive, for the candidate and for controls, since Oversold's `no_missing_orders` skips a cart with an unknown call.
 
 Screen and retry:
 
@@ -208,15 +252,34 @@ Scoring runs the candidate 10 more times on plain Medusa 2.22.0. Then, for each 
 Each attempt gets three results:
 
 - **violation**: `violation` when at least one check failed in the candidate's runs on plain Medusa, with each failed rule and its count. Otherwise `not reproduced within N runs`, `unpreparable`, or `inconclusive` when every run was inconclusive.
-- **reproduced**, per case: `reproduced` when the case's rule failed in at least 1 of the 10 scoring runs and in 0 of the 10 runs on that case's scoring control, with no inconclusive control run. Otherwise `not reproduced`, or `inconclusive` when the control's rule held but a control run was inconclusive. A failed rule that no case's control clears is `violation, cause not isolated`, and it is not credited to any case.
-- **located**: an attempt may name one source file as the cause. It is graded by exact path against `answer.yaml` for each case it reproduced. Grid and random candidates name no file, so their located result is `not applicable`.
+- **reproduced**, per case: `reproduced` when the case's rule failed in at least 1 of the 10 scoring runs and in 0 of the 10 runs on that case's scoring control, with no inconclusive control run. Otherwise `not reproduced`, or `inconclusive` when the control's rule held but a control run was inconclusive. A failed rule that no case's control clears is `violation, cause not isolated`, and it is not credited to any case. It always goes into the attempt's `manual_check` field and the list at the end of the sweep.
+- **located**: an attempt may name one source file and one cause from the cause list. For each case it reproduced, the file is graded by exact path against the case's `answer.yaml`, the cause by id, and located needs both. The three results are kept apart. Grid and random candidates name neither, so their located result is `not applicable`.
+
+The causes are fixed in [causes.yaml](causes.yaml):
+
+| Cause | Meaning | Cases |
+|---|---|---|
+| `per-line-check` | Each line or entry is checked against stock alone, and entries that share an item are never added up. | medusa-16502-lines |
+| `process-local-lock` | The lock only works inside one server process. | medusa-17032-last-unit, medusa-17032-counter |
+| `stale-counter-write` | A counter is written from a value read earlier, so one update is lost. | medusa-17032-last-unit, medusa-17032-counter |
+| `duplicate-completion` | The same cart is completed twice and both go through. | none |
+| `payment-order-link` | An order is saved without its payment or cart link. | none |
+| `stock-location-mixup` | Stock is read at one location and reserved at another. | none |
 
 | Case | Accepted files |
 |---|---|
 | medusa-16502-lines | `packages/modules/inventory/src/services/inventory-module.ts`, `packages/core/core-flows/src/cart/steps/confirm-inventory.ts` |
 | medusa-17032-last-unit, medusa-17032-counter | `packages/modules/inventory/src/services/inventory-module.ts`, `packages/core/core-flows/src/cart/steps/reserve-inventory.ts`, `packages/modules/locking/src/providers/in-memory.ts`, the in-memory locking provider |
 
-Every accepted path exists in the 2.22.0 source snapshot.
+Every accepted path exists in the 2.22.0 source snapshot. All three cases accept `inventory-module.ts`, so a file alone says little. `fixed_guess` in `src/shortfall/answers.py` scores one fixed guess over all three cases, and any located number Shortfall reports belongs next to these:
+
+| Fixed guess | File accepted | Cause accepted | Located |
+|---|---|---|---|
+| always `inventory-module.ts`, no cause | 3 of 3 | 0 of 3 | 0 of 3 |
+| always the most common cause, `process-local-lock`, no file | 0 of 3 | 2 of 3 | 0 of 3 |
+| always `inventory-module.ts` and `process-local-lock` | 3 of 3 | 2 of 3 | 2 of 3 |
+
+`process-local-lock` and `stale-counter-write` tie as the most common cause, and either gives the same scores.
 
 Inconclusive runs count against the caps like any other run, and so does the run that shows a candidate is `unpreparable`. The sweep stops when 3 attempts in a row have only inconclusive runs in their first screen, not counting `unpreparable` ones.
 
@@ -232,7 +295,7 @@ Every failed check in every set is compared with this map of public issues. A fa
 
 A scenario with `target.locking: redis` is never covered by #17032. Two servers with in-memory locking stay covered by #17032, with or without a variant. On variant pr-16961, #16502 covers nothing. No public issue covers a `no_missing_orders` or a `one_order_per_cart` failure, so either stops the sweep.
 
-Oversold has never reproduced #16825, so a `no_orphaned_orders` failure does not stop the sweep but is listed for a manual check, in the attempt's `manual_check` field and at the end of the sweep's output.
+Oversold has never reproduced #16825, so a `no_orphaned_orders` failure does not stop the sweep but is listed for a manual check, in the attempt's `manual_check` field and at the end of the sweep's output. Any `violation, cause not isolated` is listed the same way, whatever this map says. The map stays the hard stop.
 
 ### Caps and the ledger
 

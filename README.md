@@ -6,7 +6,7 @@ It is graded on a benchmark of real bugs that are already public, against simple
 
 ## Status
 
-Three benchmark cases from public Medusa issues, each reproduced by hand with Oversold on Medusa 2.21.2, 2.19.0 and 2.22.0, two of them with a Redis locking control that held in 30 of 30 runs on each version. No agent yet. See [benchmark/README.md](benchmark/README.md).
+Three benchmark cases from two public Medusa issues. At Oversold v0.1.1 on Medusa 2.22.0, each case's rule failed on plain Medusa (23, 30 and 30 of 30 runs) and in 0 of 30 runs with the fix that clears it: pull request #17420 for the two #17032 cases and #16961 for #16502. Earlier sets on 2.19.0 and 2.21.2 are reproductions only. The scoring and the no-model baseline are built. The agent is not built yet. See [benchmark/README.md](benchmark/README.md).
 
 ## How it uses Oversold
 
