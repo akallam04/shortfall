@@ -264,7 +264,10 @@ def test_summary_shows_the_three_results():
     graded["located"] = {
         "result": "graded",
         "file": "packages/core/core-flows/src/cart/steps/confirm-inventory.ts",
-        "cases": {"medusa-16502-lines": "accepted"},
+        "cause": "per-line-check",
+        "cases": {
+            "medusa-16502-lines": {"file": "accepted", "cause": "accepted", "located": "accepted"}
+        },
     }
     entries = [
         entry(1),
@@ -284,7 +287,12 @@ def test_summary_shows_the_three_results():
     }
     assert s["reproduced"] == {"medusa-16502-lines": 1, "medusa-17032-last-unit": 1}
     assert s[ledger.NOT_ISOLATED] == {"reserved_matches_reservations": 1}
-    assert s["located"] == {"medusa-16502-lines accepted": 1, "not applicable": 5}
+    assert s["located"] == {
+        "medusa-16502-lines cause accepted": 1,
+        "medusa-16502-lines file accepted": 1,
+        "medusa-16502-lines located accepted": 1,
+        "not applicable": 5,
+    }
     assert s["oversold_runs"] == 3 + 10 + 33 + 23 + 1 + 3
     assert s["dollars"] == 0
     assert "lines from before the three results" not in s

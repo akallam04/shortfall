@@ -1,6 +1,9 @@
-schema: shortfall.answer/v1
+schema: shortfall.answer/v2
 case: medusa-17032-last-unit
 files:
   - packages/modules/inventory/src/services/inventory-module.ts
   - packages/core/core-flows/src/cart/steps/reserve-inventory.ts
   - packages/modules/locking/src/providers/in-memory.ts
+causes:
+  - process-local-lock
+  - stale-counter-write

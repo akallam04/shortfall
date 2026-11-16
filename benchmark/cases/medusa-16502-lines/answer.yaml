@@ -1,5 +1,7 @@
-schema: shortfall.answer/v1
+schema: shortfall.answer/v2
 case: medusa-16502-lines
 files:
   - packages/modules/inventory/src/services/inventory-module.ts
   - packages/core/core-flows/src/cart/steps/confirm-inventory.ts
+causes:
+  - per-line-check

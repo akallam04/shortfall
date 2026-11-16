@@ -64,7 +64,7 @@ def ledger_file(tmp_path: Path) -> Path:
     return tmp_path / "runs" / "ledger.jsonl"
 
 
-def make(tmp_path, path, runner, budget, version="2.22.0", named_file=None, n=1):
+def make(tmp_path, path, runner, budget, version="2.22.0", named=(None, None), n=1):
     meta = {"attempt_id": f"s-{n:03d}", "source": "sweep", "seed": 0, "rerun_of": None}
     return score.Attempt(
         tmp_path,
@@ -78,18 +78,19 @@ def make(tmp_path, path, runner, budget, version="2.22.0", named_file=None, n=1)
         PIN,
         meta,
         ledger_file(tmp_path),
-        named_file=named_file,
+        named_file=named[0],
+        named_cause=named[1],
     )
 
 
-def sweep_of(tmp_path, items, budget=None, version="2.22.0", named_file=None):
+def sweep_of(tmp_path, items, budget=None, version="2.22.0", named=(None, None)):
     q = {}
     for _, queue in items:
         q.update(queue)
     runner = FixtureRunner(q)
     budget = budget or Budget()
     factories = [
-        (lambda path=path, n=n: make(tmp_path, path, runner, budget, version, named_file, n))
+        (lambda path=path, n=n: make(tmp_path, path, runner, budget, version, named, n))
         for n, (path, _) in enumerate(items, start=1)
     ]
     attempts, stop = score.run_attempts(factories, budget, report=lambda line: None)
@@ -103,8 +104,8 @@ def sweep_of(tmp_path, items, budget=None, version="2.22.0", named_file=None):
     return attempts, stop, runner, budget
 
 
-def attempt(tmp_path, path, q, budget=None, version="2.22.0", named_file=None):
-    attempts, stop, runner, budget = sweep_of(tmp_path, [(path, q)], budget, version, named_file)
+def attempt(tmp_path, path, q, budget=None, version="2.22.0", named=(None, None)):
+    attempts, stop, runner, budget = sweep_of(tmp_path, [(path, q)], budget, version, named)
     [a] = attempts
     records = ledger.load(ledger_file(tmp_path))
     spent_runs = sum(r["oversold_runs"] for r in records if r["kind"] == "spend")
@@ -266,11 +267,16 @@ def test_a_one_server_failure_is_credited_to_the_bug_its_control_clears(tmp_path
         pr_16961=many(("pass", 10)),
         pr_17420=many(("fail-no-oversell", 10)),
     )
-    entry, stop, _, _ = attempt(tmp_path, path, q, named_file=CONFIRM)
+    entry, stop, _, _ = attempt(tmp_path, path, q, named=(CONFIRM, "per-line-check"))
     assert stop is None
     assert entry["servers"] == 1
     assert entry["reproduced"]["cases"] == {LINES: "reproduced", LAST_UNIT: "not reproduced"}
-    assert entry["located"] == {"result": "graded", "file": CONFIRM, "cases": {LINES: ACCEPTED}}
+    assert entry["located"] == {
+        "result": "graded",
+        "file": CONFIRM,
+        "cause": "per-line-check",
+        "cases": {LINES: {"file": ACCEPTED, "cause": ACCEPTED, "located": ACCEPTED}},
+    }
 
 
 def test_a_one_server_oversell_the_16502_fix_leaves_stops_the_sweep(tmp_path, candidates):
@@ -295,8 +301,25 @@ def test_a_named_file_outside_the_answer_is_not_accepted(tmp_path, candidates):
         pr_16961=many(("pass", 10)),
         pr_17420=many(("fail-no-oversell", 10)),
     )
-    entry, _, _, _ = attempt(tmp_path, path, q, named_file=RESERVE)
-    assert entry["located"]["cases"] == {LINES: NOT_ACCEPTED}
+    entry, _, _, _ = attempt(tmp_path, path, q, named=(RESERVE, "per-line-check"))
+    assert entry["located"]["cases"] == {
+        LINES: {"file": NOT_ACCEPTED, "cause": ACCEPTED, "located": NOT_ACCEPTED}
+    }
+
+
+def test_inventory_module_with_the_wrong_cause_is_not_located(tmp_path, candidates):
+    path = candidates["s2-piece-twopack-c2-short-together"]
+    q = queues(
+        path,
+        many(("fail-no-oversell", 13)),
+        pr_16961=many(("pass", 10)),
+        pr_17420=many(("fail-no-oversell", 10)),
+    )
+    inventory = "packages/modules/inventory/src/services/inventory-module.ts"
+    entry, _, _, _ = attempt(tmp_path, path, q, named=(inventory, "process-local-lock"))
+    assert entry["located"]["cases"] == {
+        LINES: {"file": ACCEPTED, "cause": NOT_ACCEPTED, "located": NOT_ACCEPTED}
+    }
 
 
 def test_a_rule_no_control_clears_is_a_violation_with_cause_not_isolated(tmp_path, candidates):

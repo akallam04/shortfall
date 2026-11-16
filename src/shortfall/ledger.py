@@ -381,8 +381,9 @@ def summary(records: list[dict]) -> dict:
                 if outcome == NOT_ISOLATED:
                     not_isolated[rule] += 1
             if e["located"]["result"] == "graded":
-                for case, grade in e["located"]["cases"].items():
-                    located[f"{case} {grade}"] += 1
+                for case, grades in e["located"]["cases"].items():
+                    for part, grade in grades.items():
+                        located[f"{case} {part} {grade}"] += 1
             else:
                 located[e["located"]["result"]] += 1
         else:

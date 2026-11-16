@@ -340,6 +340,7 @@ class Attempt:
         meta: dict,
         ledger_path: Path,
         named_file: str | None = None,
+        named_cause: str | None = None,
     ):
         self.root = Path(root)
         self.scenario = Path(scenario)
@@ -348,6 +349,7 @@ class Attempt:
         self.budget = budget
         self.cases = cases
         self.named_file = named_file
+        self.named_cause = named_cause
         self.text = self.scenario.read_text(encoding="utf-8")
         data = yaml.safe_load(self.text)
         check_candidate(data)
@@ -596,7 +598,7 @@ class Attempt:
         entry["reproduced"]["rules"] = outcomes
         hits = [case_id for case_id, r in cases.items() if r == REPRODUCED]
         folders = {case_id: info.folder for case_id, info in self.cases.items()}
-        entry["located"] = located(folders, hits, self.named_file)
+        entry["located"] = located(folders, hits, self.named_file, self.named_cause)
         entry["wall_seconds"] = round(self.seconds, 1)
         entry["oversold_runs"] = self.used
         entry["timestamp"] = now()

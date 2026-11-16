@@ -1,0 +1,14 @@
+schema: shortfall.causes/v1
+causes:
+  - id: per-line-check
+    description: Each line or entry is checked against stock alone, and entries that share an item are never added up.
+  - id: process-local-lock
+    description: The lock only works inside one server process.
+  - id: stale-counter-write
+    description: A counter is written from a value read earlier, so one update is lost.
+  - id: duplicate-completion
+    description: The same cart is completed twice and both go through.
+  - id: payment-order-link
+    description: An order is saved without its payment or cart link.
+  - id: stock-location-mixup
+    description: Stock is read at one location and reserved at another.
