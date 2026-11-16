@@ -22,13 +22,23 @@ def test_real_cases_load():
 
 def test_real_case_fields():
     lines = load_case(CASES / "medusa-16502-lines")
-    assert lines.control.kind == "none"
-    assert lines.control.reason
-    assert lines.notes
+    assert lines.control.kind == "variant"
+    assert (lines.control.variant, lines.control.version) == ("pr-16961", "2.22.0")
+    assert lines.control.reason is None
+    assert lines.notes.endswith(
+        "#16961, a community pull request for #16502 that was closed without being merged."
+    )
+    assert "#17436 (opened 2026-10-22)" in lines.notes
     counter = load_case(CASES / "medusa-17032-counter")
     assert counter.rule == "reserved_matches_reservations"
     assert counter.control.kind == "redis-locking"
     assert counter.control.version is None
+    for case in ("medusa-17032-counter", "medusa-17032-last-unit"):
+        notes = load_case(CASES / case).notes
+        assert notes.endswith(
+            "The cross-process lost update is also reported, through direct service calls, "
+            "in the open issue #16569."
+        )
 
 
 def good_data() -> dict:
@@ -117,6 +127,35 @@ BAD = [
         "version without fixed-version",
         lambda d: set_path(d, "control.version", "2.19.0"),
         "control.version is only allowed",
+    ),
+    (
+        "variant without variant",
+        lambda d: set_path(d, "control", {"kind": "variant", "version": "2.22.0"}),
+        "control.variant is required",
+    ),
+    (
+        "variant without version",
+        lambda d: set_path(d, "control", {"kind": "variant", "variant": "pr-16961"}),
+        "control.version is required with variant",
+    ),
+    (
+        "variant on a version the case does not run",
+        lambda d: set_path(
+            d, "control", {"kind": "variant", "variant": "pr-16961", "version": "2.18.0"}
+        ),
+        "must be one of the case's versions",
+    ),
+    (
+        "variant name form",
+        lambda d: set_path(
+            d, "control", {"kind": "variant", "variant": "PR 16961", "version": "2.22.0"}
+        ),
+        "control.variant must be a kebab-case",
+    ),
+    (
+        "variant field without variant kind",
+        lambda d: set_path(d, "control.variant", "pr-16961"),
+        "control.variant is only allowed with variant",
     ),
     (
         "none without reason",
@@ -213,6 +252,18 @@ def test_not_a_mapping(tmp_path):
         load_case(folder)
 
 
+def test_variant_control_loads(tmp_path):
+    data = good_data()
+    data["control"] = {"kind": "variant", "variant": "pr-16961", "version": "2.22.0"}
+    control = load_case(write_case(tmp_path, data)).control
+    assert (control.kind, control.variant, control.version, control.reason) == (
+        "variant",
+        "pr-16961",
+        "2.22.0",
+        None,
+    )
+
+
 def test_every_case_note_is_read_in_full():
     for folder in sorted(p for p in CASES.iterdir() if p.is_dir()):
         case = load_case(folder)
@@ -220,3 +271,20 @@ def test_every_case_note_is_read_in_full():
         if case.notes:
             assert case.notes in text
             assert case.notes.endswith(".")
+
+
+VARIANTS = CASES.parent.parent / ".oversold" / "targets" / "medusa" / "variants"
+
+
+@pytest.mark.skipif(not VARIANTS.is_dir(), reason="needs the pinned Oversold clone")
+def test_variant_controls_name_a_variant_at_the_pin():
+    found = 0
+    for folder in sorted(p for p in CASES.iterdir() if p.is_dir()):
+        control = load_case(folder).control
+        if control.kind != "variant":
+            continue
+        spec = yaml.safe_load((VARIANTS / control.variant / "variant.yaml").read_text())
+        assert spec["name"] == control.variant
+        assert spec["base_version"] == control.version
+        found += 1
+    assert found == 1

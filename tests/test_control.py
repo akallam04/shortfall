@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 from shortfall.cases import load_case
-from shortfall.control import main, one_server, redis_locking
+from shortfall.control import main, one_server, redis_locking, variant
 
 ROOT = Path(__file__).resolve().parent.parent
 CASES = ROOT / "benchmark" / "cases"
@@ -175,7 +175,87 @@ def test_committed_redis_control_matches_generator(case_id):
     assert out == (folder / "redis-control.yaml").read_bytes()
 
 
-@pytest.mark.parametrize("argv", [[], ["--redis-locking"], ["--other", "x.yaml"], ["a", "b"]])
+@pytest.mark.parametrize(
+    "argv",
+    [
+        [],
+        ["--redis-locking"],
+        ["--other", "x.yaml"],
+        ["a", "b"],
+        ["--variant", "pr-16961", "x.yaml"],
+        ["--variant", "pr-16961", "2.22.0"],
+    ],
+)
 def test_bad_command_lines(argv, capsys):
     assert main(argv) == 2
     assert "usage:" in capsys.readouterr().err
+
+
+LINES = CASES / "medusa-16502-lines"
+
+
+def test_variant_rewrite():
+    text = (LINES / "reference.yaml").read_text(encoding="utf-8")
+    before = yaml.safe_load(text)
+    after = yaml.safe_load(variant(text, "pr-16961", "2.22.0"))
+    assert after["name"] == before["name"] + "-pr-16961-control"
+    assert after["description"] == (
+        f"Variant control of {before['name']} on Medusa 2.22.0 with pr-16961. "
+        + before["description"]
+    )
+    assert list(after) == list(before)
+    assert list(after["target"]) == ["engine", "version", "servers", "variant"]
+    assert after["target"] == {**before["target"], "version": "2.22.0", "variant": "pr-16961"}
+    rest = {k: v for k, v in after.items() if k not in ("name", "description", "target")}
+    assert rest == {k: v for k, v in before.items() if k not in ("name", "description", "target")}
+
+
+def test_variant_goes_right_after_servers():
+    data = yaml.safe_load(LAST_UNIT.read_text(encoding="utf-8"))
+    data["target"]["locking"] = "redis"
+    after = yaml.safe_load(variant(yaml.safe_dump(data, sort_keys=False), "pr-16961", "2.22.0"))
+    assert list(after["target"]) == ["engine", "version", "servers", "variant", "locking"]
+
+
+def test_variant_refuses_a_scenario_with_a_variant():
+    text = (LINES / "variant-control.yaml").read_text(encoding="utf-8")
+    with pytest.raises(ValueError, match="already has target.variant"):
+        variant(text, "pr-16961", "2.22.0")
+
+
+@pytest.mark.parametrize(
+    "name,version,message",
+    [("PR_16961", "2.22.0", "kebab-case"), ("pr-16961", "latest", "look like")],
+)
+def test_variant_refuses_bad_names_and_versions(name, version, message):
+    with pytest.raises(ValueError, match=message):
+        variant(LAST_UNIT.read_text(encoding="utf-8"), name, version)
+
+
+def test_variant_long_name_raises():
+    data = yaml.safe_load(LAST_UNIT.read_text(encoding="utf-8"))
+    data["name"] = "a" * 48
+    with pytest.raises(ValueError, match="over 64"):
+        variant(yaml.safe_dump(data, sort_keys=False), "pr-16961", "2.22.0")
+    data["name"] = "a" * 47
+    out = yaml.safe_load(variant(yaml.safe_dump(data, sort_keys=False), "pr-16961", "2.22.0"))
+    assert out["name"] == "a" * 47 + "-pr-16961-control"
+    assert len(out["name"]) == 64
+
+
+def test_committed_variant_control_matches_generator():
+    case = load_case(LINES)
+    out = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "shortfall.control",
+            "--variant",
+            case.control.variant,
+            case.control.version,
+            str(LINES / "reference.yaml"),
+        ],
+        check=True,
+        capture_output=True,
+    ).stdout
+    assert out == (LINES / "variant-control.yaml").read_bytes()

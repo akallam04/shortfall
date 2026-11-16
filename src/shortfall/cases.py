@@ -13,7 +13,7 @@ RULES = (
     "one_order_per_cart",
     "no_orphaned_orders",
 )
-CONTROL_KINDS = ("one-server", "redis-locking", "fixed-version", "none")
+CONTROL_KINDS = ("one-server", "redis-locking", "variant", "fixed-version", "none")
 
 _ID = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 _VERSION = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
@@ -34,7 +34,7 @@ _TOP = (
     "notes",
 )
 _ISSUE = ("url", "opened", "state")
-_CONTROL = ("kind", "version", "reason")
+_CONTROL = ("kind", "variant", "version", "reason")
 _REFERENCE = ("file", "source")
 _AGENT_SEES = ("guided", "unguided")
 
@@ -51,6 +51,7 @@ class Control:
     kind: str
     version: str | None
     reason: str | None
+    variant: str | None = None
 
 
 @dataclass(frozen=True)
@@ -252,22 +253,37 @@ def load_case(folder: str | Path) -> Case:
             problems.append(f"control.kind must be one of {', '.join(CONTROL_KINDS)}")
             kind = None
         version = None
-        if kind == "fixed-version":
+        if kind in ("fixed-version", "variant"):
             if "version" not in raw:
-                problems.append("control.version is required with fixed-version")
+                problems.append(f"control.version is required with {kind}")
             elif not isinstance(raw["version"], str) or not _VERSION.fullmatch(raw["version"]):
                 problems.append("control.version must be a version like 2.21.2")
             else:
                 version = raw["version"]
+                if kind == "variant" and versions and version not in versions:
+                    problems.append(
+                        f"control.version {version} must be one of the case's versions, "
+                        f"{', '.join(versions)}"
+                    )
         elif "version" in raw:
-            problems.append("control.version is only allowed with fixed-version")
+            problems.append("control.version is only allowed with fixed-version or variant")
+        variant = None
+        if kind == "variant":
+            if "variant" not in raw:
+                problems.append("control.variant is required with variant")
+            elif not isinstance(raw["variant"], str) or not _ID.fullmatch(raw["variant"]):
+                problems.append("control.variant must be a kebab-case variant name like pr-16961")
+            else:
+                variant = raw["variant"]
+        elif "variant" in raw:
+            problems.append("control.variant is only allowed with variant")
         reason = None
         if kind == "none":
             reason = _text(raw, "reason", "control.reason", problems)
         elif "reason" in raw:
             problems.append("control.reason is only allowed with none")
         if kind:
-            control = Control(kind=kind, version=version, reason=reason)
+            control = Control(kind=kind, version=version, reason=reason, variant=variant)
 
     reference = None
     if "reference" not in top:

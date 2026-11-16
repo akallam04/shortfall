@@ -52,3 +52,13 @@ def test_variant_pr_16961_takes_16502_out_of_the_map():
     assert covering_issues(two, "no_oversell") == (ISSUE_17032,)
     other = {**MULTI, "servers": 1, "variant": "another-variant"}
     assert covering_issues(other, "no_oversell") == (ISSUE_16502, ISSUE_17032)
+
+
+def test_no_issue_covers_a_stock_failure_in_the_16502_variant_control():
+    lines = CASES / "medusa-16502-lines"
+    s = shape(yaml.safe_load((lines / "variant-control.yaml").read_text(encoding="utf-8")))
+    assert s["variant"] == "pr-16961"
+    for rule in ("no_oversell", "reserved_matches_reservations", "one_order_per_cart"):
+        assert covering_issues(s, rule) == ()
+    ref = shape(yaml.safe_load((lines / "reference.yaml").read_text(encoding="utf-8")))
+    assert covering_issues(ref, "no_oversell") == (ISSUE_16502,)

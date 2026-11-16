@@ -12,8 +12,8 @@ import yaml
 
 from shortfall import ledger
 from shortfall.budget import ATTEMPT, Budget, CapReached, from_flags
-from shortfall.cases import RULES, load_case
-from shortfall.control import one_server, redis_locking
+from shortfall.cases import RULES, Control, load_case
+from shortfall.control import one_server, redis_locking, variant
 from shortfall.coverage import MANUAL_CHECK, covering_issues
 from shortfall.pin import read_pin
 from shortfall.spend import Meter, now
@@ -33,6 +33,20 @@ CONTROLS = {
     "one-server": ("control", one_server),
     "redis-locking": ("redis-control", redis_locking),
 }
+
+
+def control_builder(control: Control | None, version: str):
+    if control is None:
+        return None
+    if control.kind in CONTROLS:
+        return CONTROLS[control.kind]
+    if control.kind == "variant" and control.version == version:
+
+        def build(text: str) -> str:
+            return variant(text, control.variant, control.version)
+
+        return "variant-control", build
+    return None
 
 
 @dataclass
@@ -167,9 +181,9 @@ def case_map(cases_root: Path) -> dict[tuple[str, int], str]:
     return mapping
 
 
-def control_map(cases_root: Path) -> dict[str, str]:
+def control_map(cases_root: Path) -> dict[str, Control]:
     return {
-        folder.name: load_case(folder).control.kind
+        folder.name: load_case(folder).control
         for folder in sorted(p for p in Path(cases_root).iterdir() if p.is_dir())
     }
 
@@ -218,13 +232,18 @@ class OversoldRunner:
             text=True,
         )
 
-    def image(self, version: str) -> tuple[str, str]:
-        proc = self._wrapper("image", version)
+    def lookup(self, version: str, variant_name: str | None = None) -> tuple[str, str]:
+        args = ["image", version] + ([variant_name] if variant_name else [])
+        proc = self._wrapper(*args)
         found = re.search(r" id (sha256:[0-9a-f]{64}) digest (\S+)", proc.stdout)
         if proc.returncode != 0 or not found:
             raise RuntimeError(clean(proc.stderr.strip() or "image lookup failed", self.root))
-        self.image_id = found.group(1)
         return found.group(1), found.group(2)
+
+    def image(self, version: str) -> tuple[str, str]:
+        image_id, digest = self.lookup(version)
+        self.image_id = image_id
+        return image_id, digest
 
     def run(self, scenario: Path, runs: int, version: str) -> RunSet:
         proc = self._wrapper("run", str(scenario), "--runs", str(runs), "--version", version)
@@ -238,7 +257,10 @@ class OversoldRunner:
         histories = [
             json.loads(p.read_text(encoding="utf-8")) for p in sorted(folder.glob("run-*.json"))
         ]
-        check_histories(histories, runs, self.pin, self.image_id)
+        data = yaml.safe_load(Path(scenario).read_text(encoding="utf-8"))
+        variant_name = (data.get("target") or {}).get("variant")
+        expected = self.lookup(version, variant_name)[0] if variant_name else self.image_id
+        check_histories(histories, runs, self.pin, expected)
         return RunSet(folder=relative(self.root, folder), histories=histories)
 
 
@@ -255,7 +277,7 @@ def score_candidate(
     meta: dict,
     ledger_path: Path,
     *,
-    controls: dict[str, str],
+    controls: dict[str, Control],
 ) -> tuple[dict, str | None]:
     text = scenario.read_text(encoding="utf-8")
     data = yaml.safe_load(text)
@@ -373,28 +395,33 @@ def score_candidate(
             return "inconclusive" if entry["inconclusive"]["screen"] else "no match"
         scored = run_set("score", scenario, SCORE_RUNS, sh)
         score_rules = failed_rules(scored)
-        if sh["servers"] == 1:
-            hits = [cases[(r, 1)] for r in score_rules if (r, 1) in cases]
+        servers = sh["servers"]
+        candidate_rules = [r for r in score_rules if (r, servers) in cases]
+        hits = [cases[(r, servers)] for r in candidate_rules]
+
+        def reproduction_only() -> str:
             entry["cases"] = hits
             entry["case"] = hits[0] if hits else None
-            if score_rules:
-                return "reproduction only"
-            return "inconclusive" if entry["inconclusive"]["score"] else "no match"
-        candidate_rules = [r for r in score_rules if (r, 2) in cases]
+            return "reproduction only"
+
         if not candidate_rules:
+            if servers == 1 and score_rules:
+                return reproduction_only()
             if not score_rules and entry["inconclusive"]["score"]:
                 return "inconclusive"
             return "no match"
-        kinds = sorted({controls.get(cases[(r, 2)], "none") for r in candidate_rules})
-        if len(kinds) != 1:
+        picked = {controls.get(case_id) for case_id in hits}
+        if len(picked) != 1:
+            kinds = sorted(c.kind if c else "none" for c in picked)
             raise RuntimeError(f"cases for {', '.join(candidate_rules)} need controls {kinds}")
-        if kinds[0] not in CONTROLS:
-            return "reproduction only"
-        suffix, build = CONTROLS[kinds[0]]
+        built = control_builder(picked.pop(), version)
+        if built is None:
+            return reproduction_only()
+        suffix, build = built
         try:
             control_text = build(text)
         except ValueError:
-            return "reproduction only"
+            return reproduction_only()
         control_path = scenario.with_name(f"{scenario.stem}-{suffix}.yaml")
         if control_path.exists() and control_path.read_text(encoding="utf-8") != control_text:
             raise RuntimeError(f"{control_path.name} exists and differs from the generated control")
@@ -405,7 +432,7 @@ def score_candidate(
         clean_control = entry["inconclusive"]["control"] == 0
         matched = [r for r in candidate_rules if control[r]["fail"] == 0 and clean_control]
         if matched:
-            entry["cases"] = [cases[(r, 2)] for r in matched]
+            entry["cases"] = [cases[(r, servers)] for r in matched]
             entry["case"] = entry["cases"][0]
             return "match"
         if not clean_control and any(control[r]["fail"] == 0 for r in candidate_rules):

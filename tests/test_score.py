@@ -7,7 +7,8 @@ import yaml
 
 from shortfall import ledger, score, sweep
 from shortfall.budget import Budget
-from shortfall.control import redis_locking
+from shortfall.cases import Control
+from shortfall.control import redis_locking, variant
 
 ROOT = Path(__file__).resolve().parent.parent
 HISTORIES = Path(__file__).resolve().parent / "data" / "histories"
@@ -60,14 +61,14 @@ def ledger_file(tmp_path: Path) -> Path:
     return tmp_path / "runs" / "ledger.jsonl"
 
 
-def attempt(tmp_path, path, q, budget=None, runner=None, controls=None):
+def attempt(tmp_path, path, q, budget=None, runner=None, controls=None, version="2.21.2"):
     runner = runner or FixtureRunner(q)
     budget = budget or Budget()
     meta = {"attempt_id": "s-001", "source": "sweep", "seed": 0, "rerun_of": None}
     entry, stop = score.score_candidate(
         tmp_path,
         path,
-        "2.21.2",
+        version,
         runner,
         budget,
         CASES,
@@ -456,20 +457,26 @@ MATCHING = many(("fail-no-oversell-and-reserved", 1), ("pass", 2)) + many(
 )
 
 
-def test_the_two_17032_cases_use_redis_locking_controls():
-    assert CONTROLS == {
-        "medusa-16502-lines": "none",
+def kind(name: str) -> Control:
+    return Control(kind=name, version=None, reason=None)
+
+
+def test_each_case_has_its_control_kind():
+    assert {case: c.kind for case, c in CONTROLS.items()} == {
+        "medusa-16502-lines": "variant",
         "medusa-17032-counter": "redis-locking",
         "medusa-17032-last-unit": "redis-locking",
     }
+    lines = CONTROLS["medusa-16502-lines"]
+    assert (lines.variant, lines.version) == ("pr-16961", "2.22.0")
 
 
 def test_one_server_kind_builds_a_one_server_control(tmp_path, candidates):
     path = candidates["s2-solo-c2-short-together"]
     kinds = {
         **CONTROLS,
-        "medusa-17032-last-unit": "one-server",
-        "medusa-17032-counter": "one-server",
+        "medusa-17032-last-unit": kind("one-server"),
+        "medusa-17032-counter": kind("one-server"),
     }
     q = queues(path, MATCHING, many(("pass", 10)), suffix="control")
     entry, stop, runner, _ = attempt(tmp_path, path, q, controls=kinds)
@@ -483,7 +490,11 @@ def test_one_server_kind_builds_a_one_server_control(tmp_path, candidates):
 
 def test_a_case_with_no_control_to_build_is_reproduction_only(tmp_path, candidates):
     path = candidates["s2-solo-c2-short-together"]
-    kinds = {**CONTROLS, "medusa-17032-last-unit": "none", "medusa-17032-counter": "none"}
+    kinds = {
+        **CONTROLS,
+        "medusa-17032-last-unit": kind("none"),
+        "medusa-17032-counter": kind("none"),
+    }
     q = queues(path, many(("fail-no-oversell-and-reserved", 13)))
     entry, stop, runner, _ = attempt(tmp_path, path, q, controls=kinds)
     assert stop is None
@@ -494,7 +505,7 @@ def test_a_case_with_no_control_to_build_is_reproduction_only(tmp_path, candidat
 
 def test_cases_that_need_different_controls_stop(tmp_path, candidates):
     path = candidates["s2-solo-c2-short-together"]
-    kinds = {**CONTROLS, "medusa-17032-counter": "one-server"}
+    kinds = {**CONTROLS, "medusa-17032-counter": kind("one-server")}
     q = queues(path, many(("fail-no-oversell-and-reserved", 13)))
     entry, stop, runner, _ = attempt(tmp_path, path, q, controls=kinds)
     assert stop.startswith("error: cases for no_oversell, reserved_matches_reservations need")
@@ -655,3 +666,69 @@ def test_shape_records_the_variant():
     assert score.shape(data)["variant"] is None
     data["target"]["variant"] = "pr-16961"
     assert score.shape(data)["variant"] == "pr-16961"
+
+
+LINES_CANDIDATE = "s1-piece-twopack-c2-short-together"
+LINES_MATCHING = many(("fail-no-oversell", 1), ("pass", 2)) + many(
+    ("fail-no-oversell", 1), ("pass", 9)
+)
+
+
+def test_a_one_server_candidate_on_2_22_0_gets_the_variant_control(tmp_path, candidates):
+    path = candidates[LINES_CANDIDATE]
+    q = queues(path, LINES_MATCHING, many(("pass", 10)), suffix="variant-control")
+    entry, stop, runner, budget = attempt(tmp_path, path, q, version="2.22.0")
+    assert stop is None
+    assert entry["verdict"] == "match"
+    assert entry["case"] == "medusa-16502-lines"
+    assert entry["cases"] == ["medusa-16502-lines"]
+    assert runner.calls[-1] == (f"{path.stem}-variant-control", 10)
+    assert entry["oversold_runs"] == 23 == budget.session_used
+    control = path.with_name(f"{path.stem}-variant-control.yaml").read_text(encoding="utf-8")
+    assert control == variant(path.read_text(encoding="utf-8"), "pr-16961", "2.22.0")
+    assert yaml.safe_load(control)["target"]["variant"] == "pr-16961"
+
+
+@pytest.mark.parametrize("version", ["2.21.2", "2.19.0"])
+def test_other_versions_stay_reproduction_only(tmp_path, candidates, version):
+    path = candidates[LINES_CANDIDATE]
+    entry, stop, runner, _ = attempt(tmp_path, path, queues(path, LINES_MATCHING), version=version)
+    assert stop is None
+    assert entry["verdict"] == "reproduction only"
+    assert entry["case"] == "medusa-16502-lines"
+    assert entry["control_runs"] == 0
+    assert len(runner.calls) == 3
+
+
+def test_an_oversell_in_the_variant_control_stops_the_sweep(tmp_path, candidates):
+    path = candidates[LINES_CANDIDATE]
+    q = queues(
+        path,
+        many(("fail-no-oversell", 13)),
+        many(("fail-no-oversell", 1), ("pass", 9)),
+        suffix="variant-control",
+    )
+    entry, stop, _, _ = attempt(tmp_path, path, q, version="2.22.0")
+    assert stop.startswith("uncovered failure: no_oversell failed 1 of 10 runs in the control set")
+    assert entry["shape"]["variant"] is None
+
+
+def test_a_variant_scenario_has_no_variant_control():
+    lines = ROOT / "benchmark" / "cases" / "medusa-16502-lines"
+    _, build = score.control_builder(CONTROLS["medusa-16502-lines"], "2.22.0")
+    assert (
+        build((lines / "reference.yaml").read_text())
+        == (lines / "variant-control.yaml").read_text()
+    )
+    with pytest.raises(ValueError, match="already has target.variant"):
+        build((lines / "variant-control.yaml").read_text())
+
+
+def test_control_builder_picks_by_kind_and_version():
+    lines = CONTROLS["medusa-16502-lines"]
+    assert score.control_builder(lines, "2.22.0")[0] == "variant-control"
+    assert score.control_builder(lines, "2.21.2") is None
+    assert score.control_builder(kind("redis-locking"), "2.19.0")[0] == "redis-control"
+    assert score.control_builder(kind("one-server"), "2.19.0")[0] == "control"
+    assert score.control_builder(kind("none"), "2.22.0") is None
+    assert score.control_builder(None, "2.22.0") is None
