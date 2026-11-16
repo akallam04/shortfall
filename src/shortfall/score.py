@@ -156,13 +156,22 @@ def rule_order(rule: str) -> tuple[int, str]:
     return (RULES.index(rule) if rule in RULES else len(RULES), rule)
 
 
+def unknown_completion(history: dict) -> bool:
+    return any(
+        op.get("step") == "complete_cart" and op.get("outcome") == "unknown"
+        for op in history.get("operations") or []
+    )
+
+
 def counts(histories: list[dict]) -> dict[str, dict[str, int]]:
     c: dict[str, dict[str, int]] = {}
     for history in histories:
+        unknown = unknown_completion(history)
         for verdict in history.get("verdicts") or []:
             row = c.setdefault(verdict["check"], dict.fromkeys(RESULTS, 0))
-            if verdict["result"] in RESULTS:
-                row[verdict["result"]] += 1
+            result = "inconclusive" if unknown else verdict["result"]
+            if result in RESULTS:
+                row[result] += 1
     return {rule: c[rule] for rule in sorted(c, key=rule_order)}
 
 
@@ -195,6 +204,7 @@ def inconclusive_runs(histories: list[dict]) -> int:
         for h in histories
         if any(v["result"] == "inconclusive" for v in (h.get("verdicts") or []))
         or not h.get("verdicts")
+        or unknown_completion(h)
     )
 
 

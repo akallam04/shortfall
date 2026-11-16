@@ -864,3 +864,59 @@ def test_no_reference_control_or_generated_candidate_sets_checks():
     assert len(texts) == 10 + 32 + 20
     for text in texts:
         assert "checks" not in yaml.safe_load(text)
+
+
+def unknown_call(name: str) -> dict:
+    h = hist(name)
+    h["operations"] = [
+        {"id": 1, "phase": "race", "step": "complete_cart", "cart": "a", "outcome": "ok"},
+        {"id": 2, "phase": "race", "step": "complete_cart", "cart": "b", "outcome": "unknown"},
+    ]
+    return h
+
+
+def test_a_run_with_an_unknown_complete_call_is_inconclusive():
+    h = hist("five-checks-fail")
+    assert not score.unknown_completion(h)
+    assert score.counts([h])["no_oversell"]["fail"] == 1
+    calls = [op for op in h["operations"] if op["step"] == "complete_cart"]
+    calls[-1]["outcome"] = "unknown"
+    assert score.unknown_completion(h)
+    c = score.counts([h])
+    assert {rule: row["inconclusive"] for rule, row in c.items()} == dict.fromkeys(RULES, 1)
+    assert score.failed_rules(c) == []
+    assert score.inconclusive_runs([h, hist("pass")]) == 1
+    setup = {"operations": [{"step": "create_cart", "outcome": "unknown"}]}
+    assert not score.unknown_completion(setup)
+
+
+def test_unknown_complete_calls_in_the_candidate_are_not_clean(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    q = queues(path, [unknown_call("fail-no-oversell-and-reserved")] * 3 + many(("pass", 7)))
+    entry, stop, _, _ = attempt(tmp_path, path, q)
+    assert stop is None
+    assert entry["violation"] == {
+        "result": "not reproduced within 10 runs",
+        "rules": {},
+        "runs": 10,
+    }
+    assert entry["inconclusive"]["screen"] == 3
+
+
+def test_a_candidate_with_only_unknown_complete_calls_is_inconclusive(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    entry, _, _, _ = attempt(tmp_path, path, queues(path, [unknown_call("pass")] * 10))
+    assert entry["violation"]["result"] == "inconclusive"
+
+
+def test_unknown_complete_calls_in_a_control_block_reproduction(tmp_path, candidates):
+    path = candidates["s2-piece-c2-short-together"]
+    q = queues(
+        path,
+        many(("fail-reserved", 13)),
+        pr_17420=[unknown_call("pass")] + many(("pass", 9)),
+    )
+    entry, stop, _, _ = attempt(tmp_path, path, q)
+    assert stop is None
+    assert entry["reproduced"]["cases"] == {COUNTER: "inconclusive"}
+    assert entry["inconclusive"]["control"] == 1
