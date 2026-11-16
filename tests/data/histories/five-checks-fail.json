@@ -1,0 +1,3271 @@
+{
+  "schema": "oversold.history/v1",
+  "scenario": {
+    "name": "last-unit-two-servers",
+    "schema": "oversold.scenario/v1",
+    "file": "last-unit-two-servers.yaml",
+    "sha256": "a24e3ffdbd46eb4068791751da9cfd460f5316af871417161d4154c7307a98c9"
+  },
+  "run": {
+    "index": 1,
+    "runs": 30,
+    "seed": 11
+  },
+  "oversold": {
+    "commit": "338ddb5c51e0345c52b75bfd037163f68c6f449e",
+    "dirty": false
+  },
+  "target": {
+    "engine": "medusa",
+    "scenario_version": "2.21.2",
+    "version": "2.22.0",
+    "servers": [
+      {
+        "index": 1,
+        "service": "medusa",
+        "url": "http://127.0.0.1:9000",
+        "container_id": "fd12794128a831a8882880181515e0828ce0f77efb564d4aded250b5487f0f62",
+        "image_id": "sha256:5a6644e9664ee21a174878f8c1744ac11baeb364efc666f14217b5ba274ec2d7",
+        "started_at": "2026-11-13T05:53:28.679134509Z",
+        "medusa_version": "2.22.0",
+        "image_inputs": "dcc1486dc4b9b2cfaa84d6a20aa494562befef8031cf98606afef5c2a168a728"
+      },
+      {
+        "index": 2,
+        "service": "medusa-2",
+        "url": "http://127.0.0.1:9001",
+        "container_id": "77a51cf479c4765768367a0ef5dfb2373623b7e6eab4cf076e7694fd2cd2b17e",
+        "image_id": "sha256:5a6644e9664ee21a174878f8c1744ac11baeb364efc666f14217b5ba274ec2d7",
+        "started_at": "2026-11-13T05:53:28.728072509Z",
+        "medusa_version": "2.22.0",
+        "image_inputs": "dcc1486dc4b9b2cfaa84d6a20aa494562befef8031cf98606afef5c2a168a728"
+      }
+    ],
+    "postgres_version": "15.19",
+    "template_database": "medusa_template_2_22_0",
+    "image_inputs": "dcc1486dc4b9b2cfaa84d6a20aa494562befef8031cf98606afef5c2a168a728"
+  },
+  "start": "2026-11-13T05:53:28.293507000Z",
+  "end": "2026-11-13T05:53:33.919210000Z",
+  "reset": {
+    "start": "2026-11-13T05:53:28.293516000Z",
+    "healthy": "2026-11-13T05:53:30.443438000Z",
+    "start_ns": 9584,
+    "healthy_ns": 2149936292,
+    "template_created": false,
+    "image_built": false
+  },
+  "stock": {
+    "SOLO": 1
+  },
+  "carts": {
+    "a": "cart_01M79QFQNF3H4CPAY9BJTECZ98",
+    "b": "cart_01M79QFR55YP6EYW5E6SCX3H4C"
+  },
+  "race": {
+    "release": "together",
+    "release_ns": 3490754959,
+    "settle_ms": 2000,
+    "actions": [
+      {
+        "id": "complete-a",
+        "do": "complete",
+        "cart": "a",
+        "server": 1,
+        "jitter_ns": 0,
+        "operation_id": 22,
+        "outcome": "ok"
+      },
+      {
+        "id": "complete-b",
+        "do": "complete",
+        "cart": "b",
+        "server": 2,
+        "jitter_ns": 0,
+        "operation_id": 23,
+        "outcome": "ok"
+      }
+    ]
+  },
+  "operations": [
+    {
+      "id": 1,
+      "phase": "setup",
+      "step": "admin_login",
+      "server": 1,
+      "method": "POST",
+      "path": "/auth/user/emailpass",
+      "request_body": {
+        "email": "admin@example.com",
+        "password": "[masked]"
+      },
+      "status": 200,
+      "response_body": {
+        "token": "[masked]"
+      },
+      "start": "2026-11-13T05:53:30.679487000Z",
+      "end": "2026-11-13T05:53:30.742764000Z",
+      "start_ns": 2385985042,
+      "end_ns": 2449262750,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": false
+    },
+    {
+      "id": 2,
+      "phase": "setup",
+      "step": "list_inventory_items",
+      "server": 1,
+      "method": "GET",
+      "path": "/admin/inventory-items?sku=SOLO&fields=id,sku,*location_levels",
+      "status": 200,
+      "response_body": {
+        "count": 1,
+        "inventory_items": [
+          {
+            "id": "iitem_01M79Q5YR7JCEWW5F0S6WFPJGN",
+            "location_levels": [
+              {
+                "available_quantity": 1,
+                "created_at": "2026-11-13T05:48:10.380Z",
+                "deleted_at": null,
+                "id": "ilev_01M79Q5YRCQB0228MJCBHMAZVS",
+                "incoming_quantity": 0,
+                "inventory_item_id": "iitem_01M79Q5YR7JCEWW5F0S6WFPJGN",
+                "location_id": "sloc_01M79Q5YPEM0VNCRKQ5DJHE8B0",
+                "metadata": null,
+                "raw_incoming_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_reserved_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_stocked_quantity": {
+                  "precision": 20,
+                  "value": "1"
+                },
+                "reserved_quantity": 0,
+                "stocked_quantity": 1,
+                "updated_at": "2026-11-13T05:48:10.380Z"
+              }
+            ],
+            "sku": "SOLO"
+          }
+        ],
+        "limit": 20,
+        "offset": 0
+      },
+      "start": "2026-11-13T05:53:30.742829000Z",
+      "end": "2026-11-13T05:53:30.751760000Z",
+      "start_ns": 2449327792,
+      "end_ns": 2458258500,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 3,
+      "phase": "setup",
+      "step": "set_stocked_quantity",
+      "server": 1,
+      "method": "POST",
+      "path": "/admin/inventory-items/iitem_01M79Q5YR7JCEWW5F0S6WFPJGN/location-levels/sloc_01M79Q5YPEM0VNCRKQ5DJHE8B0",
+      "request_body": {
+        "stocked_quantity": 1
+      },
+      "status": 200,
+      "response_body": {
+        "inventory_item": {
+          "created_at": "2026-11-13T05:48:10.376Z",
+          "description": null,
+          "height": null,
+          "hs_code": null,
+          "id": "iitem_01M79Q5YR7JCEWW5F0S6WFPJGN",
+          "length": null,
+          "location_levels": [
+            {
+              "available_quantity": 1,
+              "created_at": "2026-11-13T05:48:10.380Z",
+              "deleted_at": null,
+              "id": "ilev_01M79Q5YRCQB0228MJCBHMAZVS",
+              "incoming_quantity": 0,
+              "inventory_item_id": "iitem_01M79Q5YR7JCEWW5F0S6WFPJGN",
+              "location_id": "sloc_01M79Q5YPEM0VNCRKQ5DJHE8B0",
+              "metadata": null,
+              "raw_incoming_quantity": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_reserved_quantity": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_stocked_quantity": {
+                "precision": 20,
+                "value": "1"
+              },
+              "reserved_quantity": 0,
+              "stocked_quantity": 1,
+              "updated_at": "2026-11-13T05:48:10.380Z"
+            }
+          ],
+          "material": null,
+          "metadata": null,
+          "mid_code": null,
+          "origin_country": null,
+          "requires_shipping": true,
+          "reserved_quantity": 0,
+          "sku": "SOLO",
+          "stocked_quantity": 1,
+          "thumbnail": null,
+          "title": "Solo",
+          "unit_of_measure": null,
+          "updated_at": "2026-11-13T05:48:10.376Z",
+          "weight": null,
+          "width": null
+        }
+      },
+      "start": "2026-11-13T05:53:30.751893000Z",
+      "end": "2026-11-13T05:53:30.766464000Z",
+      "start_ns": 2458391292,
+      "end_ns": 2472962459,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 4,
+      "phase": "setup",
+      "step": "list_regions",
+      "server": 1,
+      "method": "GET",
+      "path": "/store/regions?limit=100",
+      "status": 200,
+      "response_body": {
+        "count": 1,
+        "limit": 100,
+        "offset": 0,
+        "regions": [
+          {
+            "countries": [
+              {
+                "created_at": "2026-11-13T05:48:06.971Z",
+                "deleted_at": null,
+                "display_name": "United States",
+                "iso_2": "us",
+                "iso_3": "usa",
+                "metadata": null,
+                "name": "UNITED STATES",
+                "num_code": "840",
+                "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+                "updated_at": "2026-11-13T05:48:10.298Z"
+              }
+            ],
+            "created_at": "2026-11-13T05:48:10.298Z",
+            "currency_code": "usd",
+            "deleted_at": null,
+            "id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+            "metadata": null,
+            "name": "US",
+            "updated_at": "2026-11-13T05:48:10.298Z"
+          }
+        ]
+      },
+      "start": "2026-11-13T05:53:30.766546000Z",
+      "end": "2026-11-13T05:53:30.773840000Z",
+      "start_ns": 2473044500,
+      "end_ns": 2480338250,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 5,
+      "phase": "setup",
+      "step": "list_products",
+      "server": 1,
+      "method": "GET",
+      "path": "/store/products?limit=100&fields=id,title,*variants",
+      "status": 200,
+      "response_body": {
+        "count": 2,
+        "limit": 100,
+        "offset": 0,
+        "products": [
+          {
+            "id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+            "title": "Solo",
+            "variants": [
+              {
+                "allow_backorder": false,
+                "barcode": null,
+                "created_at": "2026-11-13T05:48:10.416Z",
+                "deleted_at": null,
+                "ean": null,
+                "height": null,
+                "hs_code": null,
+                "id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+                "length": null,
+                "manage_inventory": true,
+                "material": null,
+                "metadata": null,
+                "mid_code": null,
+                "origin_country": null,
+                "product_id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+                "sku": "OVS-SOLO",
+                "thumbnail": null,
+                "title": "Default",
+                "upc": null,
+                "updated_at": "2026-11-13T05:48:10.416Z",
+                "variant_rank": 0,
+                "weight": null,
+                "width": null
+              }
+            ]
+          },
+          {
+            "id": "prod_01M79Q5YRHG962V3NF9T0K91GK",
+            "title": "Widget",
+            "variants": [
+              {
+                "allow_backorder": false,
+                "barcode": null,
+                "created_at": "2026-11-13T05:48:10.416Z",
+                "deleted_at": null,
+                "ean": null,
+                "height": null,
+                "hs_code": null,
+                "id": "variant_01M79Q5YSF3MV9D1QB7ANTVFKZ",
+                "length": null,
+                "manage_inventory": true,
+                "material": null,
+                "metadata": null,
+                "mid_code": null,
+                "origin_country": null,
+                "product_id": "prod_01M79Q5YRHG962V3NF9T0K91GK",
+                "sku": "OVS-PIECE",
+                "thumbnail": null,
+                "title": "Piece",
+                "upc": null,
+                "updated_at": "2026-11-13T05:48:10.416Z",
+                "variant_rank": 0,
+                "weight": null,
+                "width": null
+              },
+              {
+                "allow_backorder": false,
+                "barcode": null,
+                "created_at": "2026-11-13T05:48:10.416Z",
+                "deleted_at": null,
+                "ean": null,
+                "height": null,
+                "hs_code": null,
+                "id": "variant_01M79Q5YSFMG4ZSCVZ9MS0D7RF",
+                "length": null,
+                "manage_inventory": true,
+                "material": null,
+                "metadata": null,
+                "mid_code": null,
+                "origin_country": null,
+                "product_id": "prod_01M79Q5YRHG962V3NF9T0K91GK",
+                "sku": "OVS-TWOPACK",
+                "thumbnail": null,
+                "title": "Two-pack",
+                "upc": null,
+                "updated_at": "2026-11-13T05:48:10.416Z",
+                "variant_rank": 0,
+                "weight": null,
+                "width": null
+              }
+            ]
+          }
+        ]
+      },
+      "start": "2026-11-13T05:53:30.773915000Z",
+      "end": "2026-11-13T05:53:30.783950000Z",
+      "start_ns": 2480413500,
+      "end_ns": 2490448875,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 6,
+      "phase": "setup",
+      "step": "create_cart",
+      "cart": "a",
+      "server": 1,
+      "method": "POST",
+      "path": "/store/carts",
+      "request_body": {
+        "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN"
+      },
+      "status": 200,
+      "response_body": {
+        "cart": {
+          "billing_address": null,
+          "completed_at": null,
+          "created_at": "2026-11-13T05:53:30.800Z",
+          "credit_line_subtotal": 0,
+          "credit_line_tax_total": 0,
+          "credit_line_total": 0,
+          "credit_lines": [],
+          "currency_code": "usd",
+          "customer_id": null,
+          "discount_subtotal": 0,
+          "discount_tax_total": 0,
+          "discount_total": 0,
+          "email": null,
+          "id": "cart_01M79QFQNF3H4CPAY9BJTECZ98",
+          "item_discount_total": 0,
+          "item_subtotal": 0,
+          "item_tax_total": 0,
+          "item_total": 0,
+          "items": [],
+          "locale": null,
+          "metadata": null,
+          "original_item_subtotal": 0,
+          "original_item_tax_total": 0,
+          "original_item_total": 0,
+          "original_shipping_subtotal": 0,
+          "original_shipping_tax_total": 0,
+          "original_shipping_total": 0,
+          "original_tax_total": 0,
+          "original_total": 0,
+          "promotions": [],
+          "region": {
+            "automatic_taxes": true,
+            "countries": [
+              {
+                "created_at": "2026-11-13T05:48:06.971Z",
+                "deleted_at": null,
+                "display_name": "United States",
+                "iso_2": "us",
+                "iso_3": "usa",
+                "metadata": null,
+                "name": "UNITED STATES",
+                "num_code": "840",
+                "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+                "updated_at": "2026-11-13T05:48:10.298Z"
+              }
+            ],
+            "currency_code": "usd",
+            "id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+            "name": "US"
+          },
+          "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+          "sales_channel_id": "sc_01M79Q5YJPN1KV0M8JW3QNQQN4",
+          "shipping_address": {
+            "address_1": null,
+            "address_2": null,
+            "city": null,
+            "company": null,
+            "country_code": "us",
+            "first_name": null,
+            "id": "caaddr_01M79QFQNGCE3N0Q2RZMYHTQ19",
+            "last_name": null,
+            "phone": null,
+            "postal_code": null,
+            "province": null
+          },
+          "shipping_address_id": "caaddr_01M79QFQNGCE3N0Q2RZMYHTQ19",
+          "shipping_discount_total": 0,
+          "shipping_methods": [],
+          "shipping_subtotal": 0,
+          "shipping_tax_total": 0,
+          "shipping_total": 0,
+          "subtotal": 0,
+          "tax_total": 0,
+          "total": 0,
+          "updated_at": "2026-11-13T05:53:30.800Z"
+        }
+      },
+      "start": "2026-11-13T05:53:30.784070000Z",
+      "end": "2026-11-13T05:53:30.850041000Z",
+      "start_ns": 2490568584,
+      "end_ns": 2556539250,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 7,
+      "phase": "setup",
+      "step": "add_line_item",
+      "cart": "a",
+      "server": 1,
+      "method": "POST",
+      "path": "/store/carts/cart_01M79QFQNF3H4CPAY9BJTECZ98/line-items",
+      "request_body": {
+        "quantity": 1,
+        "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970"
+      },
+      "status": 200,
+      "response_body": {
+        "cart": {
+          "billing_address": null,
+          "completed_at": null,
+          "created_at": "2026-11-13T05:53:30.800Z",
+          "credit_line_subtotal": 0,
+          "credit_line_tax_total": 0,
+          "credit_line_total": 0,
+          "credit_lines": [],
+          "currency_code": "usd",
+          "customer_id": null,
+          "discount_subtotal": 0,
+          "discount_tax_total": 0,
+          "discount_total": 0,
+          "email": null,
+          "id": "cart_01M79QFQNF3H4CPAY9BJTECZ98",
+          "item_discount_total": 0,
+          "item_subtotal": 25,
+          "item_tax_total": 0,
+          "item_total": 25,
+          "items": [
+            {
+              "adjustments": [],
+              "compare_at_unit_price": null,
+              "created_at": "2026-11-13T05:53:30.887Z",
+              "id": "cali_01M79QFQR66YVWEVADDKSD8MF4",
+              "is_giftcard": false,
+              "is_tax_inclusive": false,
+              "metadata": {},
+              "product": {
+                "categories": [],
+                "collection_id": null,
+                "id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+                "tags": [],
+                "type_id": null
+              },
+              "product_collection": null,
+              "product_description": null,
+              "product_handle": "solo",
+              "product_id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+              "product_subtitle": null,
+              "product_title": "Solo",
+              "product_type": null,
+              "product_type_id": null,
+              "quantity": 1,
+              "requires_shipping": true,
+              "tax_lines": [],
+              "thumbnail": null,
+              "title": "Solo",
+              "unit_price": 25,
+              "updated_at": "2026-11-13T05:53:30.887Z",
+              "variant_barcode": null,
+              "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+              "variant_sku": "OVS-SOLO",
+              "variant_title": "Default"
+            }
+          ],
+          "locale": null,
+          "metadata": null,
+          "original_item_subtotal": 25,
+          "original_item_tax_total": 0,
+          "original_item_total": 25,
+          "original_shipping_subtotal": 0,
+          "original_shipping_tax_total": 0,
+          "original_shipping_total": 0,
+          "original_tax_total": 0,
+          "original_total": 25,
+          "promotions": [],
+          "region": {
+            "automatic_taxes": true,
+            "countries": [
+              {
+                "created_at": "2026-11-13T05:48:06.971Z",
+                "deleted_at": null,
+                "display_name": "United States",
+                "iso_2": "us",
+                "iso_3": "usa",
+                "metadata": null,
+                "name": "UNITED STATES",
+                "num_code": "840",
+                "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+                "updated_at": "2026-11-13T05:48:10.298Z"
+              }
+            ],
+            "currency_code": "usd",
+            "id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+            "name": "US"
+          },
+          "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+          "sales_channel_id": "sc_01M79Q5YJPN1KV0M8JW3QNQQN4",
+          "shipping_address": {
+            "address_1": null,
+            "address_2": null,
+            "city": null,
+            "company": null,
+            "country_code": "us",
+            "first_name": null,
+            "id": "caaddr_01M79QFQNGCE3N0Q2RZMYHTQ19",
+            "last_name": null,
+            "phone": null,
+            "postal_code": null,
+            "province": null
+          },
+          "shipping_address_id": "caaddr_01M79QFQNGCE3N0Q2RZMYHTQ19",
+          "shipping_discount_total": 0,
+          "shipping_methods": [],
+          "shipping_subtotal": 0,
+          "shipping_tax_total": 0,
+          "shipping_total": 0,
+          "subtotal": 25,
+          "tax_total": 0,
+          "total": 25,
+          "updated_at": "2026-11-13T05:53:30.800Z"
+        }
+      },
+      "start": "2026-11-13T05:53:30.850154000Z",
+      "end": "2026-11-13T05:53:30.945544000Z",
+      "start_ns": 2556652625,
+      "end_ns": 2652042875,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 8,
+      "phase": "setup",
+      "step": "set_contact",
+      "cart": "a",
+      "server": 1,
+      "method": "POST",
+      "path": "/store/carts/cart_01M79QFQNF3H4CPAY9BJTECZ98",
+      "request_body": {
+        "billing_address": {
+          "address_1": "1 Main St",
+          "city": "Austin",
+          "country_code": "us",
+          "first_name": "Test",
+          "last_name": "Buyer",
+          "postal_code": "78701",
+          "province": "tx"
+        },
+        "email": "buyer+last-unit-two-servers-a@example.com",
+        "shipping_address": {
+          "address_1": "1 Main St",
+          "city": "Austin",
+          "country_code": "us",
+          "first_name": "Test",
+          "last_name": "Buyer",
+          "postal_code": "78701",
+          "province": "tx"
+        }
+      },
+      "status": 200,
+      "response_body": {
+        "cart": {
+          "billing_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "first_name": "Test",
+            "id": "caaddr_01M79QFQTHH1MV1S2JMKTBVAP3",
+            "last_name": "Buyer",
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx"
+          },
+          "billing_address_id": "caaddr_01M79QFQTHH1MV1S2JMKTBVAP3",
+          "completed_at": null,
+          "created_at": "2026-11-13T05:53:30.800Z",
+          "credit_line_subtotal": 0,
+          "credit_line_tax_total": 0,
+          "credit_line_total": 0,
+          "credit_lines": [],
+          "currency_code": "usd",
+          "customer": {
+            "email": "buyer+last-unit-two-servers-a@example.com",
+            "groups": [],
+            "id": "cus_01M79QFQTBCCQC8J6VBZCHD6FP"
+          },
+          "customer_id": "cus_01M79QFQTBCCQC8J6VBZCHD6FP",
+          "discount_subtotal": 0,
+          "discount_tax_total": 0,
+          "discount_total": 0,
+          "email": "buyer+last-unit-two-servers-a@example.com",
+          "id": "cart_01M79QFQNF3H4CPAY9BJTECZ98",
+          "item_discount_total": 0,
+          "item_subtotal": 25,
+          "item_tax_total": 0,
+          "item_total": 25,
+          "items": [
+            {
+              "adjustments": [],
+              "compare_at_unit_price": null,
+              "created_at": "2026-11-13T05:53:30.887Z",
+              "id": "cali_01M79QFQR66YVWEVADDKSD8MF4",
+              "is_giftcard": false,
+              "is_tax_inclusive": false,
+              "metadata": {},
+              "product": {
+                "categories": [],
+                "collection_id": null,
+                "id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+                "tags": [],
+                "type_id": null
+              },
+              "product_collection": null,
+              "product_description": null,
+              "product_handle": "solo",
+              "product_id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+              "product_subtitle": null,
+              "product_title": "Solo",
+              "product_type": null,
+              "product_type_id": null,
+              "quantity": 1,
+              "requires_shipping": true,
+              "tax_lines": [],
+              "thumbnail": null,
+              "title": "Solo",
+              "unit_price": 25,
+              "updated_at": "2026-11-13T05:53:30.887Z",
+              "variant_barcode": null,
+              "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+              "variant_sku": "OVS-SOLO",
+              "variant_title": "Default"
+            }
+          ],
+          "locale": null,
+          "metadata": null,
+          "original_item_subtotal": 25,
+          "original_item_tax_total": 0,
+          "original_item_total": 25,
+          "original_shipping_subtotal": 0,
+          "original_shipping_tax_total": 0,
+          "original_shipping_total": 0,
+          "original_tax_total": 0,
+          "original_total": 25,
+          "promotions": [],
+          "region": {
+            "automatic_taxes": true,
+            "countries": [
+              {
+                "created_at": "2026-11-13T05:48:06.971Z",
+                "deleted_at": null,
+                "display_name": "United States",
+                "iso_2": "us",
+                "iso_3": "usa",
+                "metadata": null,
+                "name": "UNITED STATES",
+                "num_code": "840",
+                "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+                "updated_at": "2026-11-13T05:48:10.298Z"
+              }
+            ],
+            "currency_code": "usd",
+            "id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+            "name": "US"
+          },
+          "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+          "sales_channel_id": "sc_01M79Q5YJPN1KV0M8JW3QNQQN4",
+          "shipping_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "first_name": "Test",
+            "id": "caaddr_01M79QFQTHAFZHNCDDR6G5KQ4S",
+            "last_name": "Buyer",
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx"
+          },
+          "shipping_address_id": "caaddr_01M79QFQTHAFZHNCDDR6G5KQ4S",
+          "shipping_discount_total": 0,
+          "shipping_methods": [],
+          "shipping_subtotal": 0,
+          "shipping_tax_total": 0,
+          "shipping_total": 0,
+          "subtotal": 25,
+          "tax_total": 0,
+          "total": 25,
+          "updated_at": "2026-11-13T05:53:30.961Z"
+        }
+      },
+      "start": "2026-11-13T05:53:30.945832000Z",
+      "end": "2026-11-13T05:53:31.061232000Z",
+      "start_ns": 2652330709,
+      "end_ns": 2767731167,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 9,
+      "phase": "setup",
+      "step": "list_shipping_options",
+      "cart": "a",
+      "server": 1,
+      "method": "GET",
+      "path": "/store/shipping-options?cart_id=cart_01M79QFQNF3H4CPAY9BJTECZ98",
+      "status": 200,
+      "response_body": {
+        "shipping_options": [
+          {
+            "amount": 5,
+            "calculated_price": {
+              "calculated_amount": 5,
+              "calculated_price": {
+                "id": "price_01M79Q5YQGS1SF73B32AJN5CQZ",
+                "max_quantity": null,
+                "min_quantity": null,
+                "price_list_id": null,
+                "price_list_type": null
+              },
+              "currency_code": "usd",
+              "id": "pset_01M79Q5YQGTVQM8MNQ3AZB7S1S",
+              "is_calculated_price_price_list": false,
+              "is_calculated_price_tax_inclusive": false,
+              "is_original_price_price_list": false,
+              "is_original_price_tax_inclusive": false,
+              "original_amount": 5,
+              "original_price": {
+                "id": "price_01M79Q5YQGS1SF73B32AJN5CQZ",
+                "max_quantity": null,
+                "min_quantity": null,
+                "price_list_id": null,
+                "price_list_type": null
+              },
+              "raw_calculated_amount": {
+                "precision": 20,
+                "value": "5"
+              },
+              "raw_original_amount": {
+                "precision": 20,
+                "value": "5"
+              }
+            },
+            "data": null,
+            "id": "so_01M79Q5YQAHZMKXXC04MJF5E8T",
+            "insufficient_inventory": false,
+            "is_tax_inclusive": false,
+            "name": "Standard Shipping",
+            "price_type": "flat",
+            "prices": [
+              {
+                "amount": 5,
+                "created_at": "2026-11-13T05:48:10.352Z",
+                "currency_code": "usd",
+                "deleted_at": null,
+                "id": "price_01M79Q5YQFDC6G3FN97XPXATVR",
+                "max_quantity": null,
+                "min_quantity": null,
+                "price_list": null,
+                "price_list_id": null,
+                "price_rules": [],
+                "price_set_id": "pset_01M79Q5YQGTVQM8MNQ3AZB7S1S",
+                "raw_amount": {
+                  "precision": 20,
+                  "value": "5"
+                },
+                "raw_max_quantity": null,
+                "raw_min_quantity": null,
+                "rules_count": 0,
+                "title": null,
+                "updated_at": "2026-11-13T05:48:10.352Z"
+              },
+              {
+                "amount": 5,
+                "created_at": "2026-11-13T05:48:10.352Z",
+                "currency_code": "usd",
+                "deleted_at": null,
+                "id": "price_01M79Q5YQGS1SF73B32AJN5CQZ",
+                "max_quantity": null,
+                "min_quantity": null,
+                "price_list": null,
+                "price_list_id": null,
+                "price_rules": [
+                  {
+                    "attribute": "region_id",
+                    "created_at": "2026-11-13T05:48:10.352Z",
+                    "deleted_at": null,
+                    "id": "prule_01M79Q5YQGEJFVV8P1SBMJ68H2",
+                    "operator": "eq",
+                    "price_id": "price_01M79Q5YQGS1SF73B32AJN5CQZ",
+                    "priority": 0,
+                    "updated_at": "2026-11-13T05:48:10.352Z",
+                    "value": "reg_01M79Q5YNP16ATE6DB855BRFPN"
+                  }
+                ],
+                "price_set_id": "pset_01M79Q5YQGTVQM8MNQ3AZB7S1S",
+                "raw_amount": {
+                  "precision": 20,
+                  "value": "5"
+                },
+                "raw_max_quantity": null,
+                "raw_min_quantity": null,
+                "rules_count": 1,
+                "title": null,
+                "updated_at": "2026-11-13T05:48:10.352Z"
+              }
+            ],
+            "provider": {
+              "id": "manual_manual",
+              "is_enabled": true
+            },
+            "provider_id": "manual_manual",
+            "rules": [
+              {
+                "attribute": "enabled_in_store",
+                "operator": "eq",
+                "value": "true"
+              },
+              {
+                "attribute": "is_return",
+                "operator": "eq",
+                "value": "false"
+              }
+            ],
+            "service_zone": {
+              "fulfillment_set": {
+                "id": "fuset_01M79Q5YPSQRSVEZJ0NYNZB69N",
+                "location": {
+                  "address": {
+                    "address_1": "",
+                    "address_2": null,
+                    "city": "Austin",
+                    "company": null,
+                    "country_code": "US",
+                    "created_at": "2026-11-13T05:48:10.318Z",
+                    "deleted_at": null,
+                    "id": "laddr_01M79Q5YPEC68YQT0HF5A0QR11",
+                    "metadata": null,
+                    "phone": null,
+                    "postal_code": null,
+                    "province": null,
+                    "updated_at": "2026-11-13T05:48:10.318Z"
+                  },
+                  "id": "sloc_01M79Q5YPEM0VNCRKQ5DJHE8B0"
+                },
+                "type": "shipping"
+              },
+              "fulfillment_set_id": "fuset_01M79Q5YPSQRSVEZJ0NYNZB69N",
+              "id": "serzo_01M79Q5YPSBGKP610MYYH6WP4G"
+            },
+            "service_zone_id": "serzo_01M79Q5YPSBGKP610MYYH6WP4G",
+            "shipping_profile_id": "sp_01M79Q5X13VJKQJQMAAD20AYB6",
+            "type": {
+              "code": "standard",
+              "description": "Flat rate US shipping.",
+              "id": "sotype_01M79Q5YQAR1YWAV6XERZK0649",
+              "label": "Standard"
+            }
+          }
+        ]
+      },
+      "start": "2026-11-13T05:53:31.061394000Z",
+      "end": "2026-11-13T05:53:31.096503000Z",
+      "start_ns": 2767893292,
+      "end_ns": 2803002625,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 10,
+      "phase": "setup",
+      "step": "add_shipping_method",
+      "cart": "a",
+      "server": 1,
+      "method": "POST",
+      "path": "/store/carts/cart_01M79QFQNF3H4CPAY9BJTECZ98/shipping-methods",
+      "request_body": {
+        "option_id": "so_01M79Q5YQAHZMKXXC04MJF5E8T"
+      },
+      "status": 200,
+      "response_body": {
+        "cart": {
+          "billing_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "first_name": "Test",
+            "id": "caaddr_01M79QFQTHH1MV1S2JMKTBVAP3",
+            "last_name": "Buyer",
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx"
+          },
+          "billing_address_id": "caaddr_01M79QFQTHH1MV1S2JMKTBVAP3",
+          "completed_at": null,
+          "created_at": "2026-11-13T05:53:30.800Z",
+          "credit_line_subtotal": 0,
+          "credit_line_tax_total": 0,
+          "credit_line_total": 0,
+          "credit_lines": [],
+          "currency_code": "usd",
+          "customer": {
+            "email": "buyer+last-unit-two-servers-a@example.com",
+            "groups": [],
+            "id": "cus_01M79QFQTBCCQC8J6VBZCHD6FP"
+          },
+          "customer_id": "cus_01M79QFQTBCCQC8J6VBZCHD6FP",
+          "discount_subtotal": 0,
+          "discount_tax_total": 0,
+          "discount_total": 0,
+          "email": "buyer+last-unit-two-servers-a@example.com",
+          "id": "cart_01M79QFQNF3H4CPAY9BJTECZ98",
+          "item_discount_total": 0,
+          "item_subtotal": 25,
+          "item_tax_total": 0,
+          "item_total": 25,
+          "items": [
+            {
+              "adjustments": [],
+              "compare_at_unit_price": null,
+              "created_at": "2026-11-13T05:53:30.887Z",
+              "id": "cali_01M79QFQR66YVWEVADDKSD8MF4",
+              "is_giftcard": false,
+              "is_tax_inclusive": false,
+              "metadata": {},
+              "product": {
+                "categories": [],
+                "collection_id": null,
+                "id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+                "tags": [],
+                "type_id": null
+              },
+              "product_collection": null,
+              "product_description": null,
+              "product_handle": "solo",
+              "product_id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+              "product_subtitle": null,
+              "product_title": "Solo",
+              "product_type": null,
+              "product_type_id": null,
+              "quantity": 1,
+              "requires_shipping": true,
+              "tax_lines": [],
+              "thumbnail": null,
+              "title": "Solo",
+              "unit_price": 25,
+              "updated_at": "2026-11-13T05:53:30.887Z",
+              "variant_barcode": null,
+              "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+              "variant_sku": "OVS-SOLO",
+              "variant_title": "Default"
+            }
+          ],
+          "locale": null,
+          "metadata": null,
+          "original_item_subtotal": 25,
+          "original_item_tax_total": 0,
+          "original_item_total": 25,
+          "original_shipping_subtotal": 5,
+          "original_shipping_tax_total": 0,
+          "original_shipping_total": 5,
+          "original_tax_total": 0,
+          "original_total": 30,
+          "promotions": [],
+          "region": {
+            "automatic_taxes": true,
+            "countries": [
+              {
+                "created_at": "2026-11-13T05:48:06.971Z",
+                "deleted_at": null,
+                "display_name": "United States",
+                "iso_2": "us",
+                "iso_3": "usa",
+                "metadata": null,
+                "name": "UNITED STATES",
+                "num_code": "840",
+                "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+                "updated_at": "2026-11-13T05:48:10.298Z"
+              }
+            ],
+            "currency_code": "usd",
+            "id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+            "name": "US"
+          },
+          "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+          "sales_channel_id": "sc_01M79Q5YJPN1KV0M8JW3QNQQN4",
+          "shipping_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "first_name": "Test",
+            "id": "caaddr_01M79QFQTHAFZHNCDDR6G5KQ4S",
+            "last_name": "Buyer",
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx"
+          },
+          "shipping_address_id": "caaddr_01M79QFQTHAFZHNCDDR6G5KQ4S",
+          "shipping_discount_total": 0,
+          "shipping_methods": [
+            {
+              "adjustments": [],
+              "amount": 5,
+              "id": "casm_01M79QFR067Y6ETWWXNAJEQZ3D",
+              "is_tax_inclusive": false,
+              "shipping_option_id": "so_01M79Q5YQAHZMKXXC04MJF5E8T",
+              "tax_lines": []
+            }
+          ],
+          "shipping_subtotal": 5,
+          "shipping_tax_total": 0,
+          "shipping_total": 5,
+          "subtotal": 30,
+          "tax_total": 0,
+          "total": 30,
+          "updated_at": "2026-11-13T05:53:30.961Z"
+        }
+      },
+      "start": "2026-11-13T05:53:31.096836000Z",
+      "end": "2026-11-13T05:53:31.231471000Z",
+      "start_ns": 2803335042,
+      "end_ns": 2937971042,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 11,
+      "phase": "setup",
+      "step": "create_payment_collection",
+      "cart": "a",
+      "server": 1,
+      "method": "POST",
+      "path": "/store/payment-collections",
+      "request_body": {
+        "cart_id": "cart_01M79QFQNF3H4CPAY9BJTECZ98"
+      },
+      "status": 200,
+      "response_body": {
+        "payment_collection": {
+          "amount": 30,
+          "currency_code": "usd",
+          "id": "pay_col_01M79QFR3BR17Y4Q6951Y3STVE",
+          "payment_sessions": []
+        }
+      },
+      "start": "2026-11-13T05:53:31.231758000Z",
+      "end": "2026-11-13T05:53:31.254306000Z",
+      "start_ns": 2938257750,
+      "end_ns": 2960805750,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 12,
+      "phase": "setup",
+      "step": "create_payment_session",
+      "cart": "a",
+      "server": 1,
+      "method": "POST",
+      "path": "/store/payment-collections/pay_col_01M79QFR3BR17Y4Q6951Y3STVE/payment-sessions",
+      "request_body": {
+        "provider_id": "pp_system_default"
+      },
+      "status": 200,
+      "response_body": {
+        "payment_collection": {
+          "amount": 30,
+          "currency_code": "usd",
+          "id": "pay_col_01M79QFR3BR17Y4Q6951Y3STVE",
+          "payment_sessions": [
+            {
+              "amount": 30,
+              "authorized_at": null,
+              "context": {},
+              "created_at": "2026-11-13T05:53:31.266Z",
+              "currency_code": "usd",
+              "data": {},
+              "deleted_at": null,
+              "id": "payses_01M79QFR42DH5D21AMFB1QN4Z9",
+              "metadata": {},
+              "payment": null,
+              "payment_collection_id": "pay_col_01M79QFR3BR17Y4Q6951Y3STVE",
+              "provider_id": "pp_system_default",
+              "raw_amount": {
+                "precision": 20,
+                "value": "30"
+              },
+              "status": "pending",
+              "updated_at": "2026-11-13T05:53:31.266Z"
+            }
+          ]
+        }
+      },
+      "start": "2026-11-13T05:53:31.254367000Z",
+      "end": "2026-11-13T05:53:31.272216000Z",
+      "start_ns": 2960866917,
+      "end_ns": 2978715959,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 13,
+      "phase": "setup",
+      "step": "create_cart",
+      "cart": "b",
+      "server": 2,
+      "method": "POST",
+      "path": "/store/carts",
+      "request_body": {
+        "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN"
+      },
+      "status": 200,
+      "response_body": {
+        "cart": {
+          "billing_address": null,
+          "completed_at": null,
+          "created_at": "2026-11-13T05:53:31.302Z",
+          "credit_line_subtotal": 0,
+          "credit_line_tax_total": 0,
+          "credit_line_total": 0,
+          "credit_lines": [],
+          "currency_code": "usd",
+          "customer_id": null,
+          "discount_subtotal": 0,
+          "discount_tax_total": 0,
+          "discount_total": 0,
+          "email": null,
+          "id": "cart_01M79QFR55YP6EYW5E6SCX3H4C",
+          "item_discount_total": 0,
+          "item_subtotal": 0,
+          "item_tax_total": 0,
+          "item_total": 0,
+          "items": [],
+          "locale": null,
+          "metadata": null,
+          "original_item_subtotal": 0,
+          "original_item_tax_total": 0,
+          "original_item_total": 0,
+          "original_shipping_subtotal": 0,
+          "original_shipping_tax_total": 0,
+          "original_shipping_total": 0,
+          "original_tax_total": 0,
+          "original_total": 0,
+          "promotions": [],
+          "region": {
+            "automatic_taxes": true,
+            "countries": [
+              {
+                "created_at": "2026-11-13T05:48:06.971Z",
+                "deleted_at": null,
+                "display_name": "United States",
+                "iso_2": "us",
+                "iso_3": "usa",
+                "metadata": null,
+                "name": "UNITED STATES",
+                "num_code": "840",
+                "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+                "updated_at": "2026-11-13T05:48:10.298Z"
+              }
+            ],
+            "currency_code": "usd",
+            "id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+            "name": "US"
+          },
+          "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+          "sales_channel_id": "sc_01M79Q5YJPN1KV0M8JW3QNQQN4",
+          "shipping_address": {
+            "address_1": null,
+            "address_2": null,
+            "city": null,
+            "company": null,
+            "country_code": "us",
+            "first_name": null,
+            "id": "caaddr_01M79QFR56CN9646BC0CJQ35BS",
+            "last_name": null,
+            "phone": null,
+            "postal_code": null,
+            "province": null
+          },
+          "shipping_address_id": "caaddr_01M79QFR56CN9646BC0CJQ35BS",
+          "shipping_discount_total": 0,
+          "shipping_methods": [],
+          "shipping_subtotal": 0,
+          "shipping_tax_total": 0,
+          "shipping_total": 0,
+          "subtotal": 0,
+          "tax_total": 0,
+          "total": 0,
+          "updated_at": "2026-11-13T05:53:31.302Z"
+        }
+      },
+      "start": "2026-11-13T05:53:31.272288000Z",
+      "end": "2026-11-13T05:53:31.357195000Z",
+      "start_ns": 2978787375,
+      "end_ns": 3063694625,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": false
+    },
+    {
+      "id": 14,
+      "phase": "setup",
+      "step": "add_line_item",
+      "cart": "b",
+      "server": 2,
+      "method": "POST",
+      "path": "/store/carts/cart_01M79QFR55YP6EYW5E6SCX3H4C/line-items",
+      "request_body": {
+        "quantity": 1,
+        "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970"
+      },
+      "status": 200,
+      "response_body": {
+        "cart": {
+          "billing_address": null,
+          "completed_at": null,
+          "created_at": "2026-11-13T05:53:31.302Z",
+          "credit_line_subtotal": 0,
+          "credit_line_tax_total": 0,
+          "credit_line_total": 0,
+          "credit_lines": [],
+          "currency_code": "usd",
+          "customer_id": null,
+          "discount_subtotal": 0,
+          "discount_tax_total": 0,
+          "discount_total": 0,
+          "email": null,
+          "id": "cart_01M79QFR55YP6EYW5E6SCX3H4C",
+          "item_discount_total": 0,
+          "item_subtotal": 25,
+          "item_tax_total": 0,
+          "item_total": 25,
+          "items": [
+            {
+              "adjustments": [],
+              "compare_at_unit_price": null,
+              "created_at": "2026-11-13T05:53:31.397Z",
+              "id": "cali_01M79QFR85NSZYTJW1EX39FHMW",
+              "is_giftcard": false,
+              "is_tax_inclusive": false,
+              "metadata": {},
+              "product": {
+                "categories": [],
+                "collection_id": null,
+                "id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+                "tags": [],
+                "type_id": null
+              },
+              "product_collection": null,
+              "product_description": null,
+              "product_handle": "solo",
+              "product_id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+              "product_subtitle": null,
+              "product_title": "Solo",
+              "product_type": null,
+              "product_type_id": null,
+              "quantity": 1,
+              "requires_shipping": true,
+              "tax_lines": [],
+              "thumbnail": null,
+              "title": "Solo",
+              "unit_price": 25,
+              "updated_at": "2026-11-13T05:53:31.397Z",
+              "variant_barcode": null,
+              "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+              "variant_sku": "OVS-SOLO",
+              "variant_title": "Default"
+            }
+          ],
+          "locale": null,
+          "metadata": null,
+          "original_item_subtotal": 25,
+          "original_item_tax_total": 0,
+          "original_item_total": 25,
+          "original_shipping_subtotal": 0,
+          "original_shipping_tax_total": 0,
+          "original_shipping_total": 0,
+          "original_tax_total": 0,
+          "original_total": 25,
+          "promotions": [],
+          "region": {
+            "automatic_taxes": true,
+            "countries": [
+              {
+                "created_at": "2026-11-13T05:48:06.971Z",
+                "deleted_at": null,
+                "display_name": "United States",
+                "iso_2": "us",
+                "iso_3": "usa",
+                "metadata": null,
+                "name": "UNITED STATES",
+                "num_code": "840",
+                "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+                "updated_at": "2026-11-13T05:48:10.298Z"
+              }
+            ],
+            "currency_code": "usd",
+            "id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+            "name": "US"
+          },
+          "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+          "sales_channel_id": "sc_01M79Q5YJPN1KV0M8JW3QNQQN4",
+          "shipping_address": {
+            "address_1": null,
+            "address_2": null,
+            "city": null,
+            "company": null,
+            "country_code": "us",
+            "first_name": null,
+            "id": "caaddr_01M79QFR56CN9646BC0CJQ35BS",
+            "last_name": null,
+            "phone": null,
+            "postal_code": null,
+            "province": null
+          },
+          "shipping_address_id": "caaddr_01M79QFR56CN9646BC0CJQ35BS",
+          "shipping_discount_total": 0,
+          "shipping_methods": [],
+          "shipping_subtotal": 0,
+          "shipping_tax_total": 0,
+          "shipping_total": 0,
+          "subtotal": 25,
+          "tax_total": 0,
+          "total": 25,
+          "updated_at": "2026-11-13T05:53:31.302Z"
+        }
+      },
+      "start": "2026-11-13T05:53:31.357311000Z",
+      "end": "2026-11-13T05:53:31.455119000Z",
+      "start_ns": 3063810625,
+      "end_ns": 3161619375,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 15,
+      "phase": "setup",
+      "step": "set_contact",
+      "cart": "b",
+      "server": 2,
+      "method": "POST",
+      "path": "/store/carts/cart_01M79QFR55YP6EYW5E6SCX3H4C",
+      "request_body": {
+        "billing_address": {
+          "address_1": "1 Main St",
+          "city": "Austin",
+          "country_code": "us",
+          "first_name": "Test",
+          "last_name": "Buyer",
+          "postal_code": "78701",
+          "province": "tx"
+        },
+        "email": "buyer+last-unit-two-servers-b@example.com",
+        "shipping_address": {
+          "address_1": "1 Main St",
+          "city": "Austin",
+          "country_code": "us",
+          "first_name": "Test",
+          "last_name": "Buyer",
+          "postal_code": "78701",
+          "province": "tx"
+        }
+      },
+      "status": 200,
+      "response_body": {
+        "cart": {
+          "billing_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "first_name": "Test",
+            "id": "caaddr_01M79QFRAEYS2DGPWY1AF14FRP",
+            "last_name": "Buyer",
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx"
+          },
+          "billing_address_id": "caaddr_01M79QFRAEYS2DGPWY1AF14FRP",
+          "completed_at": null,
+          "created_at": "2026-11-13T05:53:31.302Z",
+          "credit_line_subtotal": 0,
+          "credit_line_tax_total": 0,
+          "credit_line_total": 0,
+          "credit_lines": [],
+          "currency_code": "usd",
+          "customer": {
+            "email": "buyer+last-unit-two-servers-b@example.com",
+            "groups": [],
+            "id": "cus_01M79QFRA8SSTHGXVW54Y4C4VK"
+          },
+          "customer_id": "cus_01M79QFRA8SSTHGXVW54Y4C4VK",
+          "discount_subtotal": 0,
+          "discount_tax_total": 0,
+          "discount_total": 0,
+          "email": "buyer+last-unit-two-servers-b@example.com",
+          "id": "cart_01M79QFR55YP6EYW5E6SCX3H4C",
+          "item_discount_total": 0,
+          "item_subtotal": 25,
+          "item_tax_total": 0,
+          "item_total": 25,
+          "items": [
+            {
+              "adjustments": [],
+              "compare_at_unit_price": null,
+              "created_at": "2026-11-13T05:53:31.397Z",
+              "id": "cali_01M79QFR85NSZYTJW1EX39FHMW",
+              "is_giftcard": false,
+              "is_tax_inclusive": false,
+              "metadata": {},
+              "product": {
+                "categories": [],
+                "collection_id": null,
+                "id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+                "tags": [],
+                "type_id": null
+              },
+              "product_collection": null,
+              "product_description": null,
+              "product_handle": "solo",
+              "product_id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+              "product_subtitle": null,
+              "product_title": "Solo",
+              "product_type": null,
+              "product_type_id": null,
+              "quantity": 1,
+              "requires_shipping": true,
+              "tax_lines": [],
+              "thumbnail": null,
+              "title": "Solo",
+              "unit_price": 25,
+              "updated_at": "2026-11-13T05:53:31.397Z",
+              "variant_barcode": null,
+              "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+              "variant_sku": "OVS-SOLO",
+              "variant_title": "Default"
+            }
+          ],
+          "locale": null,
+          "metadata": null,
+          "original_item_subtotal": 25,
+          "original_item_tax_total": 0,
+          "original_item_total": 25,
+          "original_shipping_subtotal": 0,
+          "original_shipping_tax_total": 0,
+          "original_shipping_total": 0,
+          "original_tax_total": 0,
+          "original_total": 25,
+          "promotions": [],
+          "region": {
+            "automatic_taxes": true,
+            "countries": [
+              {
+                "created_at": "2026-11-13T05:48:06.971Z",
+                "deleted_at": null,
+                "display_name": "United States",
+                "iso_2": "us",
+                "iso_3": "usa",
+                "metadata": null,
+                "name": "UNITED STATES",
+                "num_code": "840",
+                "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+                "updated_at": "2026-11-13T05:48:10.298Z"
+              }
+            ],
+            "currency_code": "usd",
+            "id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+            "name": "US"
+          },
+          "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+          "sales_channel_id": "sc_01M79Q5YJPN1KV0M8JW3QNQQN4",
+          "shipping_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "first_name": "Test",
+            "id": "caaddr_01M79QFRAEA6EYB7JFFDKVSDHV",
+            "last_name": "Buyer",
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx"
+          },
+          "shipping_address_id": "caaddr_01M79QFRAEA6EYB7JFFDKVSDHV",
+          "shipping_discount_total": 0,
+          "shipping_methods": [],
+          "shipping_subtotal": 0,
+          "shipping_tax_total": 0,
+          "shipping_total": 0,
+          "subtotal": 25,
+          "tax_total": 0,
+          "total": 25,
+          "updated_at": "2026-11-13T05:53:31.470Z"
+        }
+      },
+      "start": "2026-11-13T05:53:31.455595000Z",
+      "end": "2026-11-13T05:53:31.567098000Z",
+      "start_ns": 3162094959,
+      "end_ns": 3273598125,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 16,
+      "phase": "setup",
+      "step": "list_shipping_options",
+      "cart": "b",
+      "server": 2,
+      "method": "GET",
+      "path": "/store/shipping-options?cart_id=cart_01M79QFR55YP6EYW5E6SCX3H4C",
+      "status": 200,
+      "response_body": {
+        "shipping_options": [
+          {
+            "amount": 5,
+            "calculated_price": {
+              "calculated_amount": 5,
+              "calculated_price": {
+                "id": "price_01M79Q5YQGS1SF73B32AJN5CQZ",
+                "max_quantity": null,
+                "min_quantity": null,
+                "price_list_id": null,
+                "price_list_type": null
+              },
+              "currency_code": "usd",
+              "id": "pset_01M79Q5YQGTVQM8MNQ3AZB7S1S",
+              "is_calculated_price_price_list": false,
+              "is_calculated_price_tax_inclusive": false,
+              "is_original_price_price_list": false,
+              "is_original_price_tax_inclusive": false,
+              "original_amount": 5,
+              "original_price": {
+                "id": "price_01M79Q5YQGS1SF73B32AJN5CQZ",
+                "max_quantity": null,
+                "min_quantity": null,
+                "price_list_id": null,
+                "price_list_type": null
+              },
+              "raw_calculated_amount": {
+                "precision": 20,
+                "value": "5"
+              },
+              "raw_original_amount": {
+                "precision": 20,
+                "value": "5"
+              }
+            },
+            "data": null,
+            "id": "so_01M79Q5YQAHZMKXXC04MJF5E8T",
+            "insufficient_inventory": false,
+            "is_tax_inclusive": false,
+            "name": "Standard Shipping",
+            "price_type": "flat",
+            "prices": [
+              {
+                "amount": 5,
+                "created_at": "2026-11-13T05:48:10.352Z",
+                "currency_code": "usd",
+                "deleted_at": null,
+                "id": "price_01M79Q5YQFDC6G3FN97XPXATVR",
+                "max_quantity": null,
+                "min_quantity": null,
+                "price_list": null,
+                "price_list_id": null,
+                "price_rules": [],
+                "price_set_id": "pset_01M79Q5YQGTVQM8MNQ3AZB7S1S",
+                "raw_amount": {
+                  "precision": 20,
+                  "value": "5"
+                },
+                "raw_max_quantity": null,
+                "raw_min_quantity": null,
+                "rules_count": 0,
+                "title": null,
+                "updated_at": "2026-11-13T05:48:10.352Z"
+              },
+              {
+                "amount": 5,
+                "created_at": "2026-11-13T05:48:10.352Z",
+                "currency_code": "usd",
+                "deleted_at": null,
+                "id": "price_01M79Q5YQGS1SF73B32AJN5CQZ",
+                "max_quantity": null,
+                "min_quantity": null,
+                "price_list": null,
+                "price_list_id": null,
+                "price_rules": [
+                  {
+                    "attribute": "region_id",
+                    "created_at": "2026-11-13T05:48:10.352Z",
+                    "deleted_at": null,
+                    "id": "prule_01M79Q5YQGEJFVV8P1SBMJ68H2",
+                    "operator": "eq",
+                    "price_id": "price_01M79Q5YQGS1SF73B32AJN5CQZ",
+                    "priority": 0,
+                    "updated_at": "2026-11-13T05:48:10.352Z",
+                    "value": "reg_01M79Q5YNP16ATE6DB855BRFPN"
+                  }
+                ],
+                "price_set_id": "pset_01M79Q5YQGTVQM8MNQ3AZB7S1S",
+                "raw_amount": {
+                  "precision": 20,
+                  "value": "5"
+                },
+                "raw_max_quantity": null,
+                "raw_min_quantity": null,
+                "rules_count": 1,
+                "title": null,
+                "updated_at": "2026-11-13T05:48:10.352Z"
+              }
+            ],
+            "provider": {
+              "id": "manual_manual",
+              "is_enabled": true
+            },
+            "provider_id": "manual_manual",
+            "rules": [
+              {
+                "attribute": "enabled_in_store",
+                "operator": "eq",
+                "value": "true"
+              },
+              {
+                "attribute": "is_return",
+                "operator": "eq",
+                "value": "false"
+              }
+            ],
+            "service_zone": {
+              "fulfillment_set": {
+                "id": "fuset_01M79Q5YPSQRSVEZJ0NYNZB69N",
+                "location": {
+                  "address": {
+                    "address_1": "",
+                    "address_2": null,
+                    "city": "Austin",
+                    "company": null,
+                    "country_code": "US",
+                    "created_at": "2026-11-13T05:48:10.318Z",
+                    "deleted_at": null,
+                    "id": "laddr_01M79Q5YPEC68YQT0HF5A0QR11",
+                    "metadata": null,
+                    "phone": null,
+                    "postal_code": null,
+                    "province": null,
+                    "updated_at": "2026-11-13T05:48:10.318Z"
+                  },
+                  "id": "sloc_01M79Q5YPEM0VNCRKQ5DJHE8B0"
+                },
+                "type": "shipping"
+              },
+              "fulfillment_set_id": "fuset_01M79Q5YPSQRSVEZJ0NYNZB69N",
+              "id": "serzo_01M79Q5YPSBGKP610MYYH6WP4G"
+            },
+            "service_zone_id": "serzo_01M79Q5YPSBGKP610MYYH6WP4G",
+            "shipping_profile_id": "sp_01M79Q5X13VJKQJQMAAD20AYB6",
+            "type": {
+              "code": "standard",
+              "description": "Flat rate US shipping.",
+              "id": "sotype_01M79Q5YQAR1YWAV6XERZK0649",
+              "label": "Standard"
+            }
+          }
+        ]
+      },
+      "start": "2026-11-13T05:53:31.567389000Z",
+      "end": "2026-11-13T05:53:31.602150000Z",
+      "start_ns": 3273888959,
+      "end_ns": 3308650209,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 17,
+      "phase": "setup",
+      "step": "add_shipping_method",
+      "cart": "b",
+      "server": 2,
+      "method": "POST",
+      "path": "/store/carts/cart_01M79QFR55YP6EYW5E6SCX3H4C/shipping-methods",
+      "request_body": {
+        "option_id": "so_01M79Q5YQAHZMKXXC04MJF5E8T"
+      },
+      "status": 200,
+      "response_body": {
+        "cart": {
+          "billing_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "first_name": "Test",
+            "id": "caaddr_01M79QFRAEYS2DGPWY1AF14FRP",
+            "last_name": "Buyer",
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx"
+          },
+          "billing_address_id": "caaddr_01M79QFRAEYS2DGPWY1AF14FRP",
+          "completed_at": null,
+          "created_at": "2026-11-13T05:53:31.302Z",
+          "credit_line_subtotal": 0,
+          "credit_line_tax_total": 0,
+          "credit_line_total": 0,
+          "credit_lines": [],
+          "currency_code": "usd",
+          "customer": {
+            "email": "buyer+last-unit-two-servers-b@example.com",
+            "groups": [],
+            "id": "cus_01M79QFRA8SSTHGXVW54Y4C4VK"
+          },
+          "customer_id": "cus_01M79QFRA8SSTHGXVW54Y4C4VK",
+          "discount_subtotal": 0,
+          "discount_tax_total": 0,
+          "discount_total": 0,
+          "email": "buyer+last-unit-two-servers-b@example.com",
+          "id": "cart_01M79QFR55YP6EYW5E6SCX3H4C",
+          "item_discount_total": 0,
+          "item_subtotal": 25,
+          "item_tax_total": 0,
+          "item_total": 25,
+          "items": [
+            {
+              "adjustments": [],
+              "compare_at_unit_price": null,
+              "created_at": "2026-11-13T05:53:31.397Z",
+              "id": "cali_01M79QFR85NSZYTJW1EX39FHMW",
+              "is_giftcard": false,
+              "is_tax_inclusive": false,
+              "metadata": {},
+              "product": {
+                "categories": [],
+                "collection_id": null,
+                "id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+                "tags": [],
+                "type_id": null
+              },
+              "product_collection": null,
+              "product_description": null,
+              "product_handle": "solo",
+              "product_id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+              "product_subtitle": null,
+              "product_title": "Solo",
+              "product_type": null,
+              "product_type_id": null,
+              "quantity": 1,
+              "requires_shipping": true,
+              "tax_lines": [],
+              "thumbnail": null,
+              "title": "Solo",
+              "unit_price": 25,
+              "updated_at": "2026-11-13T05:53:31.397Z",
+              "variant_barcode": null,
+              "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+              "variant_sku": "OVS-SOLO",
+              "variant_title": "Default"
+            }
+          ],
+          "locale": null,
+          "metadata": null,
+          "original_item_subtotal": 25,
+          "original_item_tax_total": 0,
+          "original_item_total": 25,
+          "original_shipping_subtotal": 5,
+          "original_shipping_tax_total": 0,
+          "original_shipping_total": 5,
+          "original_tax_total": 0,
+          "original_total": 30,
+          "promotions": [],
+          "region": {
+            "automatic_taxes": true,
+            "countries": [
+              {
+                "created_at": "2026-11-13T05:48:06.971Z",
+                "deleted_at": null,
+                "display_name": "United States",
+                "iso_2": "us",
+                "iso_3": "usa",
+                "metadata": null,
+                "name": "UNITED STATES",
+                "num_code": "840",
+                "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+                "updated_at": "2026-11-13T05:48:10.298Z"
+              }
+            ],
+            "currency_code": "usd",
+            "id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+            "name": "US"
+          },
+          "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+          "sales_channel_id": "sc_01M79Q5YJPN1KV0M8JW3QNQQN4",
+          "shipping_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "first_name": "Test",
+            "id": "caaddr_01M79QFRAEA6EYB7JFFDKVSDHV",
+            "last_name": "Buyer",
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx"
+          },
+          "shipping_address_id": "caaddr_01M79QFRAEA6EYB7JFFDKVSDHV",
+          "shipping_discount_total": 0,
+          "shipping_methods": [
+            {
+              "adjustments": [],
+              "amount": 5,
+              "id": "casm_01M79QFRG39RFSGNFPAYYSF8K0",
+              "is_tax_inclusive": false,
+              "shipping_option_id": "so_01M79Q5YQAHZMKXXC04MJF5E8T",
+              "tax_lines": []
+            }
+          ],
+          "shipping_subtotal": 5,
+          "shipping_tax_total": 0,
+          "shipping_total": 5,
+          "subtotal": 30,
+          "tax_total": 0,
+          "total": 30,
+          "updated_at": "2026-11-13T05:53:31.470Z"
+        }
+      },
+      "start": "2026-11-13T05:53:31.602418000Z",
+      "end": "2026-11-13T05:53:31.742021000Z",
+      "start_ns": 3308918709,
+      "end_ns": 3448521709,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 18,
+      "phase": "setup",
+      "step": "create_payment_collection",
+      "cart": "b",
+      "server": 2,
+      "method": "POST",
+      "path": "/store/payment-collections",
+      "request_body": {
+        "cart_id": "cart_01M79QFR55YP6EYW5E6SCX3H4C"
+      },
+      "status": 200,
+      "response_body": {
+        "payment_collection": {
+          "amount": 30,
+          "currency_code": "usd",
+          "id": "pay_col_01M79QFRK7MT9AZV0HKSSSEWXZ",
+          "payment_sessions": []
+        }
+      },
+      "start": "2026-11-13T05:53:31.742271000Z",
+      "end": "2026-11-13T05:53:31.759612000Z",
+      "start_ns": 3448771875,
+      "end_ns": 3466112542,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 19,
+      "phase": "setup",
+      "step": "create_payment_session",
+      "cart": "b",
+      "server": 2,
+      "method": "POST",
+      "path": "/store/payment-collections/pay_col_01M79QFRK7MT9AZV0HKSSSEWXZ/payment-sessions",
+      "request_body": {
+        "provider_id": "pp_system_default"
+      },
+      "status": 200,
+      "response_body": {
+        "payment_collection": {
+          "amount": 30,
+          "currency_code": "usd",
+          "id": "pay_col_01M79QFRK7MT9AZV0HKSSSEWXZ",
+          "payment_sessions": [
+            {
+              "amount": 30,
+              "authorized_at": null,
+              "context": {},
+              "created_at": "2026-11-13T05:53:31.768Z",
+              "currency_code": "usd",
+              "data": {},
+              "deleted_at": null,
+              "id": "payses_01M79QFRKR1DSZ3YXCF9W2YSF0",
+              "metadata": {},
+              "payment": null,
+              "payment_collection_id": "pay_col_01M79QFRK7MT9AZV0HKSSSEWXZ",
+              "provider_id": "pp_system_default",
+              "raw_amount": {
+                "precision": 20,
+                "value": "30"
+              },
+              "status": "pending",
+              "updated_at": "2026-11-13T05:53:31.768Z"
+            }
+          ]
+        }
+      },
+      "start": "2026-11-13T05:53:31.759737000Z",
+      "end": "2026-11-13T05:53:31.773193000Z",
+      "start_ns": 3466238292,
+      "end_ns": 3479694084,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 20,
+      "phase": "setup",
+      "step": "warm_up",
+      "action_id": "complete-b",
+      "cart": "b",
+      "server": 2,
+      "method": "GET",
+      "path": "/health",
+      "status": 200,
+      "response_body": "OK",
+      "start": "2026-11-13T05:53:31.782241000Z",
+      "end": "2026-11-13T05:53:31.784246000Z",
+      "start_ns": 3488741459,
+      "end_ns": 3490747292,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": false
+    },
+    {
+      "id": 21,
+      "phase": "setup",
+      "step": "warm_up",
+      "action_id": "complete-a",
+      "cart": "a",
+      "server": 1,
+      "method": "GET",
+      "path": "/health",
+      "status": 200,
+      "response_body": "OK",
+      "start": "2026-11-13T05:53:31.782251000Z",
+      "end": "2026-11-13T05:53:31.784067000Z",
+      "start_ns": 3488751875,
+      "end_ns": 3490567750,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": false
+    },
+    {
+      "id": 22,
+      "phase": "race",
+      "step": "complete_cart",
+      "action_id": "complete-a",
+      "cart": "a",
+      "server": 1,
+      "method": "POST",
+      "path": "/store/carts/cart_01M79QFQNF3H4CPAY9BJTECZ98/complete",
+      "status": 200,
+      "response_body": {
+        "order": {
+          "billing_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "created_at": "2026-11-13T05:53:30.961Z",
+            "customer_id": null,
+            "deleted_at": null,
+            "first_name": "Test",
+            "id": "ordaddr_01M79QFRNG2XNZXGYQDH092ZGM",
+            "last_name": "Buyer",
+            "metadata": null,
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx",
+            "updated_at": "2026-11-13T05:53:30.961Z"
+          },
+          "created_at": "2026-11-13T05:53:31.827Z",
+          "credit_line_subtotal": 0,
+          "credit_line_tax_total": 0,
+          "credit_line_total": 0,
+          "credit_lines": [],
+          "currency_code": "usd",
+          "custom_display_id": null,
+          "discount_subtotal": 0,
+          "discount_tax_total": 0,
+          "discount_total": 0,
+          "display_id": 1,
+          "email": "buyer+last-unit-two-servers-a@example.com",
+          "id": "order_01M79QFRNJPCWGZA3015F2Z7MC",
+          "item_subtotal": 25,
+          "item_tax_total": 0,
+          "item_total": 25,
+          "items": [
+            {
+              "adjustments": [],
+              "compare_at_unit_price": null,
+              "created_at": "2026-11-13T05:53:31.827Z",
+              "deleted_at": null,
+              "detail": {
+                "compare_at_unit_price": null,
+                "created_at": "2026-11-13T05:53:31.827Z",
+                "deleted_at": null,
+                "delivered_quantity": 0,
+                "fulfilled_quantity": 0,
+                "id": "orditem_01M79QFRNKPRQADPP3YWTH96ME",
+                "item_id": "ordli_01M79QFRNJS5DY7APD5SSAMQ0X",
+                "metadata": {},
+                "order_id": "order_01M79QFRNJPCWGZA3015F2Z7MC",
+                "quantity": 1,
+                "raw_compare_at_unit_price": null,
+                "raw_delivered_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_fulfilled_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_quantity": {
+                  "precision": 20,
+                  "value": "1"
+                },
+                "raw_return_dismissed_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_return_received_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_return_requested_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_shipped_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_unit_price": null,
+                "raw_written_off_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "return_dismissed_quantity": 0,
+                "return_received_quantity": 0,
+                "return_requested_quantity": 0,
+                "shipped_quantity": 0,
+                "unit_price": null,
+                "updated_at": "2026-11-13T05:53:31.827Z",
+                "version": 1,
+                "written_off_quantity": 0
+              },
+              "discount_subtotal": 0,
+              "discount_tax_total": 0,
+              "discount_total": 0,
+              "fulfilled_total": 0,
+              "id": "ordli_01M79QFRNJS5DY7APD5SSAMQ0X",
+              "is_custom_price": false,
+              "is_discountable": true,
+              "is_giftcard": false,
+              "is_tax_inclusive": false,
+              "line_item_metadata": {},
+              "metadata": {},
+              "original_subtotal": 25,
+              "original_tax_total": 0,
+              "original_total": 25,
+              "product_collection": null,
+              "product_description": null,
+              "product_handle": "solo",
+              "product_id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+              "product_subtitle": null,
+              "product_title": "Solo",
+              "product_type": null,
+              "product_type_id": null,
+              "quantity": 1,
+              "raw_compare_at_unit_price": null,
+              "raw_discount_subtotal": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_discount_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_discount_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_fulfilled_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_original_subtotal": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_original_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_original_total": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_quantity": {
+                "precision": 20,
+                "value": "1"
+              },
+              "raw_refundable_total": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_refundable_total_per_unit": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_return_dismissed_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_return_received_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_return_requested_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_shipped_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_subtotal": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_total": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_unit_price": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_write_off_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "refundable_total": 25,
+              "refundable_total_per_unit": 25,
+              "requires_shipping": true,
+              "return_dismissed_total": 0,
+              "return_received_total": 0,
+              "return_requested_total": 0,
+              "shipped_total": 0,
+              "subtitle": "Default",
+              "subtotal": 25,
+              "tax_lines": [],
+              "tax_total": 0,
+              "thumbnail": null,
+              "title": "Solo",
+              "total": 25,
+              "unit_price": 25,
+              "updated_at": "2026-11-13T05:53:31.827Z",
+              "variant": {
+                "allow_backorder": false,
+                "barcode": null,
+                "created_at": "2026-11-13T05:48:10.416Z",
+                "deleted_at": null,
+                "ean": null,
+                "height": null,
+                "hs_code": null,
+                "id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+                "length": null,
+                "manage_inventory": true,
+                "material": null,
+                "metadata": null,
+                "mid_code": null,
+                "origin_country": null,
+                "product": {
+                  "collection": null,
+                  "collection_id": null,
+                  "created_at": "2026-11-13T05:48:10.386Z",
+                  "deleted_at": null,
+                  "description": null,
+                  "discountable": true,
+                  "external_id": null,
+                  "handle": "solo",
+                  "height": null,
+                  "hs_code": null,
+                  "id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+                  "is_giftcard": false,
+                  "length": null,
+                  "material": null,
+                  "metadata": null,
+                  "mid_code": null,
+                  "origin_country": null,
+                  "status": "published",
+                  "subtitle": null,
+                  "thumbnail": null,
+                  "title": "Solo",
+                  "type": null,
+                  "type_id": null,
+                  "updated_at": "2026-11-13T05:48:10.386Z",
+                  "weight": null,
+                  "width": null
+                },
+                "product_id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+                "sku": "OVS-SOLO",
+                "thumbnail": null,
+                "title": "Default",
+                "upc": null,
+                "updated_at": "2026-11-13T05:48:10.416Z",
+                "variant_rank": 0,
+                "weight": null,
+                "width": null
+              },
+              "variant_barcode": null,
+              "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+              "variant_option_values": null,
+              "variant_sku": "OVS-SOLO",
+              "variant_title": "Default",
+              "write_off_total": 0
+            }
+          ],
+          "original_item_subtotal": 25,
+          "original_item_tax_total": 0,
+          "original_item_total": 25,
+          "original_shipping_subtotal": 5,
+          "original_shipping_tax_total": 0,
+          "original_shipping_total": 5,
+          "original_subtotal": 30,
+          "original_tax_total": 0,
+          "original_total": 30,
+          "payment_collections": [
+            {
+              "amount": 30,
+              "authorized_amount": 30,
+              "captured_amount": 0,
+              "completed_at": null,
+              "created_at": "2026-11-13T05:53:31.243Z",
+              "currency_code": "usd",
+              "deleted_at": null,
+              "id": "pay_col_01M79QFR3BR17Y4Q6951Y3STVE",
+              "metadata": null,
+              "raw_amount": {
+                "precision": 20,
+                "value": "30"
+              },
+              "raw_authorized_amount": {
+                "precision": 20,
+                "value": "30"
+              },
+              "raw_captured_amount": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_refunded_amount": {
+                "precision": 20,
+                "value": "0"
+              },
+              "refunded_amount": 0,
+              "status": "authorized",
+              "updated_at": "2026-11-13T05:53:31.880Z"
+            }
+          ],
+          "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+          "shipping_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "created_at": "2026-11-13T05:53:30.961Z",
+            "customer_id": null,
+            "deleted_at": null,
+            "first_name": "Test",
+            "id": "ordaddr_01M79QFRNG2YEJ8RTSSR2DFJR1",
+            "last_name": "Buyer",
+            "metadata": null,
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx",
+            "updated_at": "2026-11-13T05:53:30.961Z"
+          },
+          "shipping_methods": [
+            {
+              "adjustments": [],
+              "amount": 5,
+              "created_at": "2026-11-13T05:53:31.827Z",
+              "data": {},
+              "deleted_at": null,
+              "description": null,
+              "detail": {
+                "claim_id": null,
+                "created_at": "2026-11-13T05:53:31.827Z",
+                "deleted_at": null,
+                "exchange_id": null,
+                "id": "ordspmv_01M79QFRNHSXHTTVSA4D2ZMJSB",
+                "order_id": "order_01M79QFRNJPCWGZA3015F2Z7MC",
+                "return_id": null,
+                "shipping_method_id": "ordsm_01M79QFRNHAQH106T2AF251GDM",
+                "updated_at": "2026-11-13T05:53:31.827Z",
+                "version": 1
+              },
+              "discount_subtotal": 0,
+              "discount_tax_total": 0,
+              "discount_total": 0,
+              "id": "ordsm_01M79QFRNHAQH106T2AF251GDM",
+              "is_custom_amount": false,
+              "is_tax_inclusive": false,
+              "metadata": null,
+              "name": "Standard Shipping",
+              "order_id": "order_01M79QFRNJPCWGZA3015F2Z7MC",
+              "original_subtotal": 5,
+              "original_tax_total": 0,
+              "original_total": 5,
+              "raw_amount": {
+                "precision": 20,
+                "value": "5"
+              },
+              "raw_discount_subtotal": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_discount_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_discount_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_original_subtotal": {
+                "precision": 20,
+                "value": "5"
+              },
+              "raw_original_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_original_total": {
+                "precision": 20,
+                "value": "5"
+              },
+              "raw_subtotal": {
+                "precision": 20,
+                "value": "5"
+              },
+              "raw_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_total": {
+                "precision": 20,
+                "value": "5"
+              },
+              "shipping_option_id": "so_01M79Q5YQAHZMKXXC04MJF5E8T",
+              "subtotal": 5,
+              "tax_lines": [],
+              "tax_total": 0,
+              "total": 5,
+              "updated_at": "2026-11-13T05:53:31.827Z"
+            }
+          ],
+          "shipping_subtotal": 5,
+          "shipping_tax_total": 0,
+          "shipping_total": 5,
+          "status": "pending",
+          "subtotal": 30,
+          "summary": {
+            "accounting_total": 30,
+            "credit_line_total": 0,
+            "current_order_total": 30,
+            "original_order_total": 30,
+            "paid_total": 0,
+            "pending_difference": 30,
+            "raw_accounting_total": {
+              "precision": 20,
+              "value": "30"
+            },
+            "raw_credit_line_total": {
+              "precision": 20,
+              "value": "0"
+            },
+            "raw_current_order_total": {
+              "precision": 20,
+              "value": "30"
+            },
+            "raw_original_order_total": {
+              "precision": 20,
+              "value": "30"
+            },
+            "raw_paid_total": {
+              "precision": 20,
+              "value": "0"
+            },
+            "raw_pending_difference": {
+              "precision": 20,
+              "value": "30"
+            },
+            "raw_refunded_total": {
+              "precision": 20,
+              "value": "0"
+            },
+            "raw_transaction_total": {
+              "precision": 20,
+              "value": "0"
+            },
+            "refunded_total": 0,
+            "transaction_total": 0
+          },
+          "tax_total": 0,
+          "total": 30,
+          "updated_at": "2026-11-13T05:53:31.827Z"
+        },
+        "type": "order"
+      },
+      "start": "2026-11-13T05:53:31.784260000Z",
+      "end": "2026-11-13T05:53:31.911454000Z",
+      "start_ns": 3490760917,
+      "end_ns": 3617954875,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    },
+    {
+      "id": 23,
+      "phase": "race",
+      "step": "complete_cart",
+      "action_id": "complete-b",
+      "cart": "b",
+      "server": 2,
+      "method": "POST",
+      "path": "/store/carts/cart_01M79QFR55YP6EYW5E6SCX3H4C/complete",
+      "status": 200,
+      "response_body": {
+        "order": {
+          "billing_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "created_at": "2026-11-13T05:53:31.470Z",
+            "customer_id": null,
+            "deleted_at": null,
+            "first_name": "Test",
+            "id": "ordaddr_01M79QFRNGJM024SSPQFW37JHV",
+            "last_name": "Buyer",
+            "metadata": null,
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx",
+            "updated_at": "2026-11-13T05:53:31.470Z"
+          },
+          "created_at": "2026-11-13T05:53:31.827Z",
+          "credit_line_subtotal": 0,
+          "credit_line_tax_total": 0,
+          "credit_line_total": 0,
+          "credit_lines": [],
+          "currency_code": "usd",
+          "custom_display_id": null,
+          "discount_subtotal": 0,
+          "discount_tax_total": 0,
+          "discount_total": 0,
+          "display_id": 2,
+          "email": "buyer+last-unit-two-servers-b@example.com",
+          "id": "order_01M79QFRNJWRME160408W1MJVP",
+          "item_subtotal": 25,
+          "item_tax_total": 0,
+          "item_total": 25,
+          "items": [
+            {
+              "adjustments": [],
+              "compare_at_unit_price": null,
+              "created_at": "2026-11-13T05:53:31.827Z",
+              "deleted_at": null,
+              "detail": {
+                "compare_at_unit_price": null,
+                "created_at": "2026-11-13T05:53:31.827Z",
+                "deleted_at": null,
+                "delivered_quantity": 0,
+                "fulfilled_quantity": 0,
+                "id": "orditem_01M79QFRNKB3KYEETA6AQXSVW0",
+                "item_id": "ordli_01M79QFRNKVH60A0C8PB38QQ2T",
+                "metadata": {},
+                "order_id": "order_01M79QFRNJWRME160408W1MJVP",
+                "quantity": 1,
+                "raw_compare_at_unit_price": null,
+                "raw_delivered_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_fulfilled_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_quantity": {
+                  "precision": 20,
+                  "value": "1"
+                },
+                "raw_return_dismissed_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_return_received_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_return_requested_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_shipped_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "raw_unit_price": null,
+                "raw_written_off_quantity": {
+                  "precision": 20,
+                  "value": "0"
+                },
+                "return_dismissed_quantity": 0,
+                "return_received_quantity": 0,
+                "return_requested_quantity": 0,
+                "shipped_quantity": 0,
+                "unit_price": null,
+                "updated_at": "2026-11-13T05:53:31.827Z",
+                "version": 1,
+                "written_off_quantity": 0
+              },
+              "discount_subtotal": 0,
+              "discount_tax_total": 0,
+              "discount_total": 0,
+              "fulfilled_total": 0,
+              "id": "ordli_01M79QFRNKVH60A0C8PB38QQ2T",
+              "is_custom_price": false,
+              "is_discountable": true,
+              "is_giftcard": false,
+              "is_tax_inclusive": false,
+              "line_item_metadata": {},
+              "metadata": {},
+              "original_subtotal": 25,
+              "original_tax_total": 0,
+              "original_total": 25,
+              "product_collection": null,
+              "product_description": null,
+              "product_handle": "solo",
+              "product_id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+              "product_subtitle": null,
+              "product_title": "Solo",
+              "product_type": null,
+              "product_type_id": null,
+              "quantity": 1,
+              "raw_compare_at_unit_price": null,
+              "raw_discount_subtotal": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_discount_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_discount_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_fulfilled_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_original_subtotal": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_original_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_original_total": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_quantity": {
+                "precision": 20,
+                "value": "1"
+              },
+              "raw_refundable_total": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_refundable_total_per_unit": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_return_dismissed_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_return_received_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_return_requested_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_shipped_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_subtotal": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_total": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_unit_price": {
+                "precision": 20,
+                "value": "25"
+              },
+              "raw_write_off_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "refundable_total": 25,
+              "refundable_total_per_unit": 25,
+              "requires_shipping": true,
+              "return_dismissed_total": 0,
+              "return_received_total": 0,
+              "return_requested_total": 0,
+              "shipped_total": 0,
+              "subtitle": "Default",
+              "subtotal": 25,
+              "tax_lines": [],
+              "tax_total": 0,
+              "thumbnail": null,
+              "title": "Solo",
+              "total": 25,
+              "unit_price": 25,
+              "updated_at": "2026-11-13T05:53:31.827Z",
+              "variant": {
+                "allow_backorder": false,
+                "barcode": null,
+                "created_at": "2026-11-13T05:48:10.416Z",
+                "deleted_at": null,
+                "ean": null,
+                "height": null,
+                "hs_code": null,
+                "id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+                "length": null,
+                "manage_inventory": true,
+                "material": null,
+                "metadata": null,
+                "mid_code": null,
+                "origin_country": null,
+                "product": {
+                  "collection": null,
+                  "collection_id": null,
+                  "created_at": "2026-11-13T05:48:10.386Z",
+                  "deleted_at": null,
+                  "description": null,
+                  "discountable": true,
+                  "external_id": null,
+                  "handle": "solo",
+                  "height": null,
+                  "hs_code": null,
+                  "id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+                  "is_giftcard": false,
+                  "length": null,
+                  "material": null,
+                  "metadata": null,
+                  "mid_code": null,
+                  "origin_country": null,
+                  "status": "published",
+                  "subtitle": null,
+                  "thumbnail": null,
+                  "title": "Solo",
+                  "type": null,
+                  "type_id": null,
+                  "updated_at": "2026-11-13T05:48:10.386Z",
+                  "weight": null,
+                  "width": null
+                },
+                "product_id": "prod_01M79Q5YRHCWND55T70ZZMEZBT",
+                "sku": "OVS-SOLO",
+                "thumbnail": null,
+                "title": "Default",
+                "upc": null,
+                "updated_at": "2026-11-13T05:48:10.416Z",
+                "variant_rank": 0,
+                "weight": null,
+                "width": null
+              },
+              "variant_barcode": null,
+              "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+              "variant_option_values": null,
+              "variant_sku": "OVS-SOLO",
+              "variant_title": "Default",
+              "write_off_total": 0
+            }
+          ],
+          "original_item_subtotal": 25,
+          "original_item_tax_total": 0,
+          "original_item_total": 25,
+          "original_shipping_subtotal": 5,
+          "original_shipping_tax_total": 0,
+          "original_shipping_total": 5,
+          "original_subtotal": 30,
+          "original_tax_total": 0,
+          "original_total": 30,
+          "payment_collections": [
+            {
+              "amount": 30,
+              "authorized_amount": 30,
+              "captured_amount": 0,
+              "completed_at": null,
+              "created_at": "2026-11-13T05:53:31.751Z",
+              "currency_code": "usd",
+              "deleted_at": null,
+              "id": "pay_col_01M79QFRK7MT9AZV0HKSSSEWXZ",
+              "metadata": null,
+              "raw_amount": {
+                "precision": 20,
+                "value": "30"
+              },
+              "raw_authorized_amount": {
+                "precision": 20,
+                "value": "30"
+              },
+              "raw_captured_amount": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_refunded_amount": {
+                "precision": 20,
+                "value": "0"
+              },
+              "refunded_amount": 0,
+              "status": "authorized",
+              "updated_at": "2026-11-13T05:53:31.880Z"
+            }
+          ],
+          "region_id": "reg_01M79Q5YNP16ATE6DB855BRFPN",
+          "shipping_address": {
+            "address_1": "1 Main St",
+            "address_2": null,
+            "city": "Austin",
+            "company": null,
+            "country_code": "us",
+            "created_at": "2026-11-13T05:53:31.470Z",
+            "customer_id": null,
+            "deleted_at": null,
+            "first_name": "Test",
+            "id": "ordaddr_01M79QFRNGCY03FZEHXEXYN3WG",
+            "last_name": "Buyer",
+            "metadata": null,
+            "phone": null,
+            "postal_code": "78701",
+            "province": "tx",
+            "updated_at": "2026-11-13T05:53:31.470Z"
+          },
+          "shipping_methods": [
+            {
+              "adjustments": [],
+              "amount": 5,
+              "created_at": "2026-11-13T05:53:31.828Z",
+              "data": {},
+              "deleted_at": null,
+              "description": null,
+              "detail": {
+                "claim_id": null,
+                "created_at": "2026-11-13T05:53:31.828Z",
+                "deleted_at": null,
+                "exchange_id": null,
+                "id": "ordspmv_01M79QFRNJWAVXEGDXR3GFV476",
+                "order_id": "order_01M79QFRNJWRME160408W1MJVP",
+                "return_id": null,
+                "shipping_method_id": "ordsm_01M79QFRNJDH50JV65YYH8MNKB",
+                "updated_at": "2026-11-13T05:53:31.828Z",
+                "version": 1
+              },
+              "discount_subtotal": 0,
+              "discount_tax_total": 0,
+              "discount_total": 0,
+              "id": "ordsm_01M79QFRNJDH50JV65YYH8MNKB",
+              "is_custom_amount": false,
+              "is_tax_inclusive": false,
+              "metadata": null,
+              "name": "Standard Shipping",
+              "order_id": "order_01M79QFRNJWRME160408W1MJVP",
+              "original_subtotal": 5,
+              "original_tax_total": 0,
+              "original_total": 5,
+              "raw_amount": {
+                "precision": 20,
+                "value": "5"
+              },
+              "raw_discount_subtotal": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_discount_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_discount_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_original_subtotal": {
+                "precision": 20,
+                "value": "5"
+              },
+              "raw_original_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_original_total": {
+                "precision": 20,
+                "value": "5"
+              },
+              "raw_subtotal": {
+                "precision": 20,
+                "value": "5"
+              },
+              "raw_tax_total": {
+                "precision": 20,
+                "value": "0"
+              },
+              "raw_total": {
+                "precision": 20,
+                "value": "5"
+              },
+              "shipping_option_id": "so_01M79Q5YQAHZMKXXC04MJF5E8T",
+              "subtotal": 5,
+              "tax_lines": [],
+              "tax_total": 0,
+              "total": 5,
+              "updated_at": "2026-11-13T05:53:31.828Z"
+            }
+          ],
+          "shipping_subtotal": 5,
+          "shipping_tax_total": 0,
+          "shipping_total": 5,
+          "status": "pending",
+          "subtotal": 30,
+          "summary": {
+            "accounting_total": 30,
+            "credit_line_total": 0,
+            "current_order_total": 30,
+            "original_order_total": 30,
+            "paid_total": 0,
+            "pending_difference": 30,
+            "raw_accounting_total": {
+              "precision": 20,
+              "value": "30"
+            },
+            "raw_credit_line_total": {
+              "precision": 20,
+              "value": "0"
+            },
+            "raw_current_order_total": {
+              "precision": 20,
+              "value": "30"
+            },
+            "raw_original_order_total": {
+              "precision": 20,
+              "value": "30"
+            },
+            "raw_paid_total": {
+              "precision": 20,
+              "value": "0"
+            },
+            "raw_pending_difference": {
+              "precision": 20,
+              "value": "30"
+            },
+            "raw_refunded_total": {
+              "precision": 20,
+              "value": "0"
+            },
+            "raw_transaction_total": {
+              "precision": 20,
+              "value": "0"
+            },
+            "refunded_total": 0,
+            "transaction_total": 0
+          },
+          "tax_total": 0,
+          "total": 30,
+          "updated_at": "2026-11-13T05:53:31.827Z"
+        },
+        "type": "order"
+      },
+      "start": "2026-11-13T05:53:31.784267000Z",
+      "end": "2026-11-13T05:53:31.911701000Z",
+      "start_ns": 3490768000,
+      "end_ns": 3618201834,
+      "outcome": "ok",
+      "timeout": false,
+      "conn_reused": true
+    }
+  ],
+  "before": {
+    "taken_at": "2026-11-13T05:53:31.773183Z",
+    "variant_skus": [
+      "OVS-PIECE",
+      "OVS-TWOPACK",
+      "OVS-SOLO"
+    ],
+    "variants": [
+      {
+        "variant_id": "variant_01M79Q5YSF3MV9D1QB7ANTVFKZ",
+        "variant_sku": "OVS-PIECE",
+        "inventory_item_id": "iitem_01M79Q5YR71RTKZ6CSFPPVEKWD",
+        "inventory_sku": "WIDGET",
+        "required_quantity": 1
+      },
+      {
+        "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+        "variant_sku": "OVS-SOLO",
+        "inventory_item_id": "iitem_01M79Q5YR7JCEWW5F0S6WFPJGN",
+        "inventory_sku": "SOLO",
+        "required_quantity": 1
+      },
+      {
+        "variant_id": "variant_01M79Q5YSFMG4ZSCVZ9MS0D7RF",
+        "variant_sku": "OVS-TWOPACK",
+        "inventory_item_id": "iitem_01M79Q5YR71RTKZ6CSFPPVEKWD",
+        "inventory_sku": "WIDGET",
+        "required_quantity": 2
+      }
+    ],
+    "inventory_levels": [
+      {
+        "inventory_item_id": "iitem_01M79Q5YR7JCEWW5F0S6WFPJGN",
+        "sku": "SOLO",
+        "location_id": "sloc_01M79Q5YPEM0VNCRKQ5DJHE8B0",
+        "stocked_quantity": 1,
+        "reserved_quantity": 0,
+        "updated_at": "2026-11-13T05:48:10.38Z"
+      },
+      {
+        "inventory_item_id": "iitem_01M79Q5YR71RTKZ6CSFPPVEKWD",
+        "sku": "WIDGET",
+        "location_id": "sloc_01M79Q5YPEM0VNCRKQ5DJHE8B0",
+        "stocked_quantity": 10,
+        "reserved_quantity": 0,
+        "updated_at": "2026-11-13T05:48:10.38Z"
+      }
+    ],
+    "live_reservations": [],
+    "orders": [],
+    "cart_orders": [],
+    "cart_lines": []
+  },
+  "after": {
+    "taken_at": "2026-11-13T05:53:33.913396Z",
+    "variant_skus": [
+      "OVS-PIECE",
+      "OVS-TWOPACK",
+      "OVS-SOLO"
+    ],
+    "variants": [
+      {
+        "variant_id": "variant_01M79Q5YSF3MV9D1QB7ANTVFKZ",
+        "variant_sku": "OVS-PIECE",
+        "inventory_item_id": "iitem_01M79Q5YR71RTKZ6CSFPPVEKWD",
+        "inventory_sku": "WIDGET",
+        "required_quantity": 1
+      },
+      {
+        "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+        "variant_sku": "OVS-SOLO",
+        "inventory_item_id": "iitem_01M79Q5YR7JCEWW5F0S6WFPJGN",
+        "inventory_sku": "SOLO",
+        "required_quantity": 1
+      },
+      {
+        "variant_id": "variant_01M79Q5YSFMG4ZSCVZ9MS0D7RF",
+        "variant_sku": "OVS-TWOPACK",
+        "inventory_item_id": "iitem_01M79Q5YR71RTKZ6CSFPPVEKWD",
+        "inventory_sku": "WIDGET",
+        "required_quantity": 2
+      }
+    ],
+    "inventory_levels": [
+      {
+        "inventory_item_id": "iitem_01M79Q5YR7JCEWW5F0S6WFPJGN",
+        "sku": "SOLO",
+        "location_id": "sloc_01M79Q5YPEM0VNCRKQ5DJHE8B0",
+        "stocked_quantity": 1,
+        "reserved_quantity": 1,
+        "updated_at": "2026-11-13T05:53:31.86Z"
+      },
+      {
+        "inventory_item_id": "iitem_01M79Q5YR71RTKZ6CSFPPVEKWD",
+        "sku": "WIDGET",
+        "location_id": "sloc_01M79Q5YPEM0VNCRKQ5DJHE8B0",
+        "stocked_quantity": 10,
+        "reserved_quantity": 0,
+        "updated_at": "2026-11-13T05:48:10.38Z"
+      }
+    ],
+    "live_reservations": [
+      {
+        "id": "resitem_01M79QFRPHEHE8GSDX1QHR07JW",
+        "inventory_item_id": "iitem_01M79Q5YR7JCEWW5F0S6WFPJGN",
+        "inventory_sku": "SOLO",
+        "line_item_id": "ordli_01M79QFRNKVH60A0C8PB38QQ2T",
+        "line_item_sku": "OVS-SOLO",
+        "location_id": "sloc_01M79Q5YPEM0VNCRKQ5DJHE8B0",
+        "quantity": 1,
+        "allow_backorder": false,
+        "created_at": "2026-11-13T05:53:31.86Z"
+      },
+      {
+        "id": "resitem_01M79QFRPJDMFDGFSG315SMQ8Z",
+        "inventory_item_id": "iitem_01M79Q5YR7JCEWW5F0S6WFPJGN",
+        "inventory_sku": "SOLO",
+        "line_item_id": "ordli_01M79QFRNJS5DY7APD5SSAMQ0X",
+        "line_item_sku": "OVS-SOLO",
+        "location_id": "sloc_01M79Q5YPEM0VNCRKQ5DJHE8B0",
+        "quantity": 1,
+        "allow_backorder": false,
+        "created_at": "2026-11-13T05:53:31.86Z"
+      }
+    ],
+    "orders": [
+      {
+        "id": "order_01M79QFRNJPCWGZA3015F2Z7MC",
+        "display_id": 1,
+        "status": "pending",
+        "version": 1,
+        "created_at": "2026-11-13T05:53:31.827Z",
+        "canceled_at": null,
+        "lines": [
+          {
+            "order_item_id": "orditem_01M79QFRNKPRQADPP3YWTH96ME",
+            "line_item_id": "ordli_01M79QFRNJS5DY7APD5SSAMQ0X",
+            "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+            "variant_sku": "OVS-SOLO",
+            "quantity": 1
+          }
+        ],
+        "payment_collections": [
+          {
+            "id": "pay_col_01M79QFR3BR17Y4Q6951Y3STVE",
+            "status": "authorized",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "id": "order_01M79QFRNJWRME160408W1MJVP",
+        "display_id": 2,
+        "status": "pending",
+        "version": 1,
+        "created_at": "2026-11-13T05:53:31.827Z",
+        "canceled_at": null,
+        "lines": [
+          {
+            "order_item_id": "orditem_01M79QFRNKB3KYEETA6AQXSVW0",
+            "line_item_id": "ordli_01M79QFRNKVH60A0C8PB38QQ2T",
+            "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+            "variant_sku": "OVS-SOLO",
+            "quantity": 1
+          }
+        ],
+        "payment_collections": [
+          {
+            "id": "pay_col_01M79QFRK7MT9AZV0HKSSSEWXZ",
+            "status": "authorized",
+            "amount": 30
+          }
+        ]
+      }
+    ],
+    "cart_orders": [
+      {
+        "id": "ordercart_01M79QFRPFXWKFNSJAFTHZTHGS",
+        "cart_id": "cart_01M79QFQNF3H4CPAY9BJTECZ98",
+        "order_id": "order_01M79QFRNJPCWGZA3015F2Z7MC",
+        "deleted_at": null
+      },
+      {
+        "id": "ordercart_01M79QFRPGPZ54DB5TKE2ZTW9Z",
+        "cart_id": "cart_01M79QFR55YP6EYW5E6SCX3H4C",
+        "order_id": "order_01M79QFRNJWRME160408W1MJVP",
+        "deleted_at": null
+      }
+    ],
+    "cart_lines": [
+      {
+        "id": "cali_01M79QFQR66YVWEVADDKSD8MF4",
+        "cart_id": "cart_01M79QFQNF3H4CPAY9BJTECZ98",
+        "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+        "variant_sku": "OVS-SOLO",
+        "quantity": 1
+      },
+      {
+        "id": "cali_01M79QFR85NSZYTJW1EX39FHMW",
+        "cart_id": "cart_01M79QFR55YP6EYW5E6SCX3H4C",
+        "variant_id": "variant_01M79Q5YSG6F3A4HW07Y2GK970",
+        "variant_sku": "OVS-SOLO",
+        "quantity": 1
+      }
+    ]
+  },
+  "verdicts": [
+    {
+      "check": "no_oversell",
+      "version": 2,
+      "result": "fail",
+      "reason": "SOLO live reservations 2 exceed stocked 1; SOLO orders need 2 units but 1 were stocked at the start of the race"
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 2,
+      "result": "fail",
+      "reason": "SOLO reserved_quantity 1 but live reservations sum to 2"
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 2,
+      "result": "pass",
+      "reason": "cart a: 1 order; cart b: 1 order"
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 2,
+      "result": "pass",
+      "reason": "2 orders, each linked to a scenario cart and holding the reservations its lines need"
+    },
+    {
+      "check": "no_missing_orders",
+      "version": 1,
+      "result": "pass",
+      "reason": "every ok complete call returned a saved order linked to its cart (2 checked)"
+    }
+  ]
+}

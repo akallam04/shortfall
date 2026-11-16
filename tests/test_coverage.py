@@ -62,3 +62,8 @@ def test_no_issue_covers_a_stock_failure_in_the_16502_variant_control():
         assert covering_issues(s, rule) == ()
     ref = shape(yaml.safe_load((lines / "reference.yaml").read_text(encoding="utf-8")))
     assert covering_issues(ref, "no_oversell") == (ISSUE_16502,)
+
+
+def test_no_issue_covers_a_missing_order():
+    for s in (BASE, MULTI, {**BASE, "servers": 1}, {**MULTI, "carts": 10}):
+        assert covering_issues(s, "no_missing_orders") == ()

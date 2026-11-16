@@ -143,21 +143,41 @@ def image_error(history: dict) -> str | None:
     return None
 
 
+def rule_order(rule: str) -> tuple[int, str]:
+    return (RULES.index(rule) if rule in RULES else len(RULES), rule)
+
+
 def counts(histories: list[dict]) -> dict[str, dict[str, int]]:
-    c = {rule: dict.fromkeys(RESULTS, 0) for rule in RULES}
+    c: dict[str, dict[str, int]] = {}
     for history in histories:
         for verdict in history.get("verdicts") or []:
-            if verdict["check"] in c and verdict["result"] in RESULTS:
-                c[verdict["check"]][verdict["result"]] += 1
-    return c
+            row = c.setdefault(verdict["check"], dict.fromkeys(RESULTS, 0))
+            if verdict["result"] in RESULTS:
+                row[verdict["result"]] += 1
+    return {rule: c[rule] for rule in sorted(c, key=rule_order)}
+
+
+def check_versions(histories: list[dict]) -> dict[str, list[int]]:
+    seen: dict[str, set[int]] = {}
+    for history in histories:
+        for verdict in history.get("verdicts") or []:
+            seen.setdefault(verdict["check"], set()).add(verdict["version"])
+    return {rule: sorted(seen[rule]) for rule in sorted(seen, key=rule_order)}
+
+
+def merge_versions(a: dict[str, list[int]], b: dict[str, list[int]]) -> dict[str, list[int]]:
+    out = {rule: set(v) for rule, v in a.items()}
+    for rule, v in b.items():
+        out.setdefault(rule, set()).update(v)
+    return {rule: sorted(out[rule]) for rule in sorted(out, key=rule_order)}
 
 
 def fails(c: dict) -> dict[str, int]:
-    return {rule: c[rule]["fail"] for rule in RULES}
+    return {rule: row["fail"] for rule, row in c.items()}
 
 
 def failed_rules(c: dict) -> list[str]:
-    return [rule for rule in RULES if c[rule]["fail"] > 0]
+    return [rule for rule, row in c.items() if row["fail"] > 0]
 
 
 def inconclusive_runs(histories: list[dict]) -> int:
@@ -299,6 +319,7 @@ def score_candidate(
         control_fails=None,
         inconclusive={"screen": 0, "score": 0, "control": 0},
         rules_failed=[],
+        check_versions={},
         verdict="inconclusive",
         oversold_commit=pin,
         medusa_image_id=image_id,
@@ -346,6 +367,7 @@ def score_candidate(
                 f"variant file mismatch: {images[0]}"
             )
         c = counts(histories)
+        entry["check_versions"] = merge_versions(entry["check_versions"], check_versions(histories))
         entry["inconclusive"][name] = inconclusive_runs(histories)
         if name == "control":
             entry["control_runs"] = runs
@@ -354,7 +376,7 @@ def score_candidate(
             entry[f"{name}_runs"] = runs
             entry["candidate_fails"][name] = fails(c)
             entry["rules_failed"] = sorted(
-                set(entry["rules_failed"]) | set(failed_rules(c)), key=RULES.index
+                set(entry["rules_failed"]) | set(failed_rules(c)), key=rule_order
             )
         entry["manual_check"] = [
             note for note in entry["manual_check"] if f" in the {name} set," not in note
@@ -430,12 +452,13 @@ def score_candidate(
             "control", control_path, CONTROL_RUNS, shape(yaml.safe_load(control_text))
         )
         clean_control = entry["inconclusive"]["control"] == 0
-        matched = [r for r in candidate_rules if control[r]["fail"] == 0 and clean_control]
+        cleared = [r for r in candidate_rules if control.get(r, {"fail": 0})["fail"] == 0]
+        matched = cleared if clean_control else []
         if matched:
             entry["cases"] = [cases[(r, servers)] for r in matched]
             entry["case"] = entry["cases"][0]
             return "match"
-        if not clean_control and any(control[r]["fail"] == 0 for r in candidate_rules):
+        if not clean_control and cleared:
             return "inconclusive"
         return "no match"
 

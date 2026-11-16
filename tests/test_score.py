@@ -7,7 +7,7 @@ import yaml
 
 from shortfall import ledger, score, sweep
 from shortfall.budget import Budget
-from shortfall.cases import Control
+from shortfall.cases import RULES, Control
 from shortfall.control import redis_locking, variant
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -732,3 +732,62 @@ def test_control_builder_picks_by_kind_and_version():
     assert score.control_builder(kind("one-server"), "2.19.0")[0] == "control"
     assert score.control_builder(kind("none"), "2.22.0") is None
     assert score.control_builder(None, "2.22.0") is None
+
+
+def test_five_checks_and_their_versions_come_from_the_verdicts():
+    h = hist("five-checks-fail")
+    assert [(v["check"], v["version"]) for v in h["verdicts"]] == [
+        ("no_oversell", 2),
+        ("reserved_matches_reservations", 2),
+        ("one_order_per_cart", 2),
+        ("no_orphaned_orders", 2),
+        ("no_missing_orders", 1),
+    ]
+    c = score.counts([h, hist("pass")])
+    assert list(c) == list(RULES)
+    assert c["no_missing_orders"] == {"fail": 0, "pass": 1, "inconclusive": 0}
+    assert c["no_oversell"] == {"fail": 1, "pass": 1, "inconclusive": 0}
+    assert score.check_versions([h, hist("pass")]) == {
+        "no_oversell": [1, 2],
+        "reserved_matches_reservations": [1, 2],
+        "one_order_per_cart": [1, 2],
+        "no_orphaned_orders": [1, 2],
+        "no_missing_orders": [1],
+    }
+    assert score.failed_rules(c) == ["no_oversell", "reserved_matches_reservations"]
+
+
+def test_an_unknown_check_name_is_counted_and_sorted_last():
+    h = hist("five-checks-fail")
+    h["verdicts"].append({"check": "a_future_check", "version": 3, "result": "fail"})
+    c = score.counts([h])
+    assert list(c)[-1] == "a_future_check"
+    assert score.check_versions([h])["a_future_check"] == [3]
+
+
+def missing_order() -> dict:
+    h = hist("five-checks-fail")
+    for v in h["verdicts"]:
+        v["result"] = "fail" if v["check"] == "no_missing_orders" else "pass"
+    return h
+
+
+def test_a_missing_order_failure_is_outside_the_coverage_map(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    entry, stop, _, _ = attempt(tmp_path, path, queues(path, [missing_order()] * 3))
+    assert stop.startswith("uncovered failure: no_missing_orders failed 1 of 1 runs")
+    assert entry["check_versions"]["no_missing_orders"] == [1]
+    assert entry["check_versions"]["no_oversell"] == [2]
+
+
+def test_the_ledger_records_check_versions(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    entry, stop, _, _ = attempt(tmp_path, path, queues(path, many(("pass", 3))))
+    assert stop is None
+    assert entry["check_versions"] == {
+        "no_oversell": [1],
+        "reserved_matches_reservations": [1],
+        "one_order_per_cart": [1],
+        "no_orphaned_orders": [1],
+    }
+    assert ledger.load(ledger_file(tmp_path))[-1]["check_versions"] == entry["check_versions"]

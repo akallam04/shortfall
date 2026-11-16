@@ -12,6 +12,7 @@ RULES = (
     "reserved_matches_reservations",
     "one_order_per_cart",
     "no_orphaned_orders",
+    "no_missing_orders",
 )
 CONTROL_KINDS = ("one-server", "redis-locking", "variant", "fixed-version", "none")
 

@@ -29,6 +29,7 @@ FINAL_FIELDS = (
     "control_fails",
     "inconclusive",
     "rules_failed",
+    "check_versions",
     "verdict",
     "wall_seconds",
     "oversold_runs",
@@ -43,9 +44,17 @@ FINAL_FIELDS = (
     "rerun_of",
     "timestamp",
 )
-LEGACY_OPTIONAL = ("kind", "dollars", "rerun_of", "stop_reason", "setup_error", "manual_check")
+LEGACY_OPTIONAL = (
+    "kind",
+    "dollars",
+    "rerun_of",
+    "stop_reason",
+    "setup_error",
+    "manual_check",
+    "check_versions",
+)
 LEGACY_REQUIRED = tuple(f for f in FINAL_FIELDS if f not in LEGACY_OPTIONAL)
-FINAL_REQUIRED = (*LEGACY_REQUIRED, "kind", "dollars")
+FINAL_REQUIRED = (*LEGACY_REQUIRED, "kind", "dollars", "check_versions")
 
 STARTED_FIELDS = (
     "kind",

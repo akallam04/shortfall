@@ -29,6 +29,7 @@ def entry(n: int, verdict: str = "no match", case: str | None = None, runs: int 
         "control_fails": None,
         "inconclusive": {"screen": 0, "score": 0, "control": 0},
         "rules_failed": [],
+        "check_versions": {"no_oversell": [2], "no_missing_orders": [1]},
         "verdict": verdict,
         "wall_seconds": 12.5,
         "oversold_runs": runs,
@@ -47,7 +48,7 @@ def entry(n: int, verdict: str = "no match", case: str | None = None, runs: int 
 
 def legacy(n: int, verdict: str = "no match", runs: int = 3) -> dict:
     e = entry(n, verdict, runs=runs)
-    for key in ("kind", "dollars", "manual_check", "setup_error"):
+    for key in ("kind", "dollars", "manual_check", "setup_error", "check_versions"):
         e.pop(key)
     return e
 
@@ -251,6 +252,7 @@ def test_summary_adds_up():
         (entry(1), lambda e: e.update(source="agent"), "source"),
         (entry(1), lambda e: e.pop("timestamp"), "timestamp is required"),
         (entry(1), lambda e: e.pop("dollars"), "dollars is required"),
+        (entry(1), lambda e: e.pop("check_versions"), "check_versions is required"),
         (entry(1), lambda e: e.update(kind="other"), "kind must be one of"),
         (started(1), lambda e: e.pop("scenario"), "scenario is required"),
         (runs_spend(1, 1, 3), lambda e: e.update(oversold_runs=0), "oversold_runs must be above"),
