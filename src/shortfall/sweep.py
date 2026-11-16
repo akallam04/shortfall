@@ -111,7 +111,7 @@ def describe(label: str, servers: int, groups, stock, release) -> str:
     )
 
 
-def grid(seed: int = 0, version: str = "2.21.2") -> list[Candidate]:
+def grid(seed: int = 0, version: str = "2.22.0") -> list[Candidate]:
     combos = []
     for servers in GRID_SERVERS:
         for shape, lines in GRID_LINES:
@@ -144,7 +144,7 @@ def grid(seed: int = 0, version: str = "2.21.2") -> list[Candidate]:
     return candidates
 
 
-def random_candidates(seed: int, count: int = 20, version: str = "2.21.2") -> list[Candidate]:
+def random_candidates(seed: int, count: int = 20, version: str = "2.22.0") -> list[Candidate]:
     if count < 1:
         raise ValueError("count must be 1 or more")
     rng = random.Random(seed)
@@ -262,7 +262,7 @@ def parse_args(argv):
     p.add_argument("--mode", choices=("grid", "random"), default="grid")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--count", type=int, default=20, help="candidates in random mode")
-    p.add_argument("--version", default="2.21.2")
+    p.add_argument("--version", default="2.22.0")
     p.add_argument("--max-runs", type=int, help="override the session cap on Oversold runs")
     p.add_argument(
         "--raise-dollar-cap",
@@ -274,7 +274,7 @@ def parse_args(argv):
     p.add_argument("--rerun", metavar="ATTEMPT_ID", help="rerun one attempt from the ledger")
     args = p.parse_args(argv)
     if not VERSION.fullmatch(args.version):
-        p.error("--version must look like 2.21.2")
+        p.error("--version must look like 2.22.0")
     if args.max_runs is not None and args.max_runs < 1:
         p.error("--max-runs must be 1 or more")
     if args.raise_dollar_cap is not None and args.raise_dollar_cap < 0:

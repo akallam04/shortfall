@@ -8,7 +8,7 @@ import pytest
 
 from shortfall import sweep
 from shortfall.cases import strict_load
-from shortfall.control import one_server
+from shortfall.control import one_server, variant
 
 ROOT = Path(__file__).resolve().parent.parent
 OVERSOLD = ROOT / ".oversold" / "bin" / "oversold"
@@ -115,7 +115,7 @@ def check_scenario(data: dict) -> None:
     assert data["description"].strip()
     assert data["target"] == {
         "engine": "medusa",
-        "version": "2.21.2",
+        "version": "2.22.0",
         "servers": data["target"]["servers"],
     }
     servers = data["target"]["servers"]
@@ -177,9 +177,9 @@ def test_every_generated_file_passes_oversold_validate(tmp_path):
         controls = []
         for p in paths:
             text = p.read_text(encoding="utf-8")
-            if strict_load(text)["target"]["servers"] == 2:
-                c = p.with_name(f"{p.stem}-control.yaml")
-                c.write_text(one_server(text), encoding="utf-8")
+            for name in ("pr-17420", "pr-16961"):
+                c = p.with_name(f"{p.stem}-{name}-control.yaml")
+                c.write_text(variant(text, name, "2.22.0"), encoding="utf-8")
                 controls.append(c)
         for p in paths + controls:
             proc = subprocess.run(
