@@ -211,3 +211,12 @@ def test_not_a_mapping(tmp_path):
     (folder / "case.yaml").write_text("- a\n- b\n", encoding="utf-8")
     with pytest.raises(ValueError, match="must be a mapping"):
         load_case(folder)
+
+
+def test_every_case_note_is_read_in_full():
+    for folder in sorted(p for p in CASES.iterdir() if p.is_dir()):
+        case = load_case(folder)
+        text = (folder / "case.yaml").read_text(encoding="utf-8")
+        if case.notes:
+            assert case.notes in text
+            assert case.notes.endswith(".")
