@@ -373,6 +373,7 @@ class Attempt:
             check_versions={},
             violation={"result": INCONCLUSIVE, "rules": {}, "runs": 0},
             reproduced={"cases": {}, "rules": {}},
+            reproduced_at={},
             located={"result": "not applicable"},
             oversold_commit=pin,
             medusa_image_id=image_id,
@@ -552,6 +553,7 @@ class Attempt:
                 cleared = c.get(rule, {"fail": 0})["fail"] == 0
                 if cleared and inconclusive == 0:
                     results[case_id] = REPRODUCED
+                    self.entry["reproduced_at"][case_id] = self.budget.session_used
                 elif cleared:
                     results[case_id] = INCONCLUSIVE
                 else:
@@ -690,6 +692,55 @@ def run_attempts(factories, budget: Budget, report=print) -> tuple[list[Attempt]
     return attempts, stop
 
 
+def candidate_list_sha256(paths: list[Path]) -> str:
+    h = hashlib.sha256()
+    for path in paths:
+        text = Path(path).read_text(encoding="utf-8")
+        h.update(f"{Path(path).stem}\n{text}\n".encode())
+    return h.hexdigest()
+
+
+def trial_summary(records: list[dict], case_ids: list[str]) -> dict:
+    trials = [r for r in records if r.get("kind") == "trial"]
+    if len(trials) != 1:
+        raise ValueError(f"expected one trial line, found {len(trials)}")
+    trial = trials[0]
+    entries = [e for e in ledger.attempts(records) if not e.get("interrupted")]
+    reached = len({r["attempt_id"] for r in records if r.get("kind") == "started"})
+    first: dict[str, int] = {}
+    for e in entries:
+        for case_id, runs in e["reproduced_at"].items():
+            first[case_id] = min(first.get(case_id, runs), runs)
+    results = [e["violation"]["result"] for e in entries]
+    return {
+        "mode": trial["mode"],
+        "seed": trial["seed"],
+        "order_seed": trial["order_seed"],
+        "candidates_sha256": trial["candidates_sha256"],
+        "run_cap": trial["run_cap"],
+        "runs_used": ledger.spent(records)["oversold_runs"],
+        "candidates": trial["candidates"],
+        "reached": reached,
+        "never_reached": trial["candidates"] - reached,
+        "cases": {
+            case_id: {"reproduced": case_id in first, "runs_to_first": first.get(case_id)}
+            for case_id in case_ids
+        },
+        "cases_reproduced": len(first),
+        "violations": results.count(VIOLATION),
+        "cause_not_isolated": sum(
+            outcome == NOT_ISOLATED
+            for e in entries
+            for outcome in e["reproduced"]["rules"].values()
+        ),
+        "not_reproduced": sum(r.startswith("not reproduced within") for r in results),
+        "unpreparable": results.count(UNPREPARABLE),
+        "inconclusive": results.count(INCONCLUSIVE),
+        "interrupted": len(ledger.attempts(records)) - len(entries),
+        "located": "not applicable",
+    }
+
+
 def run_sweep(
     root: Path,
     paths: list[Path],
@@ -698,6 +749,8 @@ def run_sweep(
     stamp: str,
     max_runs=None,
     raise_dollar_cap=None,
+    mode: str = "grid",
+    order_seed: int | None = None,
 ) -> int:
     try:
         budget, runner, image_id, digest, cases = _start(root, version, max_runs, raise_dollar_cap)
@@ -738,6 +791,26 @@ def run_sweep(
         factories.append(factory)
     for note in refused:
         print(f"sweep: refused: {note}")
+    trial = {
+        "kind": "trial",
+        "attempt_id": f"{stamp}-trial",
+        "source": "sweep",
+        "mode": mode,
+        "seed": seed,
+        "order_seed": order_seed,
+        "medusa_version": version,
+        "run_cap": budget.session_runs,
+        "candidates": len(paths),
+        "candidate_names": [Path(p).stem for p in paths],
+        "candidates_sha256": candidate_list_sha256(paths),
+        "oversold_commit": runner.pin,
+        "timestamp": now(),
+    }
+    ledger.append(ledger_path, trial)
+    print(
+        f"sweep: trial {mode} seed {seed} order seed {order_seed}: {len(paths)} candidates, "
+        f"list sha256 {trial['candidates_sha256']}, run cap {budget.session_runs}"
+    )
     attempts, stop = run_attempts(factories, budget)
     screened = sum(1 for a in attempts if a.entry["screen_runs"])
     retried = sum(1 for a in attempts if a.entry["retry_runs"])
@@ -754,6 +827,8 @@ def run_sweep(
             print(f"sweep: manual check: {a.entry['attempt_id']} {Path(a.scenario).stem}: {note}")
     session = [r for r in ledger.load(ledger_path) if r["attempt_id"].startswith(f"{stamp}-")]
     print(json.dumps(ledger.summary(session), indent=2))
+    print("sweep: trial summary")
+    print(json.dumps(trial_summary(session, sorted(cases)), indent=2))
     print(budget.describe())
     if stop and stop.startswith("uncovered"):
         return 3

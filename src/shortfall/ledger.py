@@ -7,7 +7,8 @@ from pathlib import Path
 LEGACY_VERDICTS = ("match", "no match", "reproduction only", "inconclusive", "unpreparable")
 INTERRUPTED = "interrupted"
 SOURCES = ("sweep",)
-KINDS = ("started", "spend", "final")
+KINDS = ("started", "spend", "final", "trial")
+MODES = ("grid", "random")
 SPEND_ITEMS = ("oversold_runs", "paid_call")
 VIOLATION_RESULTS = ("violation", "unpreparable", "inconclusive")
 NOT_REPRODUCED_WITHIN = re.compile(r"not reproduced within [0-9]+ runs")
@@ -72,6 +73,7 @@ FINAL_FIELDS = (
     "check_versions",
     "violation",
     "reproduced",
+    "reproduced_at",
     "located",
     "wall_seconds",
     "oversold_runs",
@@ -118,7 +120,28 @@ SPEND_FIELDS = (
     "timestamp",
 )
 
-FIELDS = {"started": STARTED_FIELDS, "spend": SPEND_FIELDS, "final": FINAL_FIELDS}
+TRIAL_FIELDS = (
+    "kind",
+    "attempt_id",
+    "source",
+    "mode",
+    "seed",
+    "order_seed",
+    "medusa_version",
+    "run_cap",
+    "candidates",
+    "candidate_names",
+    "candidates_sha256",
+    "oversold_commit",
+    "timestamp",
+)
+
+FIELDS = {
+    "started": STARTED_FIELDS,
+    "spend": SPEND_FIELDS,
+    "final": FINAL_FIELDS,
+    "trial": TRIAL_FIELDS,
+}
 
 
 def violation_result_ok(result) -> bool:
@@ -144,6 +167,23 @@ def _check_final(entry: dict, problems: list[str]) -> None:
         problems.append("located.result must be not applicable or graded")
     if not isinstance(entry.get("check_versions"), dict):
         problems.append("check_versions must be a mapping")
+    at = entry.get("reproduced_at")
+    if not isinstance(at, dict) or not all(_is_count(v) for v in at.values()):
+        problems.append("reproduced_at must map cases to run counts")
+
+
+def _check_trial(entry: dict, problems: list[str]) -> None:
+    if entry.get("mode") not in MODES:
+        problems.append(f"mode must be one of {', '.join(MODES)}")
+    if not (_is_count(entry.get("run_cap")) and entry["run_cap"] > 0):
+        problems.append("run_cap must be above 0")
+    names = entry.get("candidate_names")
+    if not isinstance(names, list) or len(names) != entry.get("candidates"):
+        problems.append("candidate_names must list every candidate")
+    if not (
+        isinstance(entry.get("candidates_sha256"), str) and len(entry["candidates_sha256"]) == 64
+    ):
+        problems.append("candidates_sha256 must be a sha256")
 
 
 def _local_markers() -> list[str]:
@@ -218,6 +258,7 @@ def validate(entry: dict, legacy: bool = True) -> None:
         "final": FINAL_REQUIRED,
         "started": STARTED_REQUIRED,
         "spend": SPEND_FIELDS,
+        "trial": TRIAL_FIELDS,
     }[kind]
     for key in entry:
         if key not in fields:
@@ -229,7 +270,9 @@ def validate(entry: dict, legacy: bool = True) -> None:
         problems.append(f"verdict must be one of {', '.join(LEGACY_VERDICTS)}")
     if kind == "final":
         _check_final(entry, problems)
-    if kind in (None, "final", "started") and entry.get("source") not in SOURCES:
+    if kind == "trial":
+        _check_trial(entry, problems)
+    if kind in (None, "final", "started", "trial") and entry.get("source") not in SOURCES:
         problems.append(f"source must be one of {', '.join(SOURCES)}")
     if kind == "final" and not _is_dollars(entry.get("dollars")):
         problems.append("dollars must be 0 or more")

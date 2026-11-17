@@ -16,6 +16,7 @@ SKUS = {
 MAX_STOCK = 1000000
 MAX_NAME = 56
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
+TRIAL_RUNS = 300
 
 GRID_SERVERS = (2, 1)
 GRID_LINES = (
@@ -144,6 +145,13 @@ def grid(seed: int = 0, version: str = "2.22.0") -> list[Candidate]:
     return candidates
 
 
+def ordered(candidates: list[Candidate], order_seed: int | None) -> list[Candidate]:
+    out = list(candidates)
+    if order_seed is not None:
+        random.Random(order_seed).shuffle(out)
+    return out
+
+
 def random_candidates(seed: int, count: int = 20, version: str = "2.22.0") -> list[Candidate]:
     if count < 1:
         raise ValueError("count must be 1 or more")
@@ -261,9 +269,19 @@ def parse_args(argv):
     p = argparse.ArgumentParser(prog="python -m shortfall.sweep")
     p.add_argument("--mode", choices=("grid", "random"), default="grid")
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--count", type=int, default=20, help="candidates in random mode")
+    p.add_argument("--order-seed", type=int, help="shuffle the grid's order with this seed")
+    p.add_argument(
+        "--count",
+        type=int,
+        help="candidates in random mode, by default as many as the run cap can screen",
+    )
     p.add_argument("--version", default="2.22.0")
-    p.add_argument("--max-runs", type=int, help="override the session cap on Oversold runs")
+    p.add_argument(
+        "--max-runs",
+        type=int,
+        default=TRIAL_RUNS,
+        help=f"the trial's cap on Oversold runs, {TRIAL_RUNS} by default",
+    )
     p.add_argument(
         "--raise-dollar-cap",
         type=float,
@@ -275,8 +293,12 @@ def parse_args(argv):
     args = p.parse_args(argv)
     if not VERSION.fullmatch(args.version):
         p.error("--version must look like 2.22.0")
-    if args.max_runs is not None and args.max_runs < 1:
+    if args.max_runs < 1:
         p.error("--max-runs must be 1 or more")
+    if args.order_seed is not None and args.mode != "grid":
+        p.error("--order-seed only applies to --mode grid")
+    if args.count is not None and (args.mode != "random" or args.count < 1):
+        p.error("--count only applies to --mode random and must be 1 or more")
     if args.raise_dollar_cap is not None and args.raise_dollar_cap < 0:
         p.error("--raise-dollar-cap must be 0 or more")
     return args
@@ -293,16 +315,28 @@ def main(argv=None) -> int:
         return score.rerun(root, args.rerun, stamp, args.max_runs, args.raise_dollar_cap)
 
     if args.mode == "grid":
-        candidates = grid(args.seed, args.version)
+        candidates = ordered(grid(args.seed, args.version), args.order_seed)
     else:
-        candidates = random_candidates(args.seed, args.count, args.version)
+        count = args.count or args.max_runs // score.SCREEN_RUNS
+        candidates = random_candidates(args.seed, count, args.version)
     out_dir = root / "runs" / "sweep" / stamp
     paths = write(candidates, out_dir)
-    print(f"sweep: wrote {len(paths)} {args.mode} candidates to runs/sweep/{stamp}")
+    print(
+        f"sweep: wrote {len(paths)} {args.mode} candidates to runs/sweep/{stamp}, "
+        f"list sha256 {score.candidate_list_sha256(paths)}"
+    )
     if args.generate_only:
         return 0
     return score.run_sweep(
-        root, paths, args.version, args.seed, stamp, args.max_runs, args.raise_dollar_cap
+        root,
+        paths,
+        args.version,
+        args.seed,
+        stamp,
+        args.max_runs,
+        args.raise_dollar_cap,
+        mode=args.mode,
+        order_seed=args.order_seed,
     )
 
 

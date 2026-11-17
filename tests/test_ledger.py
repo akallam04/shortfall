@@ -40,6 +40,7 @@ def entry(
         "check_versions": VERSIONS,
         "violation": {"result": result, "rules": rules or {}, "runs": min(runs, 13)},
         "reproduced": {"cases": cases or {}, "rules": outcomes or {}},
+        "reproduced_at": {c: 20 for c, r in (cases or {}).items() if r == "reproduced"},
         "located": {"result": "not applicable"},
         "wall_seconds": 12.5,
         "oversold_runs": runs,

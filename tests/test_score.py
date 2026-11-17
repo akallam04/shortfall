@@ -722,7 +722,7 @@ def test_run_sweep_lists_manual_checks(tmp_path, monkeypatch, capsys):
     assert score.run_sweep(tmp_path, paths, "2.22.0", 0, "s") == 0
     out = capsys.readouterr().out
     assert "sweep: manual check: s-001" in out
-    summary = json.loads(out[out.index("\n{") + 1 : out.rindex("}") + 1])
+    summary = json.loads(out[out.index("\n{") + 1 : out.index("\nsweep: trial summary")])
     assert summary["violation"] == {"violation": 1}
     assert summary[score.NOT_ISOLATED] == {"no_orphaned_orders": 1}
     assert summary["located"] == {"not applicable": 1}
@@ -985,3 +985,81 @@ def test_run_sweep_lists_causes_not_isolated(tmp_path, monkeypatch, capsys):
         f"sweep: manual check: s-001 {stem}: reserved_matches_reservations failed 13 of 13 runs "
         "on plain Medusa 2.22.0: violation, cause not isolated" in out
     )
+
+
+def test_the_candidate_list_hash_covers_names_text_and_order(tmp_path):
+    paths = sweep.write(sweep.ordered(sweep.grid(0), 1), tmp_path / "a")
+    first = score.candidate_list_sha256(paths)
+    assert first == score.candidate_list_sha256(paths)
+    assert first != score.candidate_list_sha256(list(reversed(paths)))
+    paths[0].write_text(paths[0].read_text() + "# changed\n")
+    assert first != score.candidate_list_sha256(paths)
+    import hashlib
+
+    h = hashlib.sha256()
+    for p in sweep.write(sweep.ordered(sweep.grid(0), 1), tmp_path / "b"):
+        h.update(f"{p.stem}\n{p.read_text()}\n".encode())
+    assert h.hexdigest() == first
+
+
+def test_a_trial_line_freezes_the_list_before_any_run(tmp_path, monkeypatch, capsys):
+    paths = sweep_setup(tmp_path, monkeypatch, ["pass"] * 3, per=10)
+    assert score.run_sweep(tmp_path, paths, "2.22.0", 0, "s", max_runs=300, order_seed=2) == 0
+    records = ledger.load(tmp_path / "runs" / "ledger.jsonl")
+    assert records[0]["kind"] == "trial"
+    trial = records[0]
+    assert trial["candidates"] == 3
+    assert trial["candidate_names"] == [p.stem for p in paths]
+    assert trial["candidates_sha256"] == score.candidate_list_sha256(paths)
+    assert (trial["mode"], trial["order_seed"], trial["run_cap"]) == ("grid", 2, 300)
+    assert records[1]["kind"] == "started"
+    out = capsys.readouterr().out
+    assert f"list sha256 {trial['candidates_sha256']}, run cap 300" in out
+
+
+def test_reproduced_at_records_the_trial_runs_so_far(tmp_path, candidates):
+    a = candidates["s2-solo-c2-short-together"]
+    b = candidates["s2-piece-c2-short-together"]
+    items = [
+        (a, queues(a, many(("pass", 10)))),
+        (b, queues(b, many(("fail-reserved", 13)), pr_17420=many(("pass", 10)))),
+    ]
+    attempts, _, _, _ = sweep_of(tmp_path, items)
+    assert attempts[0].entry["reproduced_at"] == {}
+    assert attempts[1].entry["reproduced_at"] == {COUNTER: 3 + 23}
+
+
+def test_trial_summary(tmp_path, monkeypatch, capsys):
+    paths = sweep_setup(tmp_path, monkeypatch, ["fail-reserved", "pass", "pass"], per=13)
+    FakeOversold.queues[f"{paths[0].stem}-pr-17420-control"] = many(("pass", 10))
+    assert score.run_sweep(tmp_path, paths, "2.22.0", 0, "s", max_runs=33) == 0
+    records = ledger.load(tmp_path / "runs" / "ledger.jsonl")
+    summary = score.trial_summary(records, sorted(CASES))
+    assert summary["cases"] == {
+        LINES: {"reproduced": False, "runs_to_first": None},
+        COUNTER: {"reproduced": True, "runs_to_first": 23},
+        LAST_UNIT: {"reproduced": False, "runs_to_first": None},
+    }
+    assert summary["cases_reproduced"] == 1
+    assert summary["runs_used"] == 23 + 3 + 3
+    assert (summary["candidates"], summary["reached"], summary["never_reached"]) == (3, 3, 0)
+    assert (summary["violations"], summary["cause_not_isolated"]) == (1, 0)
+    assert summary["not_reproduced"] == 2
+    assert summary["located"] == "not applicable"
+    out = capsys.readouterr().out
+    assert (
+        json.loads(out[out.index("sweep: trial summary") + 21 : out.index("session runs:")])[
+            "runs_used"
+        ]
+        == 29
+    )
+
+
+def test_trial_summary_counts_candidates_never_reached(tmp_path, monkeypatch):
+    paths = sweep_setup(tmp_path, monkeypatch, ["pass"] * 5)
+    assert score.run_sweep(tmp_path, paths, "2.22.0", 0, "s", max_runs=10) == 0
+    summary = score.trial_summary(ledger.load(tmp_path / "runs" / "ledger.jsonl"), sorted(CASES))
+    assert (summary["reached"], summary["never_reached"], summary["runs_used"]) == (3, 2, 9)
+    assert summary["cases_reproduced"] == 0
+    with pytest.raises(ValueError, match="one trial line"):
+        score.trial_summary([], sorted(CASES))

@@ -212,3 +212,56 @@ def test_sweep_knows_nothing_about_the_cases():
     assert top == {"argparse", "datetime", "random", "re", "sys", "dataclasses", "pathlib", "yaml"}
     for word in ("benchmark", "reference", "load_case", "case_map", "17032", "16502"):
         assert word not in source
+
+
+def test_an_order_seed_shuffles_the_grid_without_changing_its_shapes():
+    base = sweep.grid(0)
+    texts = {c.name: sweep.to_yaml(c) for c in base}
+    orders = {}
+    for order_seed in (1, 2, 3):
+        shuffled = sweep.ordered(sweep.grid(0), order_seed)
+        assert {c.name: sweep.to_yaml(c) for c in shuffled} == texts
+        assert [c.name for c in sweep.ordered(sweep.grid(0), order_seed)] == [
+            c.name for c in shuffled
+        ]
+        orders[order_seed] = [c.name for c in shuffled]
+    assert len({tuple(o) for o in orders.values()}) == 3
+    assert all(o != [c.name for c in base] for o in orders.values())
+    assert [c.name for c in sweep.ordered(base, None)] == [c.name for c in base]
+
+
+def test_random_lists_are_a_stream_from_the_seed():
+    long = sweep.random_candidates(1, 100)
+    assert [sweep.to_yaml(c) for c in long[:20]] == [
+        sweep.to_yaml(c) for c in sweep.random_candidates(1, 20)
+    ]
+    assert len({c.name for c in long}) == 100
+
+
+def test_trial_command_line():
+    args = sweep.parse_args(["--mode", "grid", "--order-seed", "2"])
+    assert (args.max_runs, args.order_seed, args.count, args.seed) == (300, 2, None, 0)
+    assert sweep.TRIAL_RUNS == 300
+    args = sweep.parse_args(["--mode", "random", "--seed", "3"])
+    assert (args.max_runs, args.order_seed, args.count) == (300, None, None)
+    for bad in (
+        ["--mode", "random", "--order-seed", "1"],
+        ["--mode", "grid", "--count", "5"],
+        ["--mode", "random", "--count", "0"],
+        ["--max-runs", "0"],
+    ):
+        with pytest.raises(SystemExit):
+            sweep.parse_args(bad)
+
+
+def test_random_trials_get_as_many_candidates_as_the_cap_can_screen(tmp_path, monkeypatch):
+    for mode, flag, pattern, expected in (
+        ("random", ["--seed", "1"], "random-*.yaml", 100),
+        ("grid", ["--order-seed", "1"], "grid-*.yaml", 32),
+    ):
+        root = tmp_path / mode
+        (root / "runs").mkdir(parents=True)
+        monkeypatch.setattr(sweep, "repo_root", lambda root=root: root)
+        assert sweep.main(["--mode", mode, *flag, "--generate-only"]) == 0
+        [folder] = (root / "runs" / "sweep").iterdir()
+        assert len(list(folder.glob(pattern))) == expected
