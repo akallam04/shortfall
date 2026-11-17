@@ -14,6 +14,8 @@ class Usage:
     input_tokens: int
     output_tokens: int
     dollars: float
+    cache_write_tokens: int = 0
+    cache_read_tokens: int = 0
 
 
 def now() -> str:
@@ -68,7 +70,23 @@ class Meter:
         self._spend(
             spend_id=spend_id, item="paid_call", state="reserved", model=model, dollars=max_dollars
         )
-        result, usage = call()
+        try:
+            result, usage = call()
+        except Exception as err:
+            if getattr(err, "billed", True) is False:
+                self.budget.settle_dollars(max_dollars, 0.0)
+                self._spend(
+                    spend_id=spend_id,
+                    item="paid_call",
+                    state="settled",
+                    model=model,
+                    input_tokens=0,
+                    cache_write_tokens=0,
+                    cache_read_tokens=0,
+                    output_tokens=0,
+                    dollars=0,
+                )
+            raise
         self.budget.settle_dollars(max_dollars, usage.dollars)
         self.dollars += usage.dollars
         self._spend(
@@ -77,6 +95,8 @@ class Meter:
             state="settled",
             model=usage.model,
             input_tokens=usage.input_tokens,
+            cache_write_tokens=usage.cache_write_tokens,
+            cache_read_tokens=usage.cache_read_tokens,
             output_tokens=usage.output_tokens,
             dollars=usage.dollars,
         )

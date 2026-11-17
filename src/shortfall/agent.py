@@ -5,6 +5,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -12,7 +13,7 @@ from typing import Protocol
 
 import yaml
 
-from shortfall import ledger, score
+from shortfall import ledger, redact, score
 from shortfall.answers import load_causes
 from shortfall.budget import CapReached, from_flags
 from shortfall.spend import Meter, Usage, now
@@ -25,6 +26,7 @@ RUN_CAP = 300
 ATTEMPT_CAP = 12
 TURN_CAP = 60
 KEEP_TURNS = 6
+MODEL_RETRIES = 2
 HYPOTHESIS_CHARS = 1_200
 CHARS_PER_TOKEN = 3.5
 PROMPTS = Path(__file__).resolve().parent / "prompts"
@@ -106,10 +108,28 @@ class Reply:
     input_tokens: int = 0
     output_tokens: int = 0
     dollars: float = 0.0
+    cache_write_tokens: int = 0
+    cache_read_tokens: int = 0
+    stop_reason: str | None = None
+
+
+class ModelUnavailable(RuntimeError):
+    def __init__(self, message: str, billed: bool = False):
+        super().__init__(redact.mask(message))
+        self.billed = billed
+
+
+class RetryLater(RuntimeError):
+    def __init__(self, message: str, wait: float):
+        super().__init__(redact.mask(message))
+        self.wait = wait
+        self.billed = False
 
 
 class Model(Protocol):
     name: str
+    sdk_version: str | None
+    knowledge_cutoff: str | None
 
     def max_dollars(self, messages: list[dict], tools: list[dict]) -> float: ...
 
@@ -121,6 +141,8 @@ class ScriptedModel:
     replies: list[Reply]
     name: str = "scripted"
     seen: list[list[dict]] = field(default_factory=list)
+    sdk_version: str | None = None
+    knowledge_cutoff: str | None = None
 
     def max_dollars(self, messages: list[dict], tools: list[dict]) -> float:
         return 0.0
@@ -296,6 +318,7 @@ class Trial:
         pin: str = "unknown",
         validate: Callable[[Path, Path], tuple[bool, str]] = validate_with_oversold,
         keep_turns: int = KEEP_TURNS,
+        sleep: Callable[[float], None] = time.sleep,
     ):
         if task_mode not in ledger.TASK_MODES:
             raise ValueError(f"task mode must be one of {', '.join(ledger.TASK_MODES)}")
@@ -313,6 +336,7 @@ class Trial:
         self.pin = pin
         self.validate = validate
         self.keep_turns = keep_turns
+        self.sleep = sleep
         self.ledger_path = score.ledger_path_for(self.root)
         self.folder = self.root / "runs" / "agent" / trial_id
         self.folder.mkdir(parents=True, exist_ok=False)
@@ -329,13 +353,13 @@ class Trial:
         self.messages = opening(self.root, task_mode, issue, self.terms)
         self.turns = 0
         self.attempts = 0
-        self.tokens = [0, 0]
+        self.tokens = {"input": 0, "cache_write": 0, "cache_read": 0, "output": 0}
         self.end: str | None = None
         self.notes: dict[str, tuple[int, str]] = {}
 
     def log(self, event: dict) -> None:
         with self.transcript.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(event, ensure_ascii=False) + "\n")
+            f.write(redact.mask(json.dumps(event, ensure_ascii=False)) + "\n")
 
     def shorten(self) -> None:
         for message in self.messages:
@@ -344,6 +368,21 @@ class Trial:
             turn, note = self.notes[message["tool_call_id"]]
             if self.turns - turn >= self.keep_turns and message["content"] != note:
                 message["content"] = note
+
+    def stable_end(self) -> int:
+        coming = self.turns + 1
+        for i, message in enumerate(self.messages):
+            if message["role"] != "tool":
+                continue
+            turn, note = self.notes[message["tool_call_id"]]
+            if coming - turn >= self.keep_turns and message["content"] != note:
+                return i
+        return len(self.messages)
+
+    def model_view(self) -> list[dict]:
+        view = [dict(m) for m in self.messages]
+        view[self.stable_end() - 1]["cache"] = True
+        return view
 
     def tool_result(self, call: ToolCall, content: str, note: str) -> None:
         self.notes[call.id] = (self.turns, f"[{note}: removed after {self.keep_turns} turns]")
@@ -364,6 +403,8 @@ class Trial:
                 "feedback": self.feedback,
                 "issue": self.issue,
                 "model": self.model.name,
+                "sdk_version": getattr(self.model, "sdk_version", None),
+                "knowledge_cutoff": getattr(self.model, "knowledge_cutoff", None),
                 "medusa_version": VERSION,
                 "run_cap": self.caps.runs,
                 "attempt_cap": self.caps.attempts,
@@ -388,9 +429,14 @@ class Trial:
             except LeakError as err:
                 self.end = f"leak guard: {err}"
                 break
+            except ModelUnavailable as err:
+                self.end = f"model API stopped the trial: {err}"
+                break
             self.turns += 1
-            self.tokens[0] += reply.input_tokens
-            self.tokens[1] += reply.output_tokens
+            self.tokens["input"] += reply.input_tokens
+            self.tokens["cache_write"] += reply.cache_write_tokens
+            self.tokens["cache_read"] += reply.cache_read_tokens
+            self.tokens["output"] += reply.output_tokens
             self.messages.append(
                 {
                     "role": "assistant",
@@ -401,9 +447,23 @@ class Trial:
                     ],
                 }
             )
-            self.log({"event": "reply", "turn": self.turns, "message": self.messages[-1]})
+            self.log(
+                {
+                    "event": "reply",
+                    "turn": self.turns,
+                    "message": self.messages[-1],
+                    "stop_reason": reply.stop_reason,
+                    "input_tokens": reply.input_tokens,
+                    "cache_write_tokens": reply.cache_write_tokens,
+                    "cache_read_tokens": reply.cache_read_tokens,
+                    "output_tokens": reply.output_tokens,
+                    "dollars": reply.dollars,
+                }
+            )
             if not reply.tool_calls:
                 self.end = "the model stopped without calling finish"
+                if reply.stop_reason not in (None, "end_turn", "tool_use"):
+                    self.end += f" (stop reason {reply.stop_reason})"
                 break
             for call in reply.tool_calls:
                 self.handle(call)
@@ -422,8 +482,10 @@ class Trial:
             "attempts": self.attempts,
             "oversold_runs": spent["oversold_runs"],
             "dollars": spent["dollars"],
-            "input_tokens": self.tokens[0],
-            "output_tokens": self.tokens[1],
+            "input_tokens": self.tokens["input"],
+            "cache_write_tokens": self.tokens["cache_write"],
+            "cache_read_tokens": self.tokens["cache_read"],
+            "output_tokens": self.tokens["output"],
             "timestamp": now(),
         }
         ledger.append(self.ledger_path, summary)
@@ -431,14 +493,30 @@ class Trial:
         return summary
 
     def call_model(self) -> Reply:
-        cap = self.model.max_dollars(self.messages, TOOLS)
+        view = self.model_view()
 
         def call():
-            reply = self.model.reply(self.messages, TOOLS)
-            usage = Usage(self.model.name, reply.input_tokens, reply.output_tokens, reply.dollars)
+            reply = self.model.reply(view, TOOLS)
+            usage = Usage(
+                self.model.name,
+                reply.input_tokens,
+                reply.output_tokens,
+                reply.dollars,
+                reply.cache_write_tokens,
+                reply.cache_read_tokens,
+            )
             return reply, usage
 
-        return self.meter.paid_call(self.model.name, cap, call)
+        for retry in range(MODEL_RETRIES + 1):
+            try:
+                cap = self.model.max_dollars(view, TOOLS)
+                return self.meter.paid_call(self.model.name, cap, call)
+            except RetryLater as err:
+                if retry == MODEL_RETRIES:
+                    raise ModelUnavailable(f"{err}, still failing after {retry} retries") from None
+                self.log({"event": "retry", "turn": self.turns + 1, "error": str(err)})
+                self.sleep(err.wait)
+        raise AssertionError("unreachable")
 
     def handle(self, call: ToolCall) -> None:
         args = call.arguments if isinstance(call.arguments, dict) else {}
@@ -619,12 +697,17 @@ def estimate(
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m shortfall.agent")
     sub = p.add_subparsers(dest="command", required=True)
-    run = sub.add_parser("run", help="run one trial with a scripted model")
-    run.add_argument("--script", required=True, help="JSON list of scripted replies")
+    run = sub.add_parser("run", help="run one trial")
+    who = run.add_mutually_exclusive_group(required=True)
+    who.add_argument("--script", help="JSON list of scripted replies")
+    who.add_argument("--model", help="Claude model id, like claude-haiku-5-5")
     run.add_argument("--task-mode", choices=ledger.TASK_MODES, required=True)
     run.add_argument("--issue", help="case whose issue the guided mode shows")
     run.add_argument("--feedback", choices=ledger.FEEDBACK_MODES, required=True)
-    run.add_argument("--dollar-cap", type=float, default=0.0)
+    run.add_argument("--max-runs", type=int, default=RUN_CAP)
+    run.add_argument("--max-attempts", type=int, default=ATTEMPT_CAP)
+    run.add_argument("--max-turns", type=int, default=TURN_CAP)
+    run.add_argument("--raise-dollar-cap", type=float, default=0.0)
     est = sub.add_parser("estimate", help="estimate tokens for one trial")
     est.add_argument("--issue", default="medusa-16502-lines")
     args = p.parse_args(argv)
@@ -632,8 +715,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "estimate":
         print(json.dumps(estimate_trial(root, args.issue), indent=2))
         return 0
-    items = json.loads(Path(args.script).read_text(encoding="utf-8"))
-    model = ScriptedModel.from_json(items)
+    if args.script:
+        model = ScriptedModel.from_json(json.loads(Path(args.script).read_text(encoding="utf-8")))
+    else:
+        from shortfall.models import AnthropicModel
+
+        model = AnthropicModel(args.model, env_path=root / ".env")
     runner = score.OversoldRunner(root)
     image = runner.image(VERSION)
     stamp = datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -645,7 +732,12 @@ def main(argv: list[str] | None = None) -> int:
         task_mode=args.task_mode,
         feedback=args.feedback,
         issue=args.issue,
-        caps=Caps(dollars=args.dollar_cap),
+        caps=Caps(
+            runs=args.max_runs,
+            attempts=args.max_attempts,
+            turns=args.max_turns,
+            dollars=args.raise_dollar_cap,
+        ),
         image=image,
         pin=runner.pin,
     )

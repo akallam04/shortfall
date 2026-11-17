@@ -4,6 +4,8 @@ import re
 from collections import Counter
 from pathlib import Path
 
+from shortfall import redact
+
 LEGACY_VERDICTS = ("match", "no match", "reproduction only", "inconclusive", "unpreparable")
 INTERRUPTED = "interrupted"
 SOURCES = ("sweep", "agent")
@@ -117,10 +119,14 @@ SPEND_FIELDS = (
     "oversold_runs",
     "model",
     "input_tokens",
+    "cache_write_tokens",
+    "cache_read_tokens",
     "output_tokens",
     "dollars",
     "timestamp",
 )
+CACHE_TOKEN_FIELDS = ("cache_write_tokens", "cache_read_tokens")
+SPEND_REQUIRED = tuple(f for f in SPEND_FIELDS if f not in CACHE_TOKEN_FIELDS)
 
 TRIAL_FIELDS = (
     "kind",
@@ -147,6 +153,8 @@ AGENT_TRIAL_FIELDS = (
     "feedback",
     "issue",
     "model",
+    "sdk_version",
+    "knowledge_cutoff",
     "medusa_version",
     "run_cap",
     "attempt_cap",
@@ -154,6 +162,9 @@ AGENT_TRIAL_FIELDS = (
     "dollar_cap",
     "oversold_commit",
     "timestamp",
+)
+AGENT_TRIAL_REQUIRED = tuple(
+    f for f in AGENT_TRIAL_FIELDS if f not in ("sdk_version", "knowledge_cutoff")
 )
 
 PREDICTION_FIELDS = (
@@ -181,9 +192,12 @@ AGENT_END_FIELDS = (
     "oversold_runs",
     "dollars",
     "input_tokens",
+    "cache_write_tokens",
+    "cache_read_tokens",
     "output_tokens",
     "timestamp",
 )
+AGENT_END_REQUIRED = tuple(f for f in AGENT_END_FIELDS if f not in CACHE_TOKEN_FIELDS)
 
 FIELDS = {
     "started": STARTED_FIELDS,
@@ -298,6 +312,11 @@ def _check_spend(entry: dict, problems: list[str]) -> None:
         problems.append("a settled paid_call needs input_tokens and output_tokens")
     if state == "reserved" and any(t is not None for t in tokens):
         problems.append("a reserved paid_call has no tokens yet")
+    cache = [entry.get(f) for f in CACHE_TOKEN_FIELDS]
+    if state == "reserved" and any(t is not None for t in cache):
+        problems.append("a reserved paid_call has no cache tokens yet")
+    if any(t is not None and not _is_count(t) for t in cache):
+        problems.append("cache tokens must be whole numbers, 0 or more")
 
 
 def validate(entry: dict, legacy: bool = True) -> None:
@@ -313,11 +332,11 @@ def validate(entry: dict, legacy: bool = True) -> None:
         None: LEGACY_REQUIRED,
         "final": FINAL_REQUIRED,
         "started": STARTED_REQUIRED,
-        "spend": SPEND_FIELDS,
+        "spend": SPEND_REQUIRED,
         "trial": TRIAL_FIELDS,
-        "agent-trial": AGENT_TRIAL_FIELDS,
+        "agent-trial": AGENT_TRIAL_REQUIRED,
         "prediction": PREDICTION_FIELDS,
-        "agent-end": AGENT_END_FIELDS,
+        "agent-end": AGENT_END_REQUIRED,
     }[kind]
     for key in entry:
         if key not in fields:
@@ -360,7 +379,9 @@ def append(path: str | Path, entry: dict) -> None:
     validate(entry, legacy=False)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    line = json.dumps({k: entry.get(k) for k in FIELDS[entry["kind"]]}, ensure_ascii=False)
+    line = redact.mask(
+        json.dumps({k: entry.get(k) for k in FIELDS[entry["kind"]]}, ensure_ascii=False)
+    )
     with path.open("a", encoding="utf-8") as f:
         f.write(line + "\n")
         f.flush()

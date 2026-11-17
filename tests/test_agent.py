@@ -62,8 +62,7 @@ class FakeRunner:
         )
 
 
-@pytest.fixture
-def root(tmp_path):
+def make_root(tmp_path: Path) -> Path:
     shutil.copytree(
         ROOT / "benchmark" / "cases",
         tmp_path / "benchmark" / "cases",
@@ -93,6 +92,11 @@ def root(tmp_path):
             encoding="utf-8",
         )
     return tmp_path
+
+
+@pytest.fixture
+def root(tmp_path):
+    return make_root(tmp_path)
 
 
 def call(name: str, **arguments) -> ToolCall:
