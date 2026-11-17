@@ -315,7 +315,7 @@ No Docker engine is needed. From the repo root:
 
 ```sh
 make oversold
-for d in $(find benchmark/cases -name report.json -exec dirname {} \; | sort); do sh scripts/oversold.sh check --verify "$d"; done
+for d in $(find benchmark -name report.json -exec dirname {} \; | sort); do sh scripts/oversold.sh check --verify "$d"; done
 ```
 
 `check --verify` recomputes every verdict and report from the saved histories and exits 0 only when they match the stored ones.

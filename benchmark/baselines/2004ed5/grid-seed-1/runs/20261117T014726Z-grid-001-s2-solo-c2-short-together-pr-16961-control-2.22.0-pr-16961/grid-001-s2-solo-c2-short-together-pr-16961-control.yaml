@@ -1,0 +1,38 @@
+schema: oversold.scenario/v1
+name: grid-001-s2-solo-c2-short-together-pr-16961-control
+description: 'Variant control of grid-001-s2-solo-c2-short-together on Medusa 2.22.0
+  with pr-16961. Sweep grid candidate 1. 2 servers, 2 carts: 1 on server 1 holding
+  OVS-SOLO 1; 1 on server 2 holding OVS-SOLO 1. Stock: SOLO 1. Completions released
+  together.'
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-16961
+stock:
+  SOLO: 1
+carts:
+  buyer-a:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  buyer-b:
+    server: 2
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: complete-a
+  server: 1
+  do: complete
+  cart: buyer-a
+- id: complete-b
+  server: 2
+  do: complete
+  cart: buyer-b
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 1
