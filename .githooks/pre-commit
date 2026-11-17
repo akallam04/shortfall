@@ -1,5 +1,12 @@
 #!/bin/sh
 
+envfiles=$(git diff --cached --name-only --diff-filter=ACMRT | grep -E '(^|/)\.env$')
+if [ -n "$envfiles" ]; then
+	echo "pre-commit: refusing to commit a .env file:" >&2
+	echo "$envfiles" >&2
+	exit 1
+fi
+
 gitleaks_bin=$(command -v gitleaks 2>/dev/null)
 if [ -z "$gitleaks_bin" ] && [ -x "$HOME/.local/bin/gitleaks" ]; then
 	gitleaks_bin="$HOME/.local/bin/gitleaks"
