@@ -229,12 +229,12 @@ Every result is plain text, cut at 40,000 characters with a note saying it was c
 
 `python -m shortfall.sweep` is a baseline that uses no model. It writes candidate scenario files from a fixed parameter space and scores each one through the pinned Oversold on Medusa 2.22.0, the default `--version` and the only version where every case has a scoring control. The baseline and agent comparisons use 2.22.0 at this pin. It uses only fields the scenario format already has: the three seeded SKUs, cart count, lines per cart and their quantities, starting stock, server count and completion order. The generator in `src/shortfall/sweep.py` does not read the cases, their reference files or their controls. Only the scoring step in `src/shortfall/score.py` maps a result to a case. The grid was designed with knowledge of the bug shapes in the cases, so it is an informed baseline, not a blind one.
 
-Candidates go in `runs/sweep/<UTC time>/`. Both modes give the same files in the same order for the same `--seed`.
+Each sweep session is one trial, with a hard cap of 300 Oversold runs (`--max-runs`) that covers screens, retries, scoring runs and control runs. Candidates go in `runs/sweep/<UTC time>/`. Both modes give the same files in the same order for the same seeds. Before any run, the trial writes a `trial` line to the ledger with the candidate names and one sha256 over each candidate's name and scenario text, in trial order, so the list is fixed before anything runs.
 
-- `--mode grid` walks 32 candidates in this order: 2 servers, then 1. Within each, carts holding OVS-SOLO 1, then OVS-PIECE 1, then OVS-PIECE 1 and OVS-TWOPACK 1. Within each, 2 carts, then 10, split evenly across the servers. Within each, stock `under` (only for the two-line carts), `short`, then `ample`, all completions released together. Then 4 candidates released one after another, with 2 carts and `short` stock: 2 servers with OVS-SOLO 1, 2 servers with OVS-PIECE 1 and OVS-TWOPACK 1, then the same two on 1 server.
+- `--mode grid` walks 32 candidates in this order: 2 servers, then 1. Within each, carts holding OVS-SOLO 1, then OVS-PIECE 1, then OVS-PIECE 1 and OVS-TWOPACK 1. Within each, 2 carts, then 10, split evenly across the servers. Within each, stock `under` (only for the two-line carts), `short`, then `ample`, all completions released together. Then 4 candidates released one after another, with 2 carts and `short` stock: 2 servers with OVS-SOLO 1, 2 servers with OVS-PIECE 1 and OVS-TWOPACK 1, then the same two on 1 server. `--order-seed N` shuffles this order with seed N. The 32 shapes and their scenario text do not change.
 - Stock levels, per inventory item: `under` is one cart's need minus 1, `short` is the total need minus one cart's need, and `ample` is 10 times the total need.
 - `under` is used only for carts with more than one line. Medusa will not add a line to a cart when the stock is below that line's quantity, so a one-line cart with `under` stock can never be prepared. With two lines on the same item, each line still fits on its own while the cart as a whole does not, which is the shape behind #16502. The grid checks that every line fits the stock on its own.
-- `--mode random --count N` samples N candidates from the same space with up to two cart groups, quantities from 1 to 3 and random stock and release.
+- `--mode random` draws candidates from `--seed`, one after another, from the same space with up to two cart groups, quantities from 1 to 3 and random stock and release. By default it draws as many as the run cap can screen, 300 / 3 = 100, so the budget runs out before the list does. `--count N` draws N instead.
 
 ### Scoring
 
@@ -299,7 +299,7 @@ Oversold has never reproduced #16825, so a `no_orphaned_orders` failure does not
 
 ### Caps and the ledger
 
-Every Oversold run and every paid call goes through a guard in `src/shortfall/budget.py`, which never starts a run set or a call that would go over a cap: 600 Oversold runs per session (`--max-runs` overrides it), 40 per attempt (3 screen runs, 7 retry runs, 10 scoring runs and up to two scoring controls of 10), and 0 dollars per session, which only `--raise-dollar-cap` can raise. Dollars also have a total cap of $20 across all sessions. At the start of every session the guard adds up the dollars already in the ledger, and it refuses any paid call that would take that total past $20. A paid call reserves its largest possible cost before it starts and settles to its real cost when it ends. When a cap is reached the run stops, writes what it has and prints what was used against each cap.
+Every Oversold run and every paid call goes through a guard in `src/shortfall/budget.py`, which never starts a run set or a call that would go over a cap: 600 Oversold runs per session for any other use, and 300 per sweep trial (`--max-runs` overrides it), 40 per attempt (3 screen runs, 7 retry runs, 10 scoring runs and up to two scoring controls of 10), and 0 dollars per session, which only `--raise-dollar-cap` can raise. Dollars also have a total cap of $20 across all sessions. At the start of every session the guard adds up the dollars already in the ledger, and it refuses any paid call that would take that total past $20. A paid call reserves its largest possible cost before it starts and settles to its real cost when it ends. When a cap is reached the run stops, writes what it has and prints what was used against each cap.
 
 Each attempt writes to `runs/ledger.jsonl`, which is not committed, as it goes:
 
@@ -308,6 +308,48 @@ Each attempt writes to `runs/ledger.jsonl`, which is not committed, as it goes:
 - a `final` line when it ends.
 
 An attempt with a `started` line and no `final` line counts as interrupted, with every run and dollar it charged. A paid call with no `settled` line counts at its reservation. A candidate that waits for its second pass has a `started` line and its spend lines, and writes its `final` line when its second pass ends. The `final` line holds the attempt id, the scenario path and its sha256, the Medusa version and image, the cart and server counts, the runs in the screen, the retry, the scoring set and the controls, each check's failures per set, each scoring control with its cases, runs and failures, the check names and versions seen, the three results, the cart setup error for an `unpreparable` candidate, the wall time, the Oversold runs and dollars used, any manual check, the Oversold commit and a UTC timestamp. The sweep prints a summary of the three results for its own attempts. Lines written before the three results hold one complete attempt each and still count toward runs and dollars. `python -m shortfall.sweep --rerun <attempt id>` reruns one attempt from its ledger line on the same image and says whether the three results came back the same.
+
+## Baselines
+
+Two baselines that use no model, measured on Medusa 2.22.0 at Oversold v0.1.1, commit `2004ed5`, on the images listed under Setup. Each trial is one sweep session with a hard cap of 300 Oversold runs, which covers screens, retries, scoring runs and control runs, and each is scored as described above.
+
+- **Grid** varies the server count (1 or 2), the lines in each cart (OVS-SOLO 1, OVS-PIECE 1, or OVS-PIECE 1 with OVS-TWOPACK 1), the cart count (2 or 10), the stock level (`under`, `short` or `ample`) and the release (together, or one after another for 4 shapes). It was designed with knowledge of the bug shapes in the cases, so it is an informed baseline. An order seed shuffles its 32 shapes.
+- **Random** varies the server count, up to two cart groups of 1 to 10 carts, one or two of the three SKUs per cart with quantities from 1 to 3, the stock of each item from 0 to twice its demand, and the release. It was not designed from the cases. Each trial draws 100 candidates from its seed.
+
+Each row is one trial. "Runs to first" is the number of runs the trial had used when the case was first reproduced, counting from the trial's first run.
+
+| Trial | Candidates reached | Runs used | Cases reproduced | Runs to first: medusa-17032-last-unit | medusa-17032-counter | medusa-16502-lines | Violations | Cause not isolated |
+|---|---|---|---|---|---|---|---|---|
+| [grid order seed 1](baselines/2004ed5/grid-seed-1/) | 16 of 32 | 298 | 3 of 3 | 144 | 39 | 29 | 10 | 0 |
+| [grid order seed 2](baselines/2004ed5/grid-seed-2/) | 21 of 32 | 293 | 3 of 3 | 81 | 81 | 26 | 10 | 2 |
+| [grid order seed 3](baselines/2004ed5/grid-seed-3/) | 19 of 32 | 297 | 3 of 3 | 33 | 33 | 157 | 11 | 2 |
+| [random seed 1](baselines/2004ed5/random-seed-1/) | 51 of 100 | 299 | 2 of 3 | 170 | 42 | not reproduced | 7 | 2 |
+| [random seed 2](baselines/2004ed5/random-seed-2/) | 48 of 100 | 296 | 3 of 3 | 103 | 103 | 51 | 7 | 1 |
+| [random seed 3](baselines/2004ed5/random-seed-3/) | 59 of 100 | 291 | 2 of 3 | 117 | 36 | not reproduced | 6 | 2 |
+
+- Grid, across its 3 trials: each case was reproduced in 3 of 3 trials, with a median of 81 runs to first reproduction for medusa-17032-last-unit, 39 for medusa-17032-counter and 29 for medusa-16502-lines.
+- Random, across its 3 trials: medusa-17032-last-unit and medusa-17032-counter were reproduced in 3 of 3 trials, with medians of 117 and 42 runs, and medusa-16502-lines in 1 of 3 trials, at 51 runs.
+
+Located is `not applicable` for both baselines, since they name no file and no cause. Three trials per method is a small sample, and no difference in this table is called significant.
+
+What else the trials show:
+
+- No trial reached a second pass. Each one spent its 300 runs before every candidate had its first screen, so no candidate got more than its first 3 runs unless it failed.
+- Every `cause not isolated` result came from the last attempt of its trial, which reached the 300-run cap before its scoring controls could run. Each is listed for a manual check in its trial's ledger.
+- pr-16961 left `no_oversell` failing only on two-server candidates, and pr-17420 left it failing only on candidates with two lines on one item, so each oversell was credited only to the case whose control cleared it.
+- The grid trials had no inconclusive run. In the random trials, 7, 9 and 8 candidates could not be prepared, and 21 and 2 runs in the first two trials had a complete call that ended in HTTP 500, which counts as inconclusive.
+- No trial stopped for a failure outside the coverage map, a `no_missing_orders` failure or a harness error.
+
+The candidate list of each trial was fixed before it ran. These are the sha256 values in each trial's `trial` ledger line:
+
+- grid-seed-1: `9e716126af7a412a5f3143d6f7271fe178ece01fa306f23cb29a5ab07d623e36`
+- grid-seed-2: `28a3304ef5f532d65fd39b7432d697ae7efd703f951439d7d04862d75664227c`
+- grid-seed-3: `7ad631c3840dee08cee096f4aef48705617abcbb24008cf92270fca73642efa7`
+- random-seed-1: `c715bc8bb32aee5b81019227beb11056abe6443d6d64ac2f4b78366427830f7f`
+- random-seed-2: `0a5eb2c2f8d3530d4f068867b6bed3d316acc40ba5e1c5f690756857f6c3a8f8`
+- random-seed-3: `be2fc026d6151b318507f4af127bf30c06561a90ef3717651cf2110895e40e63`
+
+Each trial's folder holds its `ledger.jsonl`, its candidate files in trial order under `candidates/`, and every run set it ran under `runs/`, exported with `oversold export`.
 
 ## How to recheck
 
