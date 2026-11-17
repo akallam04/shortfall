@@ -24,9 +24,10 @@ VERSION = "2.22.0"
 READ_LINES = 200
 RESULT_CHARS = 12_000
 RUN_CAP = 300
-ATTEMPT_CAP = 12
-TURN_CAP = 60
+ATTEMPT_CAP = 30
+TURN_CAP = 100
 KEEP_TURNS = 6
+SHORTEN_EVERY = 6
 MODEL_RETRIES = 2
 HYPOTHESIS_CHARS = 1_200
 CHARS_PER_TOKEN = 3.5
@@ -34,7 +35,7 @@ PROMPTS = Path(__file__).resolve().parent / "prompts"
 
 SNAPSHOT_NOTE = (
     f"The snapshot holds only Medusa {VERSION}'s packages/ folder, so every path starts "
-    "with packages/."
+    "with packages/. Enterprise Edition files are not available."
 )
 EXPECTED_CHECKS = (*CHECK_NAMES, "none")
 MAX_CLAIMS = 5
@@ -131,6 +132,7 @@ FEEDBACK = {
     "refused": "Attempt {number} refused: {reason}",
     "not_run": "Attempt {number} was not run: the run cap was reached.",
     "left": "Left: {runs} runs, {attempts} attempts, {turns} turns.",
+    "left_none": "Left: {attempts} attempts, {turns} turns.",
     "no_runs": "Attempt {number} was recorded but did not run.",
     "head": "Attempt {number} ran {runs} times on Medusa {version}.",
     "check": "{rule} failed in {fail} of {runs}",
@@ -279,6 +281,13 @@ def opening(root: Path, task_mode: str, issue: str | None, terms: tuple[str, ...
     ]
 
 
+def enterprise_paths(root: Path) -> tuple[str, ...]:
+    path = Path(root) / "benchmark" / "snapshots" / f"enterprise-{VERSION}.json"
+    if not path.is_file():
+        return ()
+    return tuple(json.loads(path.read_text(encoding="utf-8"))["paths"])
+
+
 def counted_orders(snapshot: dict) -> int:
     return sum(
         1
@@ -371,6 +380,7 @@ class Trial:
         pin: str = "unknown",
         validate: Callable[[Path, Path], tuple[bool, str]] = validate_with_oversold,
         keep_turns: int = KEEP_TURNS,
+        shorten_every: int = SHORTEN_EVERY,
         sleep: Callable[[float], None] = time.sleep,
     ):
         if task_mode not in ledger.TASK_MODES:
@@ -389,6 +399,7 @@ class Trial:
         self.pin = pin
         self.validate = validate
         self.keep_turns = keep_turns
+        self.shorten_every = shorten_every
         self.sleep = sleep
         self.ledger_path = score.ledger_path_for(self.root)
         self.folder = self.root / "runs" / "agent" / trial_id
@@ -398,7 +409,10 @@ class Trial:
         self.causes = load_causes(self.root / "benchmark" / "causes.yaml")
         self.terms = forbidden_terms(self.root / "benchmark" / "cases")
         self.snapshot = Snapshot(
-            self.root / "snapshots" / f"medusa-{VERSION}", READ_LINES, RESULT_CHARS
+            self.root / "snapshots" / f"medusa-{VERSION}",
+            READ_LINES,
+            RESULT_CHARS,
+            enterprise_paths(self.root),
         )
         before = ledger.spent(ledger.load(self.ledger_path))["dollars"]
         self.budget = from_flags(self.caps.runs, self.caps.dollars or None, before)
@@ -418,7 +432,12 @@ class Trial:
         with self.transcript.open("a", encoding="utf-8") as f:
             f.write(redact.mask(json.dumps(event, ensure_ascii=False)) + "\n")
 
+    def shortening_turn(self, completed: int) -> bool:
+        return completed > 0 and completed % self.shorten_every == 0
+
     def shorten(self) -> None:
+        if not self.shortening_turn(self.turns):
+            return
         for message in self.messages:
             if message["role"] != "tool":
                 continue
@@ -428,6 +447,8 @@ class Trial:
 
     def stable_end(self) -> int:
         coming = self.turns + 1
+        if not self.shortening_turn(coming):
+            return len(self.messages)
         for i, message in enumerate(self.messages):
             if message["role"] != "tool":
                 continue
@@ -442,7 +463,8 @@ class Trial:
         return view
 
     def tool_result(self, call: ToolCall, content: str, note: str) -> None:
-        self.notes[call.id] = (self.turns, f"[{note}: removed after {self.keep_turns} turns]")
+        removed = f"[{note}: removed after {self.keep_turns} or more turns]"
+        self.notes[call.id] = (self.turns, removed)
         self.messages.append(
             {"role": "tool", "tool_call_id": call.id, "name": call.name, "content": content}
         )
@@ -577,7 +599,8 @@ class Trial:
         raise AssertionError("unreachable")
 
     def left(self) -> str:
-        return FEEDBACK["left"].format(
+        key = "left_none" if self.feedback == "none" else "left"
+        return FEEDBACK[key].format(
             runs=self.budget.session_left(),
             attempts=max(self.caps.attempts - self.attempts, 0),
             turns=max(self.caps.turns - self.turns, 0),

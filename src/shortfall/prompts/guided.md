@@ -1,1 +1,1 @@
-Below is a public bug report about this shop software. Use it as a lead. Your scenario should test the rule the report is about.
+Below is a public bug report about this shop software. Use it as a lead. Your scenario should test the rule the report is about. Before you claim the reported bug, check that your scenario matches the conditions the report describes.

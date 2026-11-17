@@ -330,8 +330,31 @@ def test_the_committed_guided_plan():
         60,
         1.0,
     )
-    assert plan.dollar_cap == 3.0 and plan.prompt_hash == freeze.recorded_hash(ROOT)
+    v1 = (ROOT / "benchmark" / "agent" / "guided-haiku-1" / "prompts.sha256").read_text()
+    assert plan.dollar_cap == 3.0 and plan.prompt_hash == v1.splitlines()[0]
     assert plan.images["2.22.0"].startswith("sha256:c48358f7")
+
+
+@pytest.mark.skipif(not (ROOT / "snapshots" / "issues").exists(), reason="no local snapshots")
+@pytest.mark.parametrize(
+    "name,mode,labels",
+    [
+        ("unguided-haiku-1", "unguided", ["unguided-none", "unguided-history"]),
+        ("guided-haiku-2", "guided", ["17032-none", "17032-history"]),
+    ],
+)
+def test_the_v2_plans(name, mode, labels):
+    plan = trials.load_plan(ROOT, ROOT / "benchmark" / "agent" / "plans" / f"{name}.yaml")
+    assert (plan.model, plan.mode, plan.trials_per_cell) == ("claude-haiku-5-5", mode, 3)
+    assert [c.label for c in plan.cells] == labels
+    assert (plan.caps.runs, plan.caps.attempts, plan.caps.turns, plan.caps.dollars) == (
+        300,
+        30,
+        100,
+        1.0,
+    )
+    assert plan.dollar_cap == 3.0 and plan.prompt_hash == freeze.recorded_hash(ROOT)
+    assert plan.images["2.22.0-pr-16961"].startswith("sha256:0075cea1")
 
 
 def test_model_text_matches_and_the_local_allow_list(root, monkeypatch):
@@ -379,3 +402,49 @@ def test_a_path_match_still_stops_the_plan(root):
 
     assert make_runner(root, write_plan(root), scanner=scanner).run() == 1
     assert kinds(root)[-2:] == ["trial-export-failed", "plan-stop"]
+
+
+def test_a_transcript_that_quotes_an_enterprise_file_holds_the_trial(root, monkeypatch):
+    monkeypatch.setattr(trials, "gitleaks_findings", lambda r, folder: [])
+    (root / "benchmark" / "snapshots").mkdir(parents=True, exist_ok=True)
+    (root / "benchmark" / "snapshots" / "enterprise-2.22.0.json").write_text(
+        json.dumps({"paths": ["packages/rbac/", "packages/core/lock.ts"]})
+    )
+    folder = root / "runs" / "ee"
+    folder.mkdir(parents=True)
+    events = [
+        {
+            "event": "tool",
+            "call": "a",
+            "content": "error: packages/rbac/x.ts: this file is not available",
+        },
+        {"event": "tool", "call": "b", "content": "1 matches\\npackages/core/cart.ts:3: x"},
+    ]
+    blob = "\n".join(json.dumps(e) for e in events).replace("\\\\n", "\\n")
+    (folder / "transcript.jsonl.gz").write_bytes(gzip.compress(blob.encode()))
+    quotes = trials.Quotes(root)
+    assert trials.scan_export(root, folder, quotes, None, []) == []
+    events.append(
+        {"event": "tool", "call": "c", "content": "packages/core/lock.ts, lines 1 to 2 of 2"}
+    )
+    events.append(
+        {"event": "tool", "call": "d", "content": "2 matches\npackages/rbac/y.ts:4: role"}
+    )
+    blob = "\n".join(json.dumps(e) for e in events)
+    (folder / "transcript.jsonl.gz").write_bytes(gzip.compress(blob.encode()))
+    assert trials.scan_export(root, folder, quotes, None, []) == [
+        "enterprise: transcript.jsonl.gz: quotes packages/core/lock.ts",
+        "enterprise: transcript.jsonl.gz: quotes packages/rbac/",
+    ]
+
+
+def test_an_enterprise_hold_keeps_the_plan_going(root):
+    calls = []
+
+    def scanner(folder):
+        calls.append(folder.name)
+        return ["enterprise: transcript.jsonl.gz: quotes packages/rbac/"] if len(calls) == 1 else []
+
+    assert make_runner(root, write_plan(root), scanner=scanner).run() == 0
+    assert kinds(root).count("trial-held") == 1 and kinds(root)[-1] == "plan-done"
+    assert (root / "runs" / "export" / "prompts.sha256").exists()

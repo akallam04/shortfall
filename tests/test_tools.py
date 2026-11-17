@@ -285,3 +285,20 @@ def test_non_text_paths_are_refused(snap):
             snap.read_file(path)
     with pytest.raises(ToolError, match="NUL"):
         snap.read_file("packages/\0README.md")
+
+
+def test_enterprise_paths_are_hidden(tmp_path):
+    root = tmp_path / "snap"
+    (root / "packages" / "rbac" / "src").mkdir(parents=True)
+    (root / "packages" / "core").mkdir(parents=True)
+    (root / "packages" / "rbac" / "src" / "a.ts").write_text("const roleCheck = 1\n")
+    (root / "packages" / "core" / "lock.ts").write_text("const roleCheck = 2\n")
+    (root / "packages" / "core" / "cart.ts").write_text("const roleCheck = 3\n")
+    snap = Snapshot(root, excluded=("packages/rbac/", "packages/core/lock.ts"))
+    for path in ("packages/rbac", "packages/rbac/src/a.ts", "packages/core/lock.ts"):
+        with pytest.raises(ToolError, match="this file is not available"):
+            snap.read_file(path) if path.endswith(".ts") else snap.list_files(path)
+    assert "rbac" not in snap.list_files("packages")
+    assert "lock.ts" not in snap.list_files("packages/core")
+    found = snap.search("roleCheck", "packages")
+    assert "packages/core/cart.ts:1:" in found and "rbac" not in found and "lock.ts" not in found

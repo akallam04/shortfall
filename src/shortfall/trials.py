@@ -29,6 +29,8 @@ ORDERS = ("round-robin",)
 WORDS_FILE = Path(".git") / "info" / "private-words"
 ALLOW_FILE = Path(".git") / "info" / "private-word-allow"
 MODEL_TEXT = "model text: "
+ENTERPRISE = "enterprise: "
+HOLDS = (MODEL_TEXT, ENTERPRISE)
 DASHES = re.compile("[\u2013\u2014]")
 QUOTE_WINDOW = 12
 
@@ -400,6 +402,25 @@ def model_texts(folder: Path) -> list[str]:
     return out
 
 
+def enterprise_quotes(folder: Path, paths: tuple[str, ...]) -> list[str]:
+    path = folder / "transcript.jsonl.gz"
+    if not path.exists() or not paths:
+        return []
+    found = []
+    for line in gzip.decompress(path.read_bytes()).decode("utf-8").splitlines():
+        event = json.loads(line)
+        if event.get("event") != "tool":
+            continue
+        for row in event["content"].splitlines():
+            for p in paths:
+                quoted = (
+                    row.startswith(p) if p.endswith("/") else row.startswith((p + ":", p + ","))
+                )
+                if quoted and "this file is not available" not in row:
+                    found.append(f"{ENTERPRISE}transcript.jsonl.gz: quotes {p}")
+    return sorted(set(found))
+
+
 def sentence_at(text: str, start: int, end: int) -> str:
     dot = text.rfind(". ", 0, start)
     value = text.rfind('": "', 0, start)
@@ -438,6 +459,7 @@ def scan_export(
     if words is None:
         problems.append(f"no private word list at {WORDS_FILE}")
     model = model_texts(folder)
+    problems += enterprise_quotes(folder, agent.enterprise_paths(root))
     for path, text in texts(folder):
         rel = path.relative_to(folder)
         for marker in local_markers():
@@ -752,7 +774,7 @@ class Runner:
             bad += self.scanner(dest)
         except (RuntimeError, OSError) as err:
             bad = [f"export: {err}"]
-        held = [b for b in bad if b.startswith(MODEL_TEXT)]
+        held = [b for b in bad if b.startswith(HOLDS)]
         if bad and len(held) == len(bad):
             shutil.rmtree(dest, ignore_errors=True)
             self.state.add("trial-held", trial=spec.id, run_id=run_id, notes=held)
@@ -761,6 +783,9 @@ class Runner:
             shutil.rmtree(dest, ignore_errors=True)
             self.state.add("trial-export-failed", trial=spec.id, run_id=run_id, problems=bad)
             return self.stop(f"trial {spec.id} failed its export checks: {bad[0]}")
+        copy = self.plan.export_root / "prompts.sha256"
+        if not copy.exists():
+            shutil.copy(self.root / freeze.HASH_FILE, copy)
         self.state.add(
             "trial-exported",
             trial=spec.id,

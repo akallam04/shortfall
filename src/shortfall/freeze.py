@@ -7,6 +7,7 @@ from pathlib import Path
 from shortfall import agent, models
 
 HASH_FILE = Path("benchmark") / "agent" / "prompts.sha256"
+PROMPT_VERSION = "v2"
 COVERS = (
     ("src/shortfall/prompts/system.md", "system prompt"),
     ("src/shortfall/prompts/setup.md", "description of the test setup"),
@@ -21,6 +22,10 @@ COVERS = (
         "read and result limits",
     ),
     ("src/shortfall/models.py", "max_tokens and thinking settings"),
+    (
+        "benchmark/snapshots/enterprise-2.22.0.json",
+        "Enterprise Edition paths the tools refuse to show",
+    ),
 )
 
 
@@ -38,6 +43,8 @@ def manifest(root: Path) -> dict:
         "feedback": agent.FEEDBACK,
         "settings": {
             "keep_turns": agent.KEEP_TURNS,
+            "shorten_every": agent.SHORTEN_EVERY,
+            "enterprise_paths": list(agent.enterprise_paths(root)),
             "read_lines": agent.READ_LINES,
             "result_chars": agent.RESULT_CHARS,
             "hypothesis_chars": agent.HYPOTHESIS_CHARS,
@@ -58,6 +65,8 @@ def hash_file_text(root: Path) -> str:
     root = Path(root)
     lines = [
         prompt_hash(root),
+        "",
+        f"Prompt version {PROMPT_VERSION}.",
         "",
         "This sha256 covers everything the agent is shown and the loop settings,",
         "taken from these files:",

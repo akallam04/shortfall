@@ -43,15 +43,31 @@ def real_path(p: Path) -> Path | None:
 
 
 class Snapshot:
-    def __init__(self, root: str | Path, max_lines: int = MAX_LINES, max_chars: int = MAX_CHARS):
+    def __init__(
+        self,
+        root: str | Path,
+        max_lines: int = MAX_LINES,
+        max_chars: int = MAX_CHARS,
+        excluded: tuple[str, ...] = (),
+    ):
         self.root = Path(root).resolve(strict=True)
         self.max_lines = max_lines
         self.max_chars = max_chars
+        self.excluded = tuple(excluded)
         if not self.root.is_dir():
             raise ValueError(f"{root} is not a folder")
 
     def _inside(self, real: Path) -> bool:
         return real == self.root or self.root in real.parents
+
+    def blocked(self, shown: str) -> bool:
+        for e in self.excluded:
+            if e.endswith("/"):
+                if shown == e.rstrip("/") or shown.startswith(e):
+                    return True
+            elif shown == e:
+                return True
+        return False
 
     def _resolve(self, path: str) -> tuple[Path, str]:
         if not isinstance(path, str):
@@ -63,6 +79,8 @@ class Snapshot:
         parts = [p for p in _SEP.split(path) if p not in ("", ".")]
         if ".." in parts:
             raise ToolError(f"{path}: '..' is not allowed, give a path inside the snapshot")
+        if self.blocked("/".join(parts)):
+            raise ToolError(f"{'/'.join(parts)}: this file is not available")
         real = real_path(self.root.joinpath(*parts))
         if real is None or not self._inside(real):
             raise ToolError(f"{path}: points outside the snapshot")
@@ -84,6 +102,8 @@ class Snapshot:
         rows = []
         folders = files = 0
         for entry in sorted(os.scandir(real), key=lambda e: e.name):
+            if self.blocked("/".join(p for p in (shown, entry.name) if p != ".")):
+                continue
             if entry.is_symlink():
                 target = real_path(Path(entry.path))
                 if target is not None and not self._inside(target):
@@ -140,6 +160,8 @@ class Snapshot:
             dirnames.sort()
             for name in sorted(filenames):
                 p = Path(dirpath) / name
+                if self.blocked(p.relative_to(self.root).as_posix()):
+                    continue
                 if p.is_symlink():
                     target = real_path(p)
                     if target is None or not self._inside(target) or not target.is_file():

@@ -78,7 +78,9 @@ def root(tmp_path):
     return make_root(tmp_path)
 
 
-def model_trial(root, replies, caps=None, keep_turns=6, model_id="claude-haiku-5-5", **kw):
+def model_trial(
+    root, replies, caps=None, keep_turns=6, model_id="claude-haiku-5-5", shorten_every=6, **kw
+):
     client = FakeClient(replies, **kw)
     model = AnthropicModel(model_id, client=client)
     sleeps: list[float] = []
@@ -94,6 +96,7 @@ def model_trial(root, replies, caps=None, keep_turns=6, model_id="claude-haiku-5
         pin="a" * 40,
         validate=lambda r, p: (True, "valid"),
         keep_turns=keep_turns,
+        shorten_every=shorten_every,
         sleep=sleeps.append,
     )
     return t, client, sleeps
@@ -224,7 +227,7 @@ def test_the_cache_marker_moves_to_the_last_message_the_next_turn_keeps(root):
         response(tool_use(n, "read_file", path="packages/core/src/cart.ts"), u=usage())
         for n in range(1, 10)
     ]
-    t, client, _ = model_trial(root, [*reads, finish()], keep_turns=3)
+    t, client, _ = model_trial(root, [*reads, finish()], keep_turns=3, shorten_every=3)
     t.run()
     created = client.messages.created
     assert len(created) == 10
@@ -243,8 +246,10 @@ def test_the_cache_marker_moves_to_the_last_message_the_next_turn_keeps(root):
         assert new[i]["content"][: j + 1] == old[i]["content"][: j + 1]
     early = [marker(c["messages"])[0] for c in created[:3]]
     assert early == [len(c["messages"]) - 1 for c in created[:3]]
-    late = created[-1]["messages"]
-    assert marker(late)[0] < len(late) - 1
+    before_shortening = created[5]["messages"]
+    assert marker(before_shortening)[0] < len(before_shortening) - 1
+    after_shortening = created[6]["messages"]
+    assert marker(after_shortening)[0] == len(after_shortening) - 1
 
 
 def test_a_call_over_the_trial_dollar_cap_is_not_made(root):

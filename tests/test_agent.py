@@ -169,13 +169,21 @@ def test_a_scripted_trial_end_to_end(root, feedback):
     assert out[0].startswith("packages: 2 folders, 1 files")
     assert out[1].startswith("packages/core/src/cart.ts, lines 1 to 5 of 5")
     assert "reserveInventory" in out[2]
+    left = {
+        "none": ("Left: 29 attempts, 96 turns.", "Left: 28 attempts, 95 turns."),
+        "history": (
+            "Left: 300 runs, 29 attempts, 96 turns.",
+            "Left: 267 runs, 28 attempts, 95 turns.",
+        ),
+    }[feedback]
     assert out[3] == (
         "Attempt 1 refused: a candidate may not set target.locking, only the harness sets them\n"
-        "Left: 300 runs, 11 attempts, 56 turns."
+        + left[0]
     )
-    assert out[4].endswith("\nLeft: 267 runs, 10 attempts, 55 turns.")
+    assert out[4].endswith("\n" + left[1])
+    assert ("runs" in out[4].splitlines()[-1]) == (feedback == "history")
     if feedback == "none":
-        assert out[4] == "Attempt 2 accepted.\nLeft: 267 runs, 10 attempts, 55 turns."
+        assert out[4] == "Attempt 2 accepted.\n" + left[1]
     else:
         assert out[4].startswith("Attempt 2 ran 13 times on Medusa 2.22.0.")
         assert "no_oversell failed in 13 of 13" in out[4]
@@ -333,16 +341,18 @@ def test_the_dollar_cap_ends_the_trial(root):
 
 
 def test_old_tool_results_are_shortened(root):
-    replies = [reply(call("read_file", path="packages/core/src/cart.ts")) for _ in range(9)]
+    replies = [reply(call("read_file", path="packages/core/src/cart.ts")) for _ in range(13)]
     replies.append(reply(call("finish", summary="x", claims=[])))
     t, model, _ = trial(root, replies)
     t.run()
+    before = [m["content"] for m in model.seen[11] if m["role"] == "tool"]
+    assert len(before) == 11
+    assert all(m.startswith("packages/core/src/cart.ts, lines 1 to 5") for m in before)
     last = [m["content"] for m in model.seen[-1] if m["role"] == "tool"]
-    assert len(last) == 9
-    assert (
-        last[:3] == ["[read_file packages/core/src/cart.ts from line 1: removed after 6 turns]"] * 3
-    )
-    assert all(m.startswith("packages/core/src/cart.ts, lines 1 to 5") for m in last[3:])
+    assert len(last) == 13
+    note = "[read_file packages/core/src/cart.ts from line 1: removed after 6 or more turns]"
+    assert last[:6] == [note] * 6
+    assert all(m.startswith("packages/core/src/cart.ts, lines 1 to 5") for m in last[6:])
     full = [
         json.loads(line)
         for line in (t.folder / "transcript.jsonl").read_text().splitlines()
@@ -430,8 +440,9 @@ def test_the_token_estimate(capsys):
         call_chars=200,
         submit_chars=2_000,
     )
-    assert (est["turns"], est["attempts"]) == (60, 12)
-    shorter = agent.estimate(34_000, 6_677, 5_200, 200, 2_000, keep=60)
+    assert (est["turns"], est["attempts"]) == (100, 30)
+    est = agent.estimate(34_000, 6_677, 5_200, 200, 2_000, attempts=12, turns=60)
+    shorter = agent.estimate(34_000, 6_677, 5_200, 200, 2_000, attempts=12, turns=60, keep=60)
     assert est["input_tokens"] < shorter["input_tokens"]
     assert est["output_tokens"] == round((48 * 200 + 12 * 2_000) / 3.5)
     print(json.dumps(est))
@@ -521,3 +532,21 @@ def test_a_trial_without_finish_has_no_claims(root):
     end = t.run()
     assert end["reason"] == "turn cap: 1 turns"
     assert ledger.load(score.ledger_path_for(root))[-1]["claims"] is None
+
+
+def test_the_trial_hides_enterprise_files(root):
+    (root / "benchmark" / "snapshots").mkdir(parents=True, exist_ok=True)
+    (root / "benchmark" / "snapshots" / "enterprise-2.22.0.json").write_text(
+        json.dumps({"paths": ["packages/core/src/cart.ts"]})
+    )
+    t, model, _ = trial(
+        root,
+        [
+            reply(call("read_file", path="packages/core/src/cart.ts")),
+            reply(call("finish", summary="x", claims=[])),
+        ],
+    )
+    t.run()
+    assert results(model)[0].startswith(
+        "error: packages/core/src/cart.ts: this file is not available"
+    )
