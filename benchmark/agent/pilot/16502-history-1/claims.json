@@ -1,0 +1,4 @@
+{
+ "summary": "The bug report's cause reproduces on Medusa 2.22.0. With WIDGET stocked at 2, two carts each holding OVS-PIECE (1 unit) and OVS-TWOPACK (2 units) were completed together. Every one of the 13 runs produced an order that reserved 3 WIDGET units against 2 in stock, and no_oversell failed in all 13. The source points to ensureInventoryLevels in packages/modules/inventory/src/services/inventory-module.ts: it checks each batch entry against the same un-decremented available_quantity, so entries that sum past stock all pass. reserved_matches_reservations passed, so the oversell is in the missing batch check and not in counter drift. The first attempt was refused because I included a checks field, and the second attempt omitted it.",
+ "claims": null
+}

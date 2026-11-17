@@ -1,0 +1,64 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": null,
+  "refused": "a candidate may not set checks, every run uses every check",
+  "ran": false,
+  "violation": null,
+  "plain_failed_rules": {},
+  "expected_check_failed": null,
+  "reproduced": null,
+  "located": null,
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": null,
+  "hypothesis": "ensureInventoryLevels validates each reservation entry independently against the same un-decremented available_quantity. A single cart holding OVS-PIECE (1 WIDGET) and OVS-TWOPACK (2 WIDGET) produces two entries for the same WIDGET level in one createReservationItems batch. With WIDGET stocked at 2, the combined demand of 3 should be rejected, but each entry individually fits, so the completion succeeds and reserves 3 against 2 stock. The no_oversell and reserved_matches_reservations checks should fail on that run. Using two carts that each need 3 units, raced together, makes the oversell show up in every run.",
+  "scenario_sha256": null,
+  "scenario_file": null,
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: shared-item-bundle-batch\ndescription: >\n  Two carts share the WIDGET inventory item through different variants. Each\n  cart holds one OVS-PIECE and one OVS-TWOPACK, so each needs 3 WIDGET units\n  against 2 stocked. Both are completed at once. The batch reservation should\n  reject the summed demand, but the per-entry check lets it through.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 2\ncarts:\n  alice:\n    server: 1\n    lines:\n      - sku: OVS-PIECE\n        qty: 1\n      - sku: OVS-TWOPACK\n        qty: 1\n  bob:\n    server: 1\n    lines:\n      - sku: OVS-PIECE\n        qty: 1\n      - sku: OVS-TWOPACK\n        qty: 1\nrace:\n  - id: alice-complete\n    server: 1\n    do: complete\n    cart: alice\n  - id: bob-complete\n    server: 1\n    do: complete\n    cart: bob\ntiming:\n  release: together\n  jitter_ms: [0, 3]\n  request_timeout_ms: 10000\nfaults: []\nruns: 20\nseed: 20261028\nchecks:\n  - no_oversell\n  - reserved_matches_reservations\n  - one_order_per_cart\n  - no_orphaned_orders\n  - no_missing_orders"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": null,
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 13
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 13
+  },
+  "expected_check_failed": null,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "ensureInventoryLevels validates each reservation entry independently against the same un-decremented available_quantity. A single cart holding OVS-PIECE (1 WIDGET) and OVS-TWOPACK (2 WIDGET) produces two entries for the same WIDGET level in one createReservationItems batch. With WIDGET stocked at 2, the combined demand of 3 should be rejected, but each entry individually fits, so the completion succeeds and reserves 3 against 2 stock. The no_oversell and reserved_matches_reservations checks should fail on that run. Two such carts raced together make the oversell appear in every run.",
+  "scenario_sha256": "ab8a91f6d225d7aff868bb74a4a94c27ff72115ae6bd7af01ebe18a131b3b36e",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: shared-item-bundle-batch\ndescription: >\n  Two carts share the WIDGET inventory item through different variants. Each\n  cart holds one OVS-PIECE and one OVS-TWOPACK, so each needs 3 WIDGET units\n  against 2 stocked. Both are completed at once. The batch reservation should\n  reject the summed demand, but the per-entry check lets it through.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 2\ncarts:\n  alice:\n    server: 1\n    lines:\n      - sku: OVS-PIECE\n        qty: 1\n      - sku: OVS-TWOPACK\n        qty: 1\n  bob:\n    server: 1\n    lines:\n      - sku: OVS-PIECE\n        qty: 1\n      - sku: OVS-TWOPACK\n        qty: 1\nrace:\n  - id: alice-complete\n    server: 1\n    do: complete\n    cart: alice\n  - id: bob-complete\n    server: 1\n    do: complete\n    cart: bob\ntiming:\n  release: together\n  jitter_ms: [0, 3]\n  request_timeout_ms: 10000\nfaults: []\nruns: 20\nseed: 20261028"
+ }
+]
