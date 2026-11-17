@@ -100,7 +100,7 @@ def model_trial(root, replies, caps=None, keep_turns=6, model_id="claude-haiku-5
 
 
 def finish(n: int = 99):
-    return response(tool_use(n, "finish", summary="done"), stop="tool_use")
+    return response(tool_use(n, "finish", summary="done", claims=[]), stop="tool_use")
 
 
 def lines(root, kind=None):
@@ -157,7 +157,7 @@ def test_the_reservation_uses_the_price_for_its_prompt_size():
 def test_usage_is_recorded_per_call_with_four_counts(root):
     replies = [
         response(tool_use(1, "list_files", path="packages"), u=usage(400, 8_000, 0, 50)),
-        response(tool_use(2, "finish", summary="x"), u=usage(300, 200, 8_000, 40)),
+        response(tool_use(2, "finish", summary="x", claims=[]), u=usage(300, 200, 8_000, 40)),
     ]
     t, client, _ = model_trial(root, replies)
     end = t.run()
@@ -409,6 +409,7 @@ def test_a_submitted_attempt_runs_through_the_client(root):
                 "submit_attempt",
                 file="packages/core/src/cart.ts",
                 cause="process-local-lock",
+                expected_check="no_oversell",
                 hypothesis="Two servers each reserve the last unit.",
                 scenario=SCENARIO,
             )

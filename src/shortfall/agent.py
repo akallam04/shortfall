@@ -16,6 +16,7 @@ import yaml
 from shortfall import ledger, redact, score
 from shortfall.answers import load_causes
 from shortfall.budget import CapReached, from_flags
+from shortfall.scenario_format import CHECK_NAMES, check_rules_text, format_text
 from shortfall.spend import Meter, Usage, now
 from shortfall.tools import Snapshot, ToolError
 
@@ -30,12 +31,19 @@ MODEL_RETRIES = 2
 HYPOTHESIS_CHARS = 1_200
 CHARS_PER_TOKEN = 3.5
 PROMPTS = Path(__file__).resolve().parent / "prompts"
-HARNESS_ROWS = ("| `target.variant` |", "| `target.locking` |")
+
+SNAPSHOT_NOTE = (
+    f"The snapshot holds only Medusa {VERSION}'s packages/ folder, so every path starts "
+    "with packages/."
+)
+EXPECTED_CHECKS = (*CHECK_NAMES, "none")
+MAX_CLAIMS = 5
 
 TOOLS = [
     {
         "name": "list_files",
-        "description": "List the files and folders directly under a folder of the source code.",
+        "description": "List the files and folders directly under a folder of the source code. "
+        + SNAPSHOT_NOTE,
         "parameters": {
             "type": "object",
             "properties": {"path": {"type": "string", "description": "Folder, like packages"}},
@@ -44,7 +52,8 @@ TOOLS = [
     },
     {
         "name": "read_file",
-        "description": f"Read numbered lines of a source file, at most {READ_LINES} per call.",
+        "description": f"Read numbered lines of a source file, at most {READ_LINES} per call. "
+        + SNAPSHOT_NOTE,
         "parameters": {
             "type": "object",
             "properties": {
@@ -57,7 +66,8 @@ TOOLS = [
     },
     {
         "name": "search",
-        "description": "Search the source code for plain text, case-sensitive, at most 50 matches.",
+        "description": "Search the source code for plain text, case-sensitive, at most 50 "
+        "matches. " + SNAPSHOT_NOTE,
         "parameters": {
             "type": "object",
             "properties": {
@@ -70,28 +80,75 @@ TOOLS = [
     {
         "name": "submit_attempt",
         "description": "Submit one attempt: the source file you think holds the cause, one "
-        "cause id, a short paragraph with your hypothesis, and the scenario YAML that tests it.",
+        "cause id, the one check you expect to fail, a short paragraph with your hypothesis, "
+        "and the scenario YAML that tests it.",
         "parameters": {
             "type": "object",
             "properties": {
                 "file": {"type": "string", "description": "One source path, like packages/..."},
                 "cause": {"type": "string", "description": "One id from the cause list"},
+                "expected_check": {
+                    "type": "string",
+                    "enum": list(EXPECTED_CHECKS),
+                    "description": "The check you expect to fail, or none",
+                },
                 "hypothesis": {"type": "string", "description": "One short paragraph"},
-                "scenario": {"type": "string", "description": "Oversold scenario YAML"},
+                "scenario": {"type": "string", "description": "Scenario YAML"},
             },
-            "required": ["file", "cause", "hypothesis", "scenario"],
+            "required": ["file", "cause", "expected_check", "hypothesis", "scenario"],
         },
     },
     {
         "name": "finish",
-        "description": "End the trial with a short summary.",
+        "description": "End the trial with a short summary and your claims: for each attempt "
+        f"you believe found a real problem, its number, the source file and the cause id. "
+        f"At most {MAX_CLAIMS} claims, or none.",
         "parameters": {
             "type": "object",
-            "properties": {"summary": {"type": "string"}},
-            "required": ["summary"],
+            "properties": {
+                "summary": {"type": "string"},
+                "claims": {
+                    "type": "array",
+                    "maxItems": MAX_CLAIMS,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "attempt": {"type": "integer", "description": "Attempt number"},
+                            "file": {"type": "string", "description": "One source path"},
+                            "cause": {"type": "string", "description": "One cause id"},
+                        },
+                        "required": ["attempt", "file", "cause"],
+                    },
+                },
+            },
+            "required": ["summary", "claims"],
         },
     },
 ]
+
+FEEDBACK = {
+    "accepted": "Attempt {number} accepted.",
+    "refused": "Attempt {number} refused: {reason}",
+    "not_run": "Attempt {number} was not run: the run cap was reached.",
+    "left": "Left: {runs} runs, {attempts} attempts, {turns} turns.",
+    "no_runs": "Attempt {number} was recorded but did not run.",
+    "head": "Attempt {number} ran {runs} times on Medusa {version}.",
+    "check": "{rule} failed in {fail} of {runs}",
+    "checks": "Checks: {checks}. Inconclusive runs: {inconclusive}.",
+    "runs": "Runs:",
+    "run": "{n}. complete calls: {calls}; orders {orders}; {stock}; failed checks: {failed}{note}",
+    "call": "{id} {outcome}",
+    "level": "{sku} stock {stock_before} to {stock_after}, reserved {reserved_before} to "
+    "{reserved_after}",
+    "unknown": " (counted inconclusive: a complete call ended with outcome unknown)",
+    "harness": " (the run could not be judged)",
+    "error": "error: {error}",
+    "path_error": "error: {error}. Top-level folders in the snapshot: {folders}",
+    "no_tool": "error: no tool named {name!r}",
+    "finished": "Trial finished.",
+    "finish_refused": "finish refused: {reason}. The trial goes on. Call finish again with "
+    "valid claims.",
+}
 
 
 @dataclass(frozen=True)
@@ -196,15 +253,6 @@ def check_leaks(messages: list[dict], terms: tuple[str, ...]) -> None:
                 raise LeakError(f"a {message['role']} message holds {term!r}")
 
 
-def model_scenario_format(text: str, terms: tuple[str, ...]) -> str:
-    keep = []
-    for line in text.splitlines():
-        if line.startswith(HARNESS_ROWS) or any(term in line for term in terms):
-            continue
-        keep.append(line)
-    return "\n".join(keep) + "\n"
-
-
 def opening(root: Path, task_mode: str, issue: str | None, terms: tuple[str, ...]) -> list[dict]:
     causes = load_causes(root / "benchmark" / "causes.yaml")
     docs = root / ".oversold" / "docs"
@@ -222,9 +270,8 @@ def opening(root: Path, task_mode: str, issue: str | None, terms: tuple[str, ...
     parts += [
         (PROMPTS / "setup.md").read_text(encoding="utf-8").strip(),
         "Causes you can name:\n\n" + "\n".join(f"- {k}: {v}" for k, v in causes.items()),
-        "Scenario format:\n\n"
-        + model_scenario_format((docs / "scenario-format.md").read_text(encoding="utf-8"), terms),
-        "Check rules:\n\n" + (docs / "checks.md").read_text(encoding="utf-8"),
+        "Scenario format:\n\n" + format_text(),
+        "Check rules:\n\n" + check_rules_text((docs / "checks.md").read_text(encoding="utf-8")),
     ]
     return [
         {"role": "system", "content": (PROMPTS / "system.md").read_text(encoding="utf-8").strip()},
@@ -241,43 +288,49 @@ def counted_orders(snapshot: dict) -> int:
 
 
 def level_text(sku: str, before: dict, after: dict) -> str:
-    return (
-        f"{sku} stock {before.get('stocked_quantity')} to {after.get('stocked_quantity')}, "
-        f"reserved {before.get('reserved_quantity')} to {after.get('reserved_quantity')}"
+    return FEEDBACK["level"].format(
+        sku=sku,
+        stock_before=before.get("stocked_quantity"),
+        stock_after=after.get("stocked_quantity"),
+        reserved_before=before.get("reserved_quantity"),
+        reserved_after=after.get("reserved_quantity"),
     )
 
 
 def run_summary(n: int, history: dict) -> str:
     calls = ", ".join(
-        f"{a['id']} {a.get('outcome') or 'not sent'}"
+        FEEDBACK["call"].format(id=a["id"], outcome=a.get("outcome") or "not sent")
         for a in (history.get("race") or {}).get("actions") or []
     )
     before = {lv["sku"]: lv for lv in (history.get("before") or {}).get("inventory_levels") or []}
     after = {lv["sku"]: lv for lv in (history.get("after") or {}).get("inventory_levels") or []}
     stock = "; ".join(level_text(sku, before[sku], after.get(sku, {})) for sku in sorted(before))
     failed = [v["check"] for v in history.get("verdicts") or [] if v["result"] == "fail"]
-    unknown = " (counted inconclusive: a complete call ended with outcome unknown)"
-    note = unknown if score.unknown_completion(history) else ""
+    note = FEEDBACK["unknown"] if score.unknown_completion(history) else ""
     if history.get("harness_error"):
-        note = " (the run could not be judged)"
-    return (
-        f"{n}. complete calls: {calls or 'none'}; "
-        f"orders {counted_orders(history.get('after') or {})}; "
-        f"{stock}; failed checks: {', '.join(failed) or 'none'}{note}"
+        note = FEEDBACK["harness"]
+    return FEEDBACK["run"].format(
+        n=n,
+        calls=calls or "none",
+        orders=counted_orders(history.get("after") or {}),
+        stock=stock,
+        failed=", ".join(failed) or "none",
+        note=note,
     )
 
 
 def history_feedback(number: int, histories: list[dict]) -> str:
     if not histories:
-        return f"Attempt {number} was recorded but did not run."
+        return FEEDBACK["no_runs"].format(number=number)
     c = score.counts(histories)
     checks = ", ".join(
-        f"{rule} failed in {row['fail']} of {len(histories)}" for rule, row in c.items()
+        FEEDBACK["check"].format(rule=rule, fail=row["fail"], runs=len(histories))
+        for rule, row in c.items()
     )
     lines = [
-        f"Attempt {number} ran {len(histories)} times on Medusa {VERSION}.",
-        f"Checks: {checks}. Inconclusive runs: {score.inconclusive_runs(histories)}.",
-        "Runs:",
+        FEEDBACK["head"].format(number=number, runs=len(histories), version=VERSION),
+        FEEDBACK["checks"].format(checks=checks, inconclusive=score.inconclusive_runs(histories)),
+        FEEDBACK["runs"],
     ]
     lines += [run_summary(i, h) for i, h in enumerate(histories, start=1)]
     return "\n".join(lines)
@@ -356,6 +409,10 @@ class Trial:
         self.tokens = {"input": 0, "cache_write": 0, "cache_read": 0, "output": 0}
         self.end: str | None = None
         self.notes: dict[str, tuple[int, str]] = {}
+        self.claims: list[dict] | None = None
+        self.folders = ", ".join(
+            sorted(f"{p.name}/" for p in self.snapshot.root.iterdir() if p.is_dir())
+        )
 
     def log(self, event: dict) -> None:
         with self.transcript.open("a", encoding="utf-8") as f:
@@ -486,6 +543,7 @@ class Trial:
             "cache_write_tokens": self.tokens["cache_write"],
             "cache_read_tokens": self.tokens["cache_read"],
             "output_tokens": self.tokens["output"],
+            "claims": self.claims,
             "timestamp": now(),
         }
         ledger.append(self.ledger_path, summary)
@@ -518,6 +576,39 @@ class Trial:
                 self.sleep(err.wait)
         raise AssertionError("unreachable")
 
+    def left(self) -> str:
+        return FEEDBACK["left"].format(
+            runs=self.budget.session_left(),
+            attempts=max(self.caps.attempts - self.attempts, 0),
+            turns=max(self.caps.turns - self.turns, 0),
+        )
+
+    def check_claims(self, value) -> tuple[list[dict], str | None]:
+        if not isinstance(value, list):
+            return [], "claims must be a list, empty if you claim nothing"
+        if len(value) > MAX_CLAIMS:
+            return [], f"at most {MAX_CLAIMS} claims"
+        out = []
+        for n, item in enumerate(value, start=1):
+            if not isinstance(item, dict):
+                return [], f"claim {n} must have attempt, file and cause"
+            attempt, file, cause = item.get("attempt"), item.get("file"), item.get("cause")
+            if type(attempt) is not int or not 1 <= attempt <= self.attempts:
+                return [], (
+                    f"claim {n}: attempt must be the number of an attempt you submitted, "
+                    f"1 to {self.attempts}"
+                    if self.attempts
+                    else f"claim {n}: you have not submitted any attempt"
+                )
+            if not (isinstance(file, str) and file.startswith("packages/")):
+                return [], f"claim {n}: file must be one source path under packages/"
+            if self.safe(file) != file:
+                return [], f"claim {n}: file must not hold a local path"
+            if cause not in self.causes:
+                return [], f"claim {n}: cause must be one id from the cause list"
+            out.append({"attempt": attempt, "file": file, "cause": cause})
+        return out, None
+
     def handle(self, call: ToolCall) -> None:
         args = call.arguments if isinstance(call.arguments, dict) else {}
         try:
@@ -534,17 +625,29 @@ class Trial:
                 result = self.snapshot.search(text, path)
                 self.tool_result(call, result, f"search {text!r} under {path}")
             elif call.name == "submit_attempt":
-                self.tool_result(call, self.submit(args), f"submit_attempt {self.attempts}")
+                text = self.submit(args) + "\n" + self.left()
+                self.tool_result(call, text, f"submit_attempt {self.attempts}")
                 if self.end is None and self.attempts >= self.caps.attempts:
                     self.end = f"attempt cap: {self.caps.attempts} attempts"
             elif call.name == "finish":
-                self.tool_result(call, "Trial finished.", "finish")
-                self.end = "finished by the model"
-                self.log({"event": "finish", "summary": args.get("summary")})
+                claims, reason = self.check_claims(args.get("claims"))
+                if reason:
+                    text = FEEDBACK["finish_refused"].format(reason=reason)
+                    self.tool_result(call, text, "finish refused")
+                    self.log({"event": "finish-refused", "reason": reason})
+                else:
+                    self.claims = claims
+                    self.tool_result(call, FEEDBACK["finished"], "finish")
+                    self.end = "finished by the model"
+                    self.log({"event": "finish", "summary": args.get("summary"), "claims": claims})
             else:
-                self.tool_result(call, f"error: no tool named {call.name!r}", call.name)
+                self.tool_result(call, FEEDBACK["no_tool"].format(name=call.name), call.name)
         except ToolError as err:
-            self.tool_result(call, f"error: {err}", f"{call.name} error")
+            if call.name in ("list_files", "read_file", "search"):
+                text = FEEDBACK["path_error"].format(error=err, folders=self.folders)
+            else:
+                text = FEEDBACK["error"].format(error=err)
+            self.tool_result(call, text, f"{call.name} error")
 
     def safe(self, value) -> str:
         text = str(value)
@@ -563,11 +666,14 @@ class Trial:
                 "cause": self.safe(args.get("cause")),
                 "hypothesis": self.safe(args.get("hypothesis")),
                 "scenario_sha256": None,
+                "expected_check": None
+                if args.get("expected_check") is None
+                else self.safe(args.get("expected_check")),
                 "refused": reason,
                 "timestamp": now(),
             },
         )
-        return f"Attempt {number} refused: {reason}"
+        return FEEDBACK["refused"].format(number=number, reason=reason)
 
     def submit(self, args: dict) -> str:
         self.attempts += 1
@@ -578,6 +684,11 @@ class Trial:
             return self.refuse(number, args, "file must be one source path under packages/")
         if cause not in self.causes:
             return self.refuse(number, args, "cause must be one id from the cause list")
+        expected = args.get("expected_check")
+        if expected not in EXPECTED_CHECKS:
+            return self.refuse(
+                number, args, "expected_check must be one of the five check names, or none"
+            )
         if not (isinstance(hypothesis, str) and hypothesis.strip()):
             return self.refuse(number, args, "hypothesis must be a short paragraph")
         if self.safe(hypothesis) != hypothesis or self.safe(file) != file:
@@ -610,7 +721,7 @@ class Trial:
         scenario.write_text(scenario_text, encoding="utf-8")
         if self.budget.session_left() < score.SCREEN_RUNS:
             self.end = f"run cap: {self.caps.runs} runs"
-            return f"Attempt {number} was not run: the run cap was reached."
+            return FEEDBACK["not_run"].format(number=number)
         attempt_id = f"{self.trial_id}-{number:02d}"
         ledger.append(
             self.ledger_path,
@@ -624,6 +735,7 @@ class Trial:
                 "cause": cause,
                 "hypothesis": hypothesis,
                 "scenario_sha256": hashlib.sha256(scenario_text.encode()).hexdigest(),
+                "expected_check": expected,
                 "refused": None,
                 "timestamp": now(),
             },
@@ -659,7 +771,7 @@ class Trial:
                 else f"stopped: {stop}"
             )
         if self.feedback == "none":
-            return f"Attempt {number} recorded."
+            return FEEDBACK["accepted"].format(number=number)
         return history_feedback(number, histories)
 
 

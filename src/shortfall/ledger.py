@@ -177,9 +177,11 @@ PREDICTION_FIELDS = (
     "cause",
     "hypothesis",
     "scenario_sha256",
+    "expected_check",
     "refused",
     "timestamp",
 )
+PREDICTION_REQUIRED = tuple(f for f in PREDICTION_FIELDS if f != "expected_check")
 
 AGENT_END_FIELDS = (
     "kind",
@@ -195,9 +197,10 @@ AGENT_END_FIELDS = (
     "cache_write_tokens",
     "cache_read_tokens",
     "output_tokens",
+    "claims",
     "timestamp",
 )
-AGENT_END_REQUIRED = tuple(f for f in AGENT_END_FIELDS if f not in CACHE_TOKEN_FIELDS)
+AGENT_END_REQUIRED = tuple(f for f in AGENT_END_FIELDS if f not in (*CACHE_TOKEN_FIELDS, "claims"))
 
 FIELDS = {
     "started": STARTED_FIELDS,
@@ -335,7 +338,7 @@ def validate(entry: dict, legacy: bool = True) -> None:
         "spend": SPEND_REQUIRED,
         "trial": TRIAL_FIELDS,
         "agent-trial": AGENT_TRIAL_REQUIRED,
-        "prediction": PREDICTION_FIELDS,
+        "prediction": PREDICTION_REQUIRED,
         "agent-end": AGENT_END_REQUIRED,
     }[kind]
     for key in entry:

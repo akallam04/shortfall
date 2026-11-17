@@ -17,6 +17,7 @@ from shortfall.cases import RULES, Control, load_case
 from shortfall.control import one_server, redis_locking, variant
 from shortfall.coverage import MANUAL_CHECK, covering_issues
 from shortfall.pin import read_pin
+from shortfall.scenario_format import unknown_fields
 from shortfall.spend import Meter, now
 from shortfall.sweep import SKUS
 
@@ -227,6 +228,11 @@ def check_candidate(data) -> None:
     if found:
         raise CandidateRefused(
             f"a candidate may not set {' or '.join(found)}, only the harness sets them"
+        )
+    unknown = unknown_fields(data)
+    if unknown:
+        raise CandidateRefused(
+            f"a candidate may not set {', '.join(unknown)}: not a field of the scenario format"
         )
 
 

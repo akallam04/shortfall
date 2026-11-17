@@ -20,7 +20,7 @@ RESULT_WORDS = (
     "not isolated",
     "cut off",
     "located",
-    "accepted",
+    "not accepted",
     "control",
     "scoring",
     "fix build",
@@ -87,7 +87,8 @@ def make_root(tmp_path: Path) -> Path:
     issues.mkdir()
     for case_id in CASE_IDS:
         (issues / f"{case_id}.md").write_text(
-            "# Two carts sell the last unit\n\nIssue: https://github.com/medusajs/medusa/issues/1\n"
+            "# Two carts sell the last unit\n\nIssue: https://github.com/medusajs/medusa/issues/"
+            f"{case_id.split('-')[1]}\n"
             "\nTwo buyers complete at the same moment.\n",
             encoding="utf-8",
         )
@@ -113,6 +114,7 @@ def submit(scenario: str = SCENARIO, cause: str = "process-local-lock") -> ToolC
         "submit_attempt",
         file="packages/core/src/cart.ts",
         cause=cause,
+        expected_check="no_oversell",
         hypothesis="Two servers each reserve the last unit, so both orders go through.",
         scenario=scenario,
     )
@@ -153,7 +155,7 @@ def full_script():
         reply(call("search", text="reserveInventory", path="packages")),
         reply(submit(REFUSED)),
         reply(submit()),
-        reply(call("finish", summary="done")),
+        reply(call("finish", summary="done", claims=[])),
     ]
 
 
@@ -168,10 +170,12 @@ def test_a_scripted_trial_end_to_end(root, feedback):
     assert out[1].startswith("packages/core/src/cart.ts, lines 1 to 5 of 5")
     assert "reserveInventory" in out[2]
     assert out[3] == (
-        "Attempt 1 refused: a candidate may not set target.locking, only the harness sets them"
+        "Attempt 1 refused: a candidate may not set target.locking, only the harness sets them\n"
+        "Left: 300 runs, 11 attempts, 56 turns."
     )
+    assert out[4].endswith("\nLeft: 267 runs, 10 attempts, 55 turns.")
     if feedback == "none":
-        assert out[4] == "Attempt 2 recorded."
+        assert out[4] == "Attempt 2 accepted.\nLeft: 267 runs, 10 attempts, 55 turns."
     else:
         assert out[4].startswith("Attempt 2 ran 13 times on Medusa 2.22.0.")
         assert "no_oversell failed in 13 of 13" in out[4]
@@ -188,6 +192,8 @@ def test_a_scripted_trial_end_to_end(root, feedback):
     assert kinds[0] == "agent-trial" and kinds[-1] == "agent-end"
     preds = [r for r in records if r["kind"] == "prediction"]
     assert [(p["attempt"], p["refused"] is None) for p in preds] == [(1, False), (2, True)]
+    assert [p["expected_check"] for p in preds] == ["no_oversell", "no_oversell"]
+    assert records[-1]["claims"] == []
     final = next(r for r in records if r["kind"] == "final")
     assert final["source"] == "agent"
     assert final["violation"]["result"] == "violation"
@@ -216,10 +222,10 @@ def test_a_scenario_that_fails_validate_is_refused_and_costs_no_runs(root):
         return False, "scenario: invalid: carts: at least one cart"
 
     t, model, runner = trial(
-        root, [reply(submit()), reply(call("finish", summary="x"))], validate=bad
+        root, [reply(submit()), reply(call("finish", summary="x", claims=[]))], validate=bad
     )
     t.run()
-    assert results(model)[0] == (
+    assert results(model)[0].splitlines()[0] == (
         "Attempt 1 refused: oversold validate: scenario: invalid: carts: at least one cart"
     )
     assert runner.calls == []
@@ -238,18 +244,25 @@ def test_a_scenario_that_fails_validate_is_refused_and_costs_no_runs(root):
         ({"cause": "race-condition"}, "cause must be one id"),
         ({"file": "/etc/passwd"}, "file must be one source path"),
         ({"hypothesis": "a\n\nb"}, "one paragraph"),
+        ({"expected_check": "no_double_sale"}, "expected_check must be one of"),
+        ({"scenario": SCENARIO + "notes: hi\n"}, "may not set notes: not a field"),
     ],
 )
 def test_bad_submissions_are_refused(root, change, reason):
     args = {
         "file": "packages/core/src/cart.ts",
         "cause": "per-line-check",
+        "expected_check": "none",
         "hypothesis": "short",
         "scenario": SCENARIO,
         **change,
     }
     t, model, runner = trial(
-        root, [reply(ToolCall("s", "submit_attempt", args)), reply(call("finish", summary="x"))]
+        root,
+        [
+            reply(ToolCall("s", "submit_attempt", args)),
+            reply(call("finish", summary="x", claims=[])),
+        ],
     )
     t.run()
     assert reason in results(model)[0]
@@ -321,7 +334,7 @@ def test_the_dollar_cap_ends_the_trial(root):
 
 def test_old_tool_results_are_shortened(root):
     replies = [reply(call("read_file", path="packages/core/src/cart.ts")) for _ in range(9)]
-    replies.append(reply(call("finish", summary="x")))
+    replies.append(reply(call("finish", summary="x", claims=[])))
     t, model, _ = trial(root, replies)
     t.run()
     last = [m["content"] for m in model.seen[-1] if m["role"] == "tool"]
@@ -342,7 +355,11 @@ def test_read_file_gives_at_most_200_lines_and_cuts_at_12000_characters(root):
     big = root / "snapshots" / "medusa-2.22.0" / "packages" / "big.ts"
     big.write_text("".join(f"line {n} " + "x" * 100 + "\n" for n in range(1, 500)))
     t, model, _ = trial(
-        root, [reply(call("read_file", path="packages/big.ts")), reply(call("finish", summary="x"))]
+        root,
+        [
+            reply(call("read_file", path="packages/big.ts")),
+            reply(call("finish", summary="x", claims=[])),
+        ],
     )
     t.run()
     out = results(model)[0]
@@ -352,7 +369,10 @@ def test_read_file_gives_at_most_200_lines_and_cuts_at_12000_characters(root):
     small.write_text("".join(f"{n}\n" for n in range(1, 500)))
     t, model, _ = trial(
         root,
-        [reply(call("read_file", path="packages/small.ts")), reply(call("finish", summary="x"))],
+        [
+            reply(call("read_file", path="packages/small.ts")),
+            reply(call("finish", summary="x", claims=[])),
+        ],
         trial_id="agent-t2",
     )
     t.run()
@@ -372,7 +392,8 @@ def test_nothing_forbidden_reaches_the_model(root, task_mode, feedback):
         assert term not in seen, term
     assert "Two buyers complete at the same moment." in seen if task_mode == "guided" else True
     assert ("Bug report" in seen) == (task_mode == "guided")
-    assert "Seeded stock: WIDGET 10, SOLO 1." in seen
+    assert "| `OVS-SOLO` | `SOLO` | 1 | 1 |" in seen
+    assert "\\nchecks:" not in seen and "`checks`" not in seen
     assert "target.servers" in seen and "target.locking" not in json.dumps(model.seen[0])
 
 
@@ -381,20 +402,15 @@ def test_the_leak_guard_ends_a_trial(root):
     leaky.write_text("see pr-17420 for the fix\n")
     t, model, _ = trial(
         root,
-        [reply(call("read_file", path="packages/notes.ts")), reply(call("finish", summary="x"))],
+        [
+            reply(call("read_file", path="packages/notes.ts")),
+            reply(call("finish", summary="x", claims=[])),
+        ],
     )
     end = t.run()
     assert end["reason"].startswith("leak guard: a tool message holds")
     assert "17420" in end["reason"]
     assert len(model.seen) == 1
-
-
-def test_the_scenario_format_drops_harness_fields_and_variant_names(root):
-    terms = agent.forbidden_terms(root / "benchmark" / "cases")
-    text = (root / ".oversold" / "docs" / "scenario-format.md").read_text()
-    out = agent.model_scenario_format(text, terms)
-    assert "target.variant" not in out and "target.locking" not in out and "pr-16961" not in out
-    assert "| `target.servers` | integer |" in out
 
 
 def test_scripted_model_from_json():
@@ -433,3 +449,75 @@ def test_the_estimate_for_the_real_prompt(capsys):
 
 def test_env_example_has_only_the_key_name():
     assert (ROOT / ".env.example").read_text() == "ANTHROPIC_API_KEY=\n"
+
+
+def test_a_bad_path_shows_the_top_level_folders(root):
+    t, model, _ = trial(
+        root,
+        [
+            reply(call("read_file", path="src/index.ts")),
+            reply(call("finish", summary="x", claims=[])),
+        ],
+    )
+    t.run()
+    assert results(model)[0] == (
+        "error: src/index.ts: not found. Top-level folders in the snapshot: packages/"
+    )
+
+
+def test_tool_descriptions_name_the_snapshot():
+    for tool in agent.TOOLS[:3]:
+        assert "only Medusa 2.22.0's packages/ folder" in tool["description"]
+
+
+def test_claims_are_checked_before_finish_takes_effect(root):
+    replies = full_script()[:-1] + [
+        reply(
+            call(
+                "finish",
+                summary="x",
+                claims=[{"attempt": 3, "file": "packages/a.ts", "cause": "per-line-check"}],
+            )
+        ),
+        reply(
+            call(
+                "finish",
+                summary="x",
+                claims=[{"attempt": 2, "file": "packages/a.ts", "cause": "bad"}],
+            )
+        ),
+        reply(call("finish", summary="x")),
+        reply(call("finish", summary="x", claims=[{}] * 6)),
+        reply(
+            call(
+                "finish",
+                summary="found it",
+                claims=[
+                    {"attempt": 2, "file": "packages/core/src/cart.ts", "cause": "per-line-check"},
+                    {"attempt": 1, "file": "packages/core/src/cart.ts", "cause": "per-line-check"},
+                ],
+            )
+        ),
+    ]
+    t, model, _ = trial(root, replies)
+    end = t.run()
+    assert end["reason"] == "finished by the model"
+    assert end["turns"] == 10
+    out = results(model)
+    assert out[5].startswith("finish refused: claim 1: attempt must be the number of an attempt")
+    assert "claim 1: cause must be one id" in out[6]
+    assert "claims must be a list" in out[7]
+    assert "at most 5 claims" in out[8]
+    assert all(o.endswith("Call finish again with valid claims.") for o in out[5:9])
+    records = ledger.load(score.ledger_path_for(root))
+    assert records[-1]["claims"] == [
+        {"attempt": 2, "file": "packages/core/src/cart.ts", "cause": "per-line-check"},
+        {"attempt": 1, "file": "packages/core/src/cart.ts", "cause": "per-line-check"},
+    ]
+
+
+def test_a_trial_without_finish_has_no_claims(root):
+    t, _, _ = trial(root, [reply(call("list_files", path="packages"))], caps=Caps(turns=1))
+    end = t.run()
+    assert end["reason"] == "turn cap: 1 turns"
+    assert ledger.load(score.ledger_path_for(root))[-1]["claims"] is None
