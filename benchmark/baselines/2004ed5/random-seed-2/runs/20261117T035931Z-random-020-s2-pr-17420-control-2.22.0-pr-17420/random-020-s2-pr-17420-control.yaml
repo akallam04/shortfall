@@ -1,0 +1,42 @@
+schema: oversold.scenario/v1
+name: random-020-s2-pr-17420-control
+description: 'Variant control of random-020-s2 on Medusa 2.22.0 with pr-17420. Sweep
+  random candidate 20. 2 servers, 16 carts: 8 on server 2 holding OVS-TWOPACK 3; 8
+  on server 1 holding OVS-PIECE 1 and OVS-TWOPACK 3. Stock: WIDGET 117. Completions
+  released together.'
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-17420
+stock:
+  WIDGET: 117
+carts:
+  buyer-a:
+    server: 2
+    count: 8
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 3
+  buyer-b:
+    server: 1
+    count: 8
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+    - sku: OVS-TWOPACK
+      qty: 3
+race:
+- id: complete-a
+  server: 2
+  do: complete
+  cart: buyer-a
+- id: complete-b
+  server: 1
+  do: complete
+  cart: buyer-b
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 837521
