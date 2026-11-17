@@ -62,7 +62,8 @@ class Meter:
         )
 
     def paid_call(self, model: str, max_dollars: float, call: Callable[[], tuple[Any, Usage]]):
-        self.budget.reserve_dollars(max_dollars)
+        if max_dollars > 0:
+            self.budget.reserve_dollars(max_dollars)
         spend_id = self._spend_id()
         self._spend(
             spend_id=spend_id, item="paid_call", state="reserved", model=model, dollars=max_dollars

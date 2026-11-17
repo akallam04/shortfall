@@ -16,11 +16,11 @@ class ToolError(ValueError):
     pass
 
 
-def cut(text: str) -> str:
-    if len(text) <= MAX_CHARS:
+def cut(text: str, limit: int = MAX_CHARS) -> str:
+    if len(text) <= limit:
         return text
-    note = f"\n[cut at {MAX_CHARS} characters, the full result was {len(text)} characters]"
-    return text[: MAX_CHARS - len(note)] + note
+    note = f"\n[cut at {limit} characters, the full result was {len(text)} characters]"
+    return text[: limit - len(note)] + note
 
 
 def is_binary(data: bytes) -> bool:
@@ -43,8 +43,10 @@ def real_path(p: Path) -> Path | None:
 
 
 class Snapshot:
-    def __init__(self, root: str | Path):
+    def __init__(self, root: str | Path, max_lines: int = MAX_LINES, max_chars: int = MAX_CHARS):
         self.root = Path(root).resolve(strict=True)
+        self.max_lines = max_lines
+        self.max_chars = max_chars
         if not self.root.is_dir():
             raise ValueError(f"{root} is not a folder")
 
@@ -101,7 +103,7 @@ class Snapshot:
                 rows.append(f"{entry.name} ({entry.stat().st_size} bytes)")
                 files += 1
         head = f"{shown}: {folders} folders, {files} files"
-        return cut("\n".join([head, *rows]) if rows else f"{head}\n(empty)")
+        return cut("\n".join([head, *rows]) if rows else f"{head}\n(empty)", self.max_chars)
 
     def read_file(self, path: str, start: int = 1, end: int | None = None) -> str:
         if type(start) is not int or start < 1:
@@ -120,15 +122,15 @@ class Snapshot:
             return f"{shown}: empty file"
         if start > total:
             raise ToolError(f"{shown} has {total} lines, start {start} is past the end")
-        wanted = end if end is not None else start + MAX_LINES - 1
-        last = min(wanted, start + MAX_LINES - 1, total)
+        wanted = end if end is not None else start + self.max_lines - 1
+        last = min(wanted, start + self.max_lines - 1, total)
         rows = [f"{shown}, lines {start} to {last} of {total}"]
         rows += [f"{n:6d}\t{lines[n - 1]}" for n in range(start, last + 1)]
         if last < min(wanted, total):
-            rows.append(f"[at most {MAX_LINES} lines per call, read on with start={last + 1}]")
+            rows.append(f"[at most {self.max_lines} lines per call, read on with start={last + 1}]")
         elif last < total and end is None:
             rows.append(f"[{total - last} more lines, read on with start={last + 1}]")
-        return cut("\n".join(rows))
+        return cut("\n".join(rows), self.max_chars)
 
     def _files(self, real: Path):
         if real.is_file():
@@ -179,4 +181,4 @@ class Snapshot:
         rows = [head, *matches]
         if more:
             rows.append(f"[stopped at {MAX_MATCHES} matches, narrow the path or the text]")
-        return cut("\n".join(rows))
+        return cut("\n".join(rows), self.max_chars)

@@ -323,7 +323,7 @@ def test_summary_shows_the_three_results():
         (entry(1), lambda e: e["violation"].pop("runs"), "violation needs rules and runs"),
         (entry(1), lambda e: e["reproduced"].pop("rules"), "reproduced needs cases and rules"),
         (entry(1), lambda e: e.update(located={"result": "maybe"}), "located.result"),
-        (entry(1), lambda e: e.update(source="agent"), "source"),
+        (entry(1), lambda e: e.update(source="web"), "source"),
         (entry(1), lambda e: e.pop("timestamp"), "timestamp is required"),
         (entry(1), lambda e: e.pop("dollars"), "dollars is required"),
         (entry(1), lambda e: e.pop("check_versions"), "check_versions is required"),

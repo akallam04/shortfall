@@ -6,8 +6,10 @@ from pathlib import Path
 
 LEGACY_VERDICTS = ("match", "no match", "reproduction only", "inconclusive", "unpreparable")
 INTERRUPTED = "interrupted"
-SOURCES = ("sweep",)
-KINDS = ("started", "spend", "final", "trial")
+SOURCES = ("sweep", "agent")
+KINDS = ("started", "spend", "final", "trial", "agent-trial", "prediction", "agent-end")
+TASK_MODES = ("guided", "unguided")
+FEEDBACK_MODES = ("none", "history")
 MODES = ("grid", "random")
 SPEND_ITEMS = ("oversold_runs", "paid_call")
 VIOLATION_RESULTS = ("violation", "unpreparable", "inconclusive")
@@ -136,11 +138,61 @@ TRIAL_FIELDS = (
     "timestamp",
 )
 
+AGENT_TRIAL_FIELDS = (
+    "kind",
+    "attempt_id",
+    "source",
+    "trial_id",
+    "task_mode",
+    "feedback",
+    "issue",
+    "model",
+    "medusa_version",
+    "run_cap",
+    "attempt_cap",
+    "turn_cap",
+    "dollar_cap",
+    "oversold_commit",
+    "timestamp",
+)
+
+PREDICTION_FIELDS = (
+    "kind",
+    "attempt_id",
+    "source",
+    "trial_id",
+    "attempt",
+    "file",
+    "cause",
+    "hypothesis",
+    "scenario_sha256",
+    "refused",
+    "timestamp",
+)
+
+AGENT_END_FIELDS = (
+    "kind",
+    "attempt_id",
+    "source",
+    "trial_id",
+    "reason",
+    "turns",
+    "attempts",
+    "oversold_runs",
+    "dollars",
+    "input_tokens",
+    "output_tokens",
+    "timestamp",
+)
+
 FIELDS = {
     "started": STARTED_FIELDS,
     "spend": SPEND_FIELDS,
     "final": FINAL_FIELDS,
     "trial": TRIAL_FIELDS,
+    "agent-trial": AGENT_TRIAL_FIELDS,
+    "prediction": PREDICTION_FIELDS,
+    "agent-end": AGENT_END_FIELDS,
 }
 
 
@@ -191,6 +243,10 @@ def _local_markers() -> list[str]:
     if not home or home in ("~", "/"):
         return []
     return [home, os.path.dirname(home.rstrip("/")) + "/"]
+
+
+def looks_local(text: str) -> bool:
+    return text.startswith("/") or any(m in text for m in _local_markers())
 
 
 def _strings(value):
@@ -259,6 +315,9 @@ def validate(entry: dict, legacy: bool = True) -> None:
         "started": STARTED_REQUIRED,
         "spend": SPEND_FIELDS,
         "trial": TRIAL_FIELDS,
+        "agent-trial": AGENT_TRIAL_FIELDS,
+        "prediction": PREDICTION_FIELDS,
+        "agent-end": AGENT_END_FIELDS,
     }[kind]
     for key in entry:
         if key not in fields:
@@ -272,15 +331,25 @@ def validate(entry: dict, legacy: bool = True) -> None:
         _check_final(entry, problems)
     if kind == "trial":
         _check_trial(entry, problems)
+    if kind in ("agent-trial", "prediction", "agent-end") and entry.get("source") != "agent":
+        problems.append("an agent line needs source agent")
+    if kind == "agent-trial":
+        if entry.get("task_mode") not in TASK_MODES:
+            problems.append(f"task_mode must be one of {', '.join(TASK_MODES)}")
+        if entry.get("feedback") not in FEEDBACK_MODES:
+            problems.append(f"feedback must be one of {', '.join(FEEDBACK_MODES)}")
+    if kind == "prediction" and entry.get("refused") is None:
+        for key in ("file", "cause", "hypothesis", "scenario_sha256"):
+            if not (isinstance(entry.get(key), str) and entry[key].strip()):
+                problems.append(f"an accepted prediction needs {key}")
     if kind in (None, "final", "started", "trial") and entry.get("source") not in SOURCES:
         problems.append(f"source must be one of {', '.join(SOURCES)}")
     if kind == "final" and not _is_dollars(entry.get("dollars")):
         problems.append("dollars must be 0 or more")
     if kind == "spend":
         _check_spend(entry, problems)
-    markers = _local_markers()
     for text in _strings(entry):
-        if text.startswith("/") or any(m in text for m in markers):
+        if looks_local(text):
             problems.append(f"value looks like a local path: {text[:40]!r}")
             break
     if problems:
