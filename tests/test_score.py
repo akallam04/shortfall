@@ -14,6 +14,7 @@ from shortfall.control import variant
 ROOT = Path(__file__).resolve().parent.parent
 HISTORIES = Path(__file__).resolve().parent / "data" / "histories"
 CASES = score.load_cases(ROOT / "benchmark" / "cases")
+RULES_BY_CASE = {c.id: c.rule for c in CASES.values()}
 IMAGE = "sha256:" + "1" * 64
 PIN = "a18d5c9f3892dbca86effa0766e975985f8324bd"
 CONFIRM = "packages/core/core-flows/src/cart/steps/confirm-inventory.ts"
@@ -481,7 +482,8 @@ def test_session_cap_before_scoring_stops_cleanly(tmp_path, candidates):
     entry, stop, runner, _ = attempt(tmp_path, path, q, budget=Budget(session_runs=10))
     assert stop.startswith("session runs cap reached")
     assert entry["violation"]["result"] == "violation"
-    assert set(entry["reproduced"]["rules"].values()) == {score.NOT_ISOLATED}
+    assert set(entry["reproduced"]["rules"].values()) == {score.CUT_OFF}
+    assert entry["manual_check"] == []
     assert entry["oversold_runs"] == 3
 
 
@@ -1034,7 +1036,7 @@ def test_trial_summary(tmp_path, monkeypatch, capsys):
     FakeOversold.queues[f"{paths[0].stem}-pr-17420-control"] = many(("pass", 10))
     assert score.run_sweep(tmp_path, paths, "2.22.0", 0, "s", max_runs=33) == 0
     records = ledger.load(tmp_path / "runs" / "ledger.jsonl")
-    summary = score.trial_summary(records, sorted(CASES))
+    summary = score.trial_summary(records, RULES_BY_CASE)
     assert summary["cases"] == {
         LINES: {"reproduced": False, "runs_to_first": None},
         COUNTER: {"reproduced": True, "runs_to_first": 23},
@@ -1058,8 +1060,68 @@ def test_trial_summary(tmp_path, monkeypatch, capsys):
 def test_trial_summary_counts_candidates_never_reached(tmp_path, monkeypatch):
     paths = sweep_setup(tmp_path, monkeypatch, ["pass"] * 5)
     assert score.run_sweep(tmp_path, paths, "2.22.0", 0, "s", max_runs=10) == 0
-    summary = score.trial_summary(ledger.load(tmp_path / "runs" / "ledger.jsonl"), sorted(CASES))
+    summary = score.trial_summary(ledger.load(tmp_path / "runs" / "ledger.jsonl"), RULES_BY_CASE)
     assert (summary["reached"], summary["never_reached"], summary["runs_used"]) == (3, 2, 9)
     assert summary["cases_reproduced"] == 0
     with pytest.raises(ValueError, match="one trial line"):
-        score.trial_summary([], sorted(CASES))
+        score.trial_summary([], RULES_BY_CASE)
+
+
+def test_a_rule_cut_off_before_all_its_controls_ran(tmp_path, candidates):
+    a = candidates["s2-solo-c2-short-together"]
+    q = queues(
+        a,
+        many(("fail-no-oversell-and-reserved", 13)),
+        pr_16961=many(("fail-no-oversell", 10)),
+        pr_17420=many(("pass", 10)),
+    )
+    attempts, stop, _, _ = sweep_of(tmp_path, [(a, q)], budget=Budget(session_runs=23))
+    entry = attempts[0].entry
+    assert entry["stop_reason"].startswith("session runs cap reached")
+    assert entry["reproduced"]["rules"] == {
+        "no_oversell": score.CUT_OFF,
+        "reserved_matches_reservations": score.CUT_OFF,
+    }
+
+
+def test_the_summary_relabels_cut_off_lines_written_before_the_label(tmp_path):
+    entry = {
+        "stop_reason": "session runs cap reached: used 290 of 300, asked for 10 more",
+        "controls": [],
+        "reproduced": {"cases": {}, "rules": {"no_oversell": score.NOT_ISOLATED}},
+    }
+    assert score.rule_outcome(entry, "no_oversell", RULES_BY_CASE) == score.CUT_OFF
+    ran = dict(entry, controls=[{"cases": [LINES]}])
+    assert score.rule_outcome(ran, "no_oversell", RULES_BY_CASE) == score.CUT_OFF
+    ran = dict(entry, controls=[{"cases": [LINES]}, {"cases": [LAST_UNIT]}])
+    assert score.rule_outcome(ran, "no_oversell", RULES_BY_CASE) == score.NOT_ISOLATED
+    not_capped = dict(entry, stop_reason=None)
+    assert score.rule_outcome(not_capped, "no_oversell", RULES_BY_CASE) == score.NOT_ISOLATED
+
+
+BASELINES = ROOT / "benchmark" / "baselines" / "2004ed5"
+
+
+def test_baseline_summaries_from_the_committed_ledgers():
+    got = {}
+    for d in sorted(BASELINES.iterdir()):
+        records = ledger.load(d / "ledger.jsonl")
+        s = score.trial_summary(records, RULES_BY_CASE)
+        finals = [r for r in records if r.get("kind") == "final"]
+        assert s["runs_used"] == sum(r["oversold_runs"] for r in finals)
+        got[d.name] = (
+            s["runs_used"],
+            s["reached"],
+            s["cases_reproduced"],
+            s["violations"],
+            s["cause_not_isolated"],
+            s["cut_off_by_run_cap"],
+        )
+    assert got == {
+        "grid-seed-1": (298, 16, 3, 10, 0, 0),
+        "grid-seed-2": (293, 21, 3, 10, 0, 1),
+        "grid-seed-3": (297, 19, 3, 11, 0, 1),
+        "random-seed-1": (299, 51, 2, 7, 0, 1),
+        "random-seed-2": (296, 48, 3, 7, 0, 1),
+        "random-seed-3": (291, 59, 2, 6, 0, 1),
+    }

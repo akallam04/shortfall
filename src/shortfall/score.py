@@ -37,6 +37,7 @@ INCONCLUSIVE = "inconclusive"
 REPRODUCED = "reproduced"
 NOT_REPRODUCED = "not reproduced"
 NOT_ISOLATED = "violation, cause not isolated"
+CUT_OFF = "cut off by the run cap"
 HARNESS_ONLY = ("target.variant", "target.locking")
 CONTROLS = {
     "one-server": ("control", one_server),
@@ -589,6 +590,8 @@ class Attempt:
                 outcomes[rule] = REPRODUCED
             elif INCONCLUSIVE in mine:
                 outcomes[rule] = INCONCLUSIVE
+            elif cut_off(entry, rule, {c.id: c.rule for c in self.cases.values()}):
+                outcomes[rule] = CUT_OFF
             else:
                 outcomes[rule] = NOT_ISOLATED
                 note = (
@@ -614,10 +617,12 @@ def describe_entry(entry: dict) -> str:
     rules = ",".join(f"{r}={n}" for r, n in v["rules"].items()) or "none"
     reproduced = [c for c, r in entry["reproduced"]["cases"].items() if r == REPRODUCED]
     isolated = [r for r, o in entry["reproduced"]["rules"].items() if o == NOT_ISOLATED]
+    cut = [r for r, o in entry["reproduced"]["rules"].items() if o == CUT_OFF]
     return (
         f"{entry['attempt_id']} {Path(entry['scenario']).stem}: {v['result']} ({rules}) | "
         f"reproduced {','.join(reproduced) or 'none'}"
-        f"{' | ' + NOT_ISOLATED + ': ' + ','.join(isolated) if isolated else ''} | "
+        f"{' | ' + NOT_ISOLATED + ': ' + ','.join(isolated) if isolated else ''}"
+        f"{' | ' + CUT_OFF + ': ' + ','.join(cut) if cut else ''} | "
         f"located {entry['located']['result']} | runs {entry['oversold_runs']}"
         f"{' | stop: ' + entry['stop_reason'] if entry['stop_reason'] else ''}"
         f"{' | manual check' if entry.get('manual_check') else ''}"
@@ -700,7 +705,26 @@ def candidate_list_sha256(paths: list[Path]) -> str:
     return h.hexdigest()
 
 
-def trial_summary(records: list[dict], case_ids: list[str]) -> dict:
+def capped(entry: dict) -> bool:
+    return " cap reached: " in (entry.get("stop_reason") or "")
+
+
+def cut_off(entry: dict, rule: str, case_rules: dict[str, str]) -> bool:
+    if not capped(entry):
+        return False
+    mine = {case_id for case_id, r in case_rules.items() if r == rule}
+    ran = {case_id for c in entry["controls"] for case_id in c["cases"]}
+    return not mine <= ran
+
+
+def rule_outcome(entry: dict, rule: str, case_rules: dict[str, str]) -> str:
+    outcome = entry["reproduced"]["rules"][rule]
+    if outcome == NOT_ISOLATED and cut_off(entry, rule, case_rules):
+        return CUT_OFF
+    return outcome
+
+
+def trial_summary(records: list[dict], case_rules: dict[str, str]) -> dict:
     trials = [r for r in records if r.get("kind") == "trial"]
     if len(trials) != 1:
         raise ValueError(f"expected one trial line, found {len(trials)}")
@@ -724,14 +748,18 @@ def trial_summary(records: list[dict], case_ids: list[str]) -> dict:
         "never_reached": trial["candidates"] - reached,
         "cases": {
             case_id: {"reproduced": case_id in first, "runs_to_first": first.get(case_id)}
-            for case_id in case_ids
+            for case_id in sorted(case_rules)
         },
         "cases_reproduced": len(first),
         "violations": results.count(VIOLATION),
         "cause_not_isolated": sum(
-            outcome == NOT_ISOLATED
+            rule_outcome(e, rule, case_rules) == NOT_ISOLATED
             for e in entries
-            for outcome in e["reproduced"]["rules"].values()
+            for rule in e["reproduced"]["rules"]
+        ),
+        "cut_off_by_run_cap": sum(
+            any(rule_outcome(e, rule, case_rules) == CUT_OFF for rule in e["reproduced"]["rules"])
+            for e in entries
         ),
         "not_reproduced": sum(r.startswith("not reproduced within") for r in results),
         "unpreparable": results.count(UNPREPARABLE),
@@ -828,7 +856,7 @@ def run_sweep(
     session = [r for r in ledger.load(ledger_path) if r["attempt_id"].startswith(f"{stamp}-")]
     print(json.dumps(ledger.summary(session), indent=2))
     print("sweep: trial summary")
-    print(json.dumps(trial_summary(session, sorted(cases)), indent=2))
+    print(json.dumps(trial_summary(session, {c.id: c.rule for c in cases.values()}), indent=2))
     print(budget.describe())
     if stop and stop.startswith("uncovered"):
         return 3

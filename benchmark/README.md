@@ -252,7 +252,7 @@ Scoring runs the candidate 10 more times on plain Medusa 2.22.0. Then, for each 
 Each attempt gets three results:
 
 - **violation**: `violation` when at least one check failed in the candidate's runs on plain Medusa, with each failed rule and its count. Otherwise `not reproduced within N runs`, `unpreparable`, or `inconclusive` when every run was inconclusive.
-- **reproduced**, per case: `reproduced` when the case's rule failed in at least 1 of the 10 scoring runs and in 0 of the 10 runs on that case's scoring control, with no inconclusive control run. Otherwise `not reproduced`, or `inconclusive` when the control's rule held but a control run was inconclusive. A failed rule that no case's control clears is `violation, cause not isolated`, and it is not credited to any case. It always goes into the attempt's `manual_check` field and the list at the end of the sweep.
+- **reproduced**, per case: `reproduced` when the case's rule failed in at least 1 of the 10 scoring runs and in 0 of the 10 runs on that case's scoring control, with no inconclusive control run. Otherwise `not reproduced`, or `inconclusive` when the control's rule held but a control run was inconclusive. A failed rule that no case's control clears is `violation, cause not isolated`, and it is not credited to any case. It always goes into the attempt's `manual_check` field and the list at the end of the sweep. A failed rule whose scoring controls did not all run because the attempt reached a run cap is `cut off by the run cap` instead.
 - **located**: an attempt may name one source file and one cause from the cause list. For each case it reproduced, the file is graded by exact path against the case's `answer.yaml`, the cause by id, and located needs both. The three results are kept apart. Grid and random candidates name neither, so their located result is `not applicable`.
 
 The causes are fixed in [causes.yaml](causes.yaml):
@@ -318,14 +318,14 @@ Two baselines that use no model, measured on Medusa 2.22.0 at Oversold v0.1.1, c
 
 Each row is one trial. "Runs to first" is the number of runs the trial had used when the case was first reproduced, counting from the trial's first run.
 
-| Trial | Candidates reached | Runs used | Cases reproduced | Runs to first: medusa-17032-last-unit | medusa-17032-counter | medusa-16502-lines | Violations | Cause not isolated |
-|---|---|---|---|---|---|---|---|---|
-| [grid order seed 1](baselines/2004ed5/grid-seed-1/) | 16 of 32 | 298 | 3 of 3 | 144 | 39 | 29 | 10 | 0 |
-| [grid order seed 2](baselines/2004ed5/grid-seed-2/) | 21 of 32 | 293 | 3 of 3 | 81 | 81 | 26 | 10 | 2 |
-| [grid order seed 3](baselines/2004ed5/grid-seed-3/) | 19 of 32 | 297 | 3 of 3 | 33 | 33 | 157 | 11 | 2 |
-| [random seed 1](baselines/2004ed5/random-seed-1/) | 51 of 100 | 299 | 2 of 3 | 170 | 42 | not reproduced | 7 | 2 |
-| [random seed 2](baselines/2004ed5/random-seed-2/) | 48 of 100 | 296 | 3 of 3 | 103 | 103 | 51 | 7 | 1 |
-| [random seed 3](baselines/2004ed5/random-seed-3/) | 59 of 100 | 291 | 2 of 3 | 117 | 36 | not reproduced | 6 | 2 |
+| Trial | Candidates reached | Runs used | Cases reproduced | Runs to first: medusa-17032-last-unit | medusa-17032-counter | medusa-16502-lines | Violations | Cause not isolated | Cut off by the run cap |
+|---|---|---|---|---|---|---|---|---|---|
+| [grid order seed 1](baselines/2004ed5/grid-seed-1/) | 16 of 32 | 298 | 3 of 3 | 144 | 39 | 29 | 10 | 0 | 0 |
+| [grid order seed 2](baselines/2004ed5/grid-seed-2/) | 21 of 32 | 293 | 3 of 3 | 81 | 81 | 26 | 10 | 0 | 1 |
+| [grid order seed 3](baselines/2004ed5/grid-seed-3/) | 19 of 32 | 297 | 3 of 3 | 33 | 33 | 157 | 11 | 0 | 1 |
+| [random seed 1](baselines/2004ed5/random-seed-1/) | 51 of 100 | 299 | 2 of 3 | 170 | 42 | not reproduced | 7 | 0 | 1 |
+| [random seed 2](baselines/2004ed5/random-seed-2/) | 48 of 100 | 296 | 3 of 3 | 103 | 103 | 51 | 7 | 0 | 1 |
+| [random seed 3](baselines/2004ed5/random-seed-3/) | 59 of 100 | 291 | 2 of 3 | 117 | 36 | not reproduced | 6 | 0 | 1 |
 
 - Grid, across its 3 trials: each case was reproduced in 3 of 3 trials, with a median of 81 runs to first reproduction for medusa-17032-last-unit, 39 for medusa-17032-counter and 29 for medusa-16502-lines.
 - Random, across its 3 trials: medusa-17032-last-unit and medusa-17032-counter were reproduced in 3 of 3 trials, with medians of 117 and 42 runs, and medusa-16502-lines in 1 of 3 trials, at 51 runs.
@@ -335,7 +335,7 @@ Located is `not applicable` for both baselines, since they name no file and no c
 What else the trials show:
 
 - No trial reached a second pass. Each one spent its 300 runs before every candidate had its first screen, so no candidate got more than its first 3 runs unless it failed.
-- Every `cause not isolated` result came from the last attempt of its trial, which reached the 300-run cap before its scoring controls could run. Each is listed for a manual check in its trial's ledger.
+- No trial had a `violation, cause not isolated`. In five trials the last attempt found a violation but reached the 300-run cap before its scoring controls could run, so it is `cut off by the run cap`. These attempts were written to the ledgers before the label existed, as `violation, cause not isolated` with a manual check note, and the summary reads them as cut off because their stop reason is the run cap and their controls did not all run.
 - pr-16961 left `no_oversell` failing only on two-server candidates, and pr-17420 left it failing only on candidates with two lines on one item, so each oversell was credited only to the case whose control cleared it.
 - The grid trials had no inconclusive run. In the random trials, 7, 9 and 8 candidates could not be prepared, and 21 and 2 runs in the first two trials had a complete call that ended in HTTP 500, which counts as inconclusive.
 - No trial stopped for a failure outside the coverage map, a `no_missing_orders` failure or a harness error.
