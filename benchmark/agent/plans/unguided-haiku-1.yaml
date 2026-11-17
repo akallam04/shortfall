@@ -1,0 +1,23 @@
+schema: shortfall.plan/v1
+name: unguided-haiku-1
+model: claude-haiku-5-5
+mode: unguided
+cells:
+  - issue: null
+    feedback: none
+  - issue: null
+    feedback: history
+trials_per_cell: 3
+order: round-robin
+caps:
+  runs: 300
+  attempts: 30
+  turns: 100
+  dollars: 1
+dollar_cap: 3
+prompt_hash: 14a82a957b7b5b002037f7bde9978b692b1ba3bde93ac54ecc318a00f2b684cb
+oversold_pin: 2004ed534b765a3b3341efaadb3f352ffdecef90
+images:
+  2.22.0: sha256:c48358f78c193ccba70f4a7bf5e1e0048decb55bf4019cec48cc631658da0527
+  2.22.0-pr-17420: sha256:e3bcacbc669133e02b8372ceccf0e7184623625404fdf274a5880f392805e29a
+  2.22.0-pr-16961: sha256:0075cea17c12ad8e6db26908d310d823cad73216547ab3a6f05042a001e82a9c
