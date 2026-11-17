@@ -1,0 +1,39 @@
+schema: oversold.scenario/v1
+name: random-039-s2-pr-16961-control
+description: 'Variant control of random-039-s2 on Medusa 2.22.0 with pr-16961. Sweep
+  random candidate 39. 2 servers, 18 carts: 10 on server 2 holding OVS-PIECE 3; 8
+  on server 1 holding OVS-PIECE 3. Stock: WIDGET 33. Completions released together.'
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-16961
+stock:
+  WIDGET: 33
+carts:
+  buyer-a:
+    server: 2
+    count: 10
+    lines:
+    - sku: OVS-PIECE
+      qty: 3
+  buyer-b:
+    server: 1
+    count: 8
+    lines:
+    - sku: OVS-PIECE
+      qty: 3
+race:
+- id: complete-a
+  server: 2
+  do: complete
+  cart: buyer-a
+- id: complete-b
+  server: 1
+  do: complete
+  cart: buyer-b
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 181249
