@@ -1,0 +1,44 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 7
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 7
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "ensureInventoryLevels (line ~185) compares each reservation input's quantity against the level's available_quantity independently, never summing inputs that share an (inventory_item_id, location_id). Cart A (5 x OVS-PIECE) and cart B (3 x OVS-PIECE + 2 x OVS-TWOPACK, i.e. 7 WIDGET units) both complete together against stock 10. Each cart's aggregate is checked only in the per-line loop, so when A reserves 5 first, B's lines (3 and 4) each pass against 5 remaining, leading to reserved 12 of 10 and a negative available quantity. I expect no_oversell to fail in some runs, while reserved_matches_reservations should still hold since the counter is written consistently in a single process.",
+  "scenario_sha256": "2dddfa30423ac189dc47a37d48c3400d10a6e7eb4c2bd456b3e2e4cbf16fc3c4",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: multi-line-same-item-race\ndescription: Cart A holds 5 PIECE units; cart B holds 3 PIECE plus 2 TWOPACK (7 WIDGET units). Together they need 12 of 10 WIDGET. Both are completed together on one server.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 5\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 3\n    - sku: OVS-TWOPACK\n      qty: 2\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 1\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\n  request_timeout_ms: 30000\nfaults: []\nruns: 30\nseed: 17032\n"
+ }
+]

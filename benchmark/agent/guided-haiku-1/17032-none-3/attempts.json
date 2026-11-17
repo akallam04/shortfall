@@ -1,0 +1,44 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 11
+   },
+   "runs": 20
+  },
+  "plain_failed_rules": {
+   "no_oversell": 11
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 40,
+  "hypothesis": "ensureInventoryLevels (validateQuantityAtLocation loop, around lines 173-192) compares each reservation input alone against level.available_quantity and never sums inputs that share an (inventory_item_id, location_id). Two carts on one server, each holding WIDGET across multiple lines, are each checked against the same untouched level inside the per-item lock; the first reserves, then the second's per-line checks still pass because each line is small, so reserved exceeds stock. I expect at least some runs to show live reservations above stocked 10 (no_oversell fail, and reserved_matches_reservations likely holds since the counter is incremented per batch). Cart A: 5 x OVS-PIECE; cart B: 3 x OVS-PIECE plus 2 x OVS-TWOPACK (7 units). Both are completed together on one server.",
+  "scenario_sha256": "89dd765ef7108f19744480b44589375bdb26e59909b99bce008bb19cdca1bbe4",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: multi-line-carts-one-server\ndescription: Two carts on one server hold WIDGET on several lines, completed together; per-line checks may pass for both and oversell the 10 stocked units.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 5\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 3\n    - sku: OVS-TWOPACK\n      qty: 2\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 1\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 30\nseed: 17032\n"
+ }
+]

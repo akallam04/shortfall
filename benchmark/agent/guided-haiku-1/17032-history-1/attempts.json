@@ -1,0 +1,64 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": "a candidate may not set request_timeout_ms: not a field of the scenario format",
+  "ran": false,
+  "violation": null,
+  "plain_failed_rules": {},
+  "expected_check_failed": null,
+  "reproduced": null,
+  "located": null,
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": null,
+  "hypothesis": "ensureInventoryLevels (validateQuantityAtLocation loop, lines 173-191) checks each reservation input against level.available_quantity independently and never sums inputs sharing an (inventory_item_id, location_id). Two carts that each hold WIDGET on multiple lines (a piece and a two-pack) and are completed together should both pass the per-line check against a stock of 10 level, with reserved totals exceeding 10, so no_oversell should fail in some runs. Carts with a combined need above stock (cart A: 5 pieces; cart B: 3 pieces + 2 two-packs = 7 pieces-equivalent units, total 12 > 10) are the target.",
+  "scenario_sha256": null,
+  "scenario_file": null,
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: multi-line-concurrent-carts\ndescription: Two carts share the WIDGET item across multiple lines and are completed together on one server; per-line checks may each pass while the sum oversells stock of 10.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 5\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 3\n    - sku: OVS-TWOPACK\n      qty: 2\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 1\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nrequest_timeout_ms: 30000\nfaults: []\nruns: 30\nseed: 17032\n"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 5
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 5
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "ensureInventoryLevels (validateQuantityAtLocation loop, lines 173-191) checks each reservation input against level.available_quantity independently and never sums inputs sharing an (inventory_item_id, location_id). Two carts that each hold WIDGET on multiple lines and are completed together should both pass the per-line check against a stock of 10, with reserved totals exceeding 10, so no_oversell should fail in some runs.",
+  "scenario_sha256": "76ba6cbe20eea92dce4899ae1247b630e11bb369d1167434091594042a7af7be",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: multi-line-concurrent-carts\ndescription: Two carts share the WIDGET item across multiple lines and are completed together on one server; per-line checks may each pass while the sum oversells stock of 10.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 5\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 3\n    - sku: OVS-TWOPACK\n      qty: 2\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 1\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\n  request_timeout_ms: 30000\nfaults: []\nruns: 30\nseed: 17032\n"
+ }
+]

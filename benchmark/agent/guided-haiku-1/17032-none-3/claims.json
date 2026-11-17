@@ -1,0 +1,26 @@
+{
+ "summary": "Read the inventory reservation path against the bug report. In packages/modules/inventory/src/services/inventory-module.ts, ensureInventoryLevels (the validateQuantityAtLocation loop, lines ~173-192) checks each reservation input alone against level.available_quantity and never sums inputs that share an (inventory_item_id, location_id). The per-item lock in packages/core/core-flows/src/cart/steps/reserve-inventory.ts wraps createReservationItems, so the lock does not cover an aggregate check performed earlier in complete-cart. This matches the reported per-line-check cause. I submitted one attempt (multi-line carts on one server, expecting no_oversell to fail) but have not yet seen its run results, so the claim rests on the source reading rather than a reproduced oversell. The process-local-lock and stale-counter-write aspects of the report (absolute reserved_quantity write in createReservationItems_) also look real from source, but I did not test them.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

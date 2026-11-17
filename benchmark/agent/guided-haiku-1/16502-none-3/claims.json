@@ -1,0 +1,26 @@
+{
+ "summary": "Followed the bug report to packages/modules/inventory/src/services/inventory-module.ts. In ensureInventoryLevels (lines 173-192), the validateQuantityAtLocation loop checks each batch entry against the same un-decremented level.available_quantity, so multiple entries for one inventory item+location in a single createReservationItems call are never summed before the stock check. createReservationItems_ then writes the summed adjustment (lines 279-290), so reserved quantity can exceed stock. I submitted one attempt (a single cart with two lines sharing WIDGET, 12 units needed vs 10 stocked) expecting a no_oversell failure. I have not yet seen that attempt's run results, so the claim rests on the code reading rather than a confirmed reproduction.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

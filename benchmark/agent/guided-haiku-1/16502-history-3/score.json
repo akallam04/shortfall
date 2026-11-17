@@ -1,0 +1,79 @@
+{
+ "trial_id": "agent-20261117T181520Z",
+ "task_mode": "guided",
+ "feedback": "history",
+ "issue": "medusa-16502-lines",
+ "model": "claude-haiku-5-5",
+ "sdk_version": "2.9.0",
+ "knowledge_cutoff": "Jun 2026",
+ "caps": {
+  "runs": 300,
+  "attempts": 12,
+  "turns": 60,
+  "dollars": 1.0
+ },
+ "end_reason": "finished by the model",
+ "finished_by_model": true,
+ "turns": 9,
+ "attempts": 1,
+ "refused": 0,
+ "oversold_runs": 33,
+ "cases": {
+  "medusa-16502-lines": {
+   "reproduced": true,
+   "attempt": 1,
+   "runs_to_first": 23,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  },
+  "medusa-17032-counter": {
+   "reproduced": false
+  },
+  "medusa-17032-last-unit": {
+   "reproduced": false
+  }
+ },
+ "cases_reproduced": 1,
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ],
+ "claims_backed": 1,
+ "claims_unbacked": 0,
+ "expected_check": {
+  "hits": 1,
+  "of": 1
+ },
+ "manual_check": [],
+ "tokens": {
+  "input": 32670,
+  "cache_write": 11428,
+  "cache_read": 102191,
+  "output": 2523
+ },
+ "model_calls": 9,
+ "largest_prompt_tokens": 21276,
+ "dollars": 0.006979,
+ "wall_seconds": 169
+}

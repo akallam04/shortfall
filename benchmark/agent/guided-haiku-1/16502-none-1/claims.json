@@ -1,0 +1,26 @@
+{
+ "summary": "Read the inventory module. In ensureInventoryLevels (packages/modules/inventory/src/services/inventory-module.ts, ~lines 173-191), the validateQuantityAtLocation loop checks each batch entry against the same static level.available_quantity and never subtracts what earlier entries in the same batch claimed. createReservationItems_ then persists the summed adjustment for each (item, location). This matches the bug report's per-line-check defect: two entries for one inventory item in one batch can jointly over-reserve stock. I submitted one attempt (cart with OVS-PIECE x6 and OVS-TWOPACK x3 sharing WIDGET, 12 units vs 10 stock) expecting no_oversell to fail; the run results were not returned to me, so the claim rests on the source reading rather than an observed failure.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

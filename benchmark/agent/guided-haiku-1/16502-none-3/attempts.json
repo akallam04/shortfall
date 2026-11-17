@@ -1,0 +1,44 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 13
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 13
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "ensureInventoryLevels validates each batch entry against the same static available_quantity, so a cart with two lines sharing the WIDGET inventory item (OVS-PIECE x6 plus OVS-TWOPACK x3 = 12 units against 10 stocked) should pass the reservation check during complete-cart and create an order whose needed units exceed stock. I expect the single cart to complete successfully, producing an order that needs 12 WIDGET units against 10 stocked, which fails no_oversell (b), and reserved_matches_reservations should still pass since the summed counter matches the rows.",
+  "scenario_sha256": "dbf7679915b5da7db17e7acf9ea68f7f1f433b57e26c5f9e7138f1afbddeb05f",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: bundle-shared-widget-oversell\ndescription: One cart with two lines sharing the WIDGET inventory item needs 12 units against 10 stocked; the batch reservation should reject it.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  bundle-buyer:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 6\n    - sku: OVS-TWOPACK\n      qty: 3\nrace:\n- id: bundle-completes\n  server: 1\n  do: complete\n  cart: bundle-buyer\ntiming:\n  release: together\nfaults: []\nruns: 10\nseed: 1\n"
+ }
+]

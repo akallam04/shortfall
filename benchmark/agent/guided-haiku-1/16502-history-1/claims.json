@@ -1,0 +1,26 @@
+{
+ "summary": "The bug report's claim reproduces through the public checkout path. A single cart with two lines sharing the WIDGET inventory item (OVS-PIECE x6 plus OVS-TWOPACK x3, 12 units needed against 10 stocked) completed with an order in all 13 runs, leaving WIDGET reserved at 12 against stock 10. no_oversell failed in every run. The cause is in ensureInventoryLevels: when validateQuantityAtLocation is set, each batch entry is checked against the same un-decremented available_quantity, so entries sharing an (inventory item, location) pair are never summed before the reservation batch is written.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

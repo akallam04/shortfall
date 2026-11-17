@@ -1,0 +1,26 @@
+{
+ "summary": "I read the inventory module's batch reservation path. In ensureInventoryLevels (packages/modules/inventory/src/services/inventory-module.ts, lines 173-192), each entry in a createReservationItems batch is checked against the same static available_quantity and never reduced by earlier entries in that batch. createReservationItems_ (lines 277-307) then sums all entries per (inventory item, location) into reserved_quantity. So two lines that share an inventory item, in one batch, can together reserve more than stock. This matches the reported bug and the per-line-check cause. I submitted one attempt (a single cart with OVS-TWOPACK x4 and OVS-PIECE x4 against WIDGET stock 10, expecting no_oversell to fail). I have not yet seen its run results, so the claim rests on the code reading rather than an observed failure.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,26 @@
+{
+ "summary": "The bug report points to ensureInventoryLevels in the inventory module, which validates each entry of a reservation batch against the same un-decremented available_quantity. I tested it with one cart holding two lines that share WIDGET (6 x OVS-PIECE + 3 x OVS-TWOPACK = 12 units against 10 stocked). In all 13 runs the completion succeeded, left 12 WIDGET units reserved against 10 stocked, and no_oversell failed every time. The other four checks passed, which is consistent with the reservation counter summing the same entries. The root cause is the per-entry check in ensureInventoryLevels.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

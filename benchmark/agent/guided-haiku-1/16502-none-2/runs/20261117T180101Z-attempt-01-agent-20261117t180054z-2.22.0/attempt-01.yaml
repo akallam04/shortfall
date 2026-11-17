@@ -1,0 +1,28 @@
+schema: oversold.scenario/v1
+name: attempt-01-agent-20261117t180054z
+description: One cart holds two lines sharing the WIDGET inventory item whose combined
+  demand (8 + 4 = 12 units) exceeds the 10 stocked; completed once on one server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  bundle:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 4
+    - sku: OVS-PIECE
+      qty: 4
+race:
+- id: bundle-completes
+  server: 1
+  do: complete
+  cart: bundle
+timing:
+  release: together
+faults: []
+runs: 5
+seed: 1

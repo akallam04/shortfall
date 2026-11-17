@@ -1,0 +1,26 @@
+{
+ "summary": "Investigated the report's claim that concurrent carts can oversell an inventory item held on multiple lines. In packages/modules/inventory/src/services/inventory-module.ts, ensureInventoryLevels (validateQuantityAtLocation loop, ~lines 173-191) checks each reservation input against the level's available_quantity on its own and never sums inputs that share an inventory item and location, so a batch whose total exceeds availability still passes. createReservationItems_ and the update path also write reserved_quantity as an absolute value computed from an earlier read (lines ~292-307, ~694-709), which is the stale-counter-write pattern the report describes. I submitted one attempt (multi-line shared WIDGET item, 12 units against 10 stocked, raced on one server) expecting no_oversell to fail; I have not yet seen its result, so this claim rests on the code reading rather than a confirmed run. The stale-counter write is noted but not separately tested.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+schema: oversold.scenario/v1
+name: attempt-01-agent-20261117t182415z
+description: Two carts on one server hold WIDGET on several lines, completed together;
+  per-line checks may pass for both and oversell the 10 stocked units.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 5
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 3
+    - sku: OVS-TWOPACK
+      qty: 2
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 30
+seed: 17032

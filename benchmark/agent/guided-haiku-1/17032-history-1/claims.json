@@ -1,0 +1,26 @@
+{
+ "summary": "The bug report describes two problems: (1) concurrent carts that hold the same inventory item on multiple lines can oversell because the reservation validation checks each line alone, and (2) reserved_quantity can lose updates across processes. I tested (1) with a two-cart race on one server (cart A: 5 pieces; cart B: 3 pieces plus 2 two-packs, against WIDGET stock 10). In 5 of 13 runs both carts completed, reserving 12 units against 10 stocked, and no_oversell failed. The code cause is in packages/modules/inventory/src/services/inventory-module.ts, the validateQuantityAtLocation loop in ensureInventoryLevels (around lines 173-191), which compares each input against available_quantity without summing inputs that share a level. I did not test the cross-process lost-update path (2); the reserved_matches_reservations check did not fail in any run, so I make no claim about it.",
+ "claims": [
+  {
+   "attempt": 2,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

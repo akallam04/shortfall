@@ -1,0 +1,30 @@
+schema: oversold.scenario/v1
+name: attempt-01-agent-20261117t181231z-pr-16961-control
+description: Variant control of attempt-01-agent-20261117t181231z on Medusa 2.22.0
+  with pr-16961. One cart with two lines sharing the WIDGET inventory item needs 12
+  units against 10 stocked; the batch reservation should reject it.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+  variant: pr-16961
+stock:
+  WIDGET: 10
+carts:
+  bundle-buyer:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 6
+    - sku: OVS-TWOPACK
+      qty: 3
+race:
+- id: bundle-completes
+  server: 1
+  do: complete
+  cart: bundle-buyer
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 1

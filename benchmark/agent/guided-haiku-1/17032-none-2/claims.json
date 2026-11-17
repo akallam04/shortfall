@@ -1,0 +1,26 @@
+{
+ "summary": "I read the inventory reservation path in packages/modules/inventory/src/services/inventory-module.ts. ensureInventoryLevels, when validateQuantityAtLocation is set (as createReservationItems_ does), checks each reservation input's quantity against the level's available_quantity one at a time and never sums inputs that share an (inventory_item_id, location_id). A batch with several lines on the same item can therefore pass even when their total exceeds stock. I submitted attempt 1 (multi-line same-item race, expecting no_oversell to fail). Its run result was not returned to me, so the claim rests on the code reading, not on a observed failure. I did not investigate the process-local lock or the stale reserved_quantity write (createReservationItems_ writes an absolute value from an earlier read), so those are untested.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

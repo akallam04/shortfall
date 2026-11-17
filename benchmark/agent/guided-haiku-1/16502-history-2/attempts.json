@@ -1,0 +1,44 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 13
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 13
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "ensureInventoryLevels validates each entry of a reservation batch against the same un-decremented available_quantity, so two entries for WIDGET at the same location each pass while their sum exceeds the stock of 10. A single cart with two lines sharing WIDGET (OVS-PIECE x6 plus OVS-TWOPACK x3 = 12 WIDGET units) goes through complete-cart as one createReservationItems batch, so the order should be placed with 12 units reserved against 10 stocked. I expect no_oversell to fail (live reservations exceed stock and order demand exceeds stocked units), and reserved_matches_reservations should still hold because the counter sums the same entries.",
+  "scenario_sha256": "430daaac97359fe3b63d962af0107702a6f7234159e19162c3b3c63900421089",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: shared-widget-bundle-cart\ndescription: One cart holds two lines that share the WIDGET inventory item, totalling 12 units against 10 stocked, and is completed on one server.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  bundle-buyer:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 6\n    - sku: OVS-TWOPACK\n      qty: 3\nrace:\n- id: bundle-completes\n  server: 1\n  do: complete\n  cart: bundle-buyer\ntiming:\n  release: together\nfaults: []\nruns: 10\nseed: 1\n"
+ }
+]

@@ -1,0 +1,26 @@
+{
+ "summary": "Tested the report's main claim: concurrent carts holding one inventory item on multiple lines can oversell. The scenario (WIDGET stock 10; cart A 5 pieces, cart B 3 pieces + 2 twopacks, completed together) reproduced an oversell in 5 of 13 runs: both orders placed, WIDGET reserved 12 of stock 10, failing no_oversell. The other checks passed. Code reading supports the cause: ensureInventoryLevels in packages/modules/inventory/src/services/inventory-module.ts checks each reservation input against available_quantity separately (lines 173-191) and never sums inputs sharing an inventory item and location. I did not test the second-process lost-update (stale-counter-write) defect.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,44 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 13
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 13
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "ensureInventoryLevels validates each batch entry against the same un-decremented available_quantity, so entries sharing (inventory_item, location) are never summed. A single cart with two lines on the shared WIDGET item (OVS-PIECE x6 needs 6 units, OVS-TWOPACK x3 needs 6 units, total 12 against 10 stocked) should pass the per-entry check during complete-cart's reserve batch and be placed as an order, so the order needs more units than were stocked (no_oversell fails, and reserved_quantity may exceed stock). Expect the complete call to return an order.",
+  "scenario_sha256": "5f946fdbc36f3346b7fc040ba5d78039677019155700787d138ea9d6e876c906",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: bundle-shared-widget-batch\ndescription: One cart with two lines sharing the WIDGET inventory item needs 12 units against 10 stocked; completed once.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  bundle:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 6\n    - sku: OVS-TWOPACK\n      qty: 3\nrace:\n- id: bundle-completes\n  server: 1\n  do: complete\n  cart: bundle\ntiming:\n  release: together\nfaults: []\nruns: 10\nseed: 1\n"
+ }
+]
