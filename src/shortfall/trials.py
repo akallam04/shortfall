@@ -27,6 +27,8 @@ MIN_FREE_BYTES = 5 * 1024**3
 MIN_ROOM = 0.10
 ORDERS = ("round-robin",)
 WORDS_FILE = Path(".git") / "info" / "private-words"
+ALLOW_FILE = Path(".git") / "info" / "private-word-allow"
+MODEL_TEXT = "model text: "
 DASHES = re.compile("[\u2013\u2014]")
 QUOTE_WINDOW = 12
 
@@ -346,8 +348,12 @@ class Quotes:
 
 
 def decoded(text: str) -> str:
-    out = []
-    for raw in text.splitlines():
+    try:
+        whole = json.dumps(json.loads(text), ensure_ascii=False, indent=0)
+    except (json.JSONDecodeError, ValueError):
+        whole = None
+    out = [whole] if whole is not None else []
+    for raw in [] if whole is not None else text.splitlines():
         try:
             out.append(json.dumps(json.loads(raw), ensure_ascii=False, indent=0))
         except (json.JSONDecodeError, ValueError):
@@ -364,12 +370,74 @@ def private_words(root: Path) -> list[str] | None:
     return [x for x in lines if x]
 
 
+def allow_entries(root: Path) -> list[dict]:
+    path = Path(root) / ALLOW_FILE
+    if not path.is_file():
+        return []
+    return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
+
+
+def strings(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for v in value.values():
+            yield from strings(v)
+    elif isinstance(value, list):
+        for v in value:
+            yield from strings(v)
+
+
+def model_texts(folder: Path) -> list[str]:
+    path = folder / "transcript.jsonl.gz"
+    if not path.exists():
+        return []
+    out = []
+    for line in gzip.decompress(path.read_bytes()).decode("utf-8").splitlines():
+        event = json.loads(line)
+        if event.get("event") == "reply":
+            out += list(strings(event["message"]))
+    return out
+
+
+def sentence_at(text: str, start: int, end: int) -> str:
+    dot = text.rfind(". ", 0, start)
+    value = text.rfind('": "', 0, start)
+    left = max(
+        dot + 2 if dot >= 0 else 0,
+        value + 4 if value >= 0 else 0,
+        text.rfind("\n", 0, start) + 1,
+    )
+    stops = [i for i in (text.find(". ", end), text.find("\n", end)) if i >= 0]
+    right = min(stops) + 1 if stops else len(text)
+    return text[left:right].strip()
+
+
+def allowed(entries: list[dict], where: str, flat: str, start: int, end: int) -> bool:
+    for entry in entries:
+        if entry.get("path") != where:
+            continue
+        sentence = entry.get("sentence") or ""
+        at = flat.find(sentence)
+        while sentence and at >= 0:
+            if at <= start and end <= at + len(sentence):
+                return True
+            at = flat.find(sentence, at + 1)
+    return False
+
+
 def scan_export(
-    root: Path, folder: Path, quotes: Quotes, key: str | None, words: list[str] | None
+    root: Path,
+    folder: Path,
+    quotes: Quotes,
+    key: str | None,
+    words: list[str] | None,
+    allow: list[dict] | None = None,
 ) -> list[str]:
     problems = []
     if words is None:
         problems.append(f"no private word list at {WORDS_FILE}")
+    model = model_texts(folder)
     for path, text in texts(folder):
         rel = path.relative_to(folder)
         for marker in local_markers():
@@ -384,11 +452,20 @@ def scan_export(
             problems.append(f"{rel}: holds a raw dash character")
         flat = decoded(text)
         low = flat.lower()
+        where = score.relative(root, path)
         for word in words or []:
             for m in re.finditer(re.escape(word), low):
-                if not quotes.quoted(flat, m.start(), m.end(), word):
+                if quotes.quoted(flat, m.start(), m.end(), word):
+                    continue
+                if allowed(allow or [], where, flat, m.start(), m.end()):
+                    continue
+                left = flat[max(0, m.start() - QUOTE_WINDOW) : m.end()]
+                right = flat[m.start() : m.end() + QUOTE_WINDOW]
+                if any(left in t or right in t for t in model):
+                    sentence = sentence_at(flat, m.start(), m.end())
+                    problems.append(f"{MODEL_TEXT}{rel}: {word!r} in: {sentence}")
+                else:
                     problems.append(f"{rel}: {word!r} that is not a quote of Medusa or a report")
-                    break
     problems += gitleaks_findings(root, folder)
     return sorted(set(problems))
 
@@ -549,7 +626,9 @@ class Runner:
             key = load_key(env)
         words = private_words(self.root)
         self.scanner = scanner or (
-            lambda folder: scan_export(self.root, folder, self.quotes, key, words)
+            lambda folder: scan_export(
+                self.root, folder, self.quotes, key, words, allow_entries(self.root)
+            )
         )
 
     def default_model(self) -> agent.Model:
@@ -673,6 +752,11 @@ class Runner:
             bad += self.scanner(dest)
         except (RuntimeError, OSError) as err:
             bad = [f"export: {err}"]
+        held = [b for b in bad if b.startswith(MODEL_TEXT)]
+        if bad and len(held) == len(bad):
+            shutil.rmtree(dest, ignore_errors=True)
+            self.state.add("trial-held", trial=spec.id, run_id=run_id, notes=held)
+            return self.stop(stop) if stop else 0
         if bad:
             shutil.rmtree(dest, ignore_errors=True)
             self.state.add("trial-export-failed", trial=spec.id, run_id=run_id, problems=bad)

@@ -332,3 +332,50 @@ def test_the_committed_guided_plan():
     )
     assert plan.dollar_cap == 3.0 and plan.prompt_hash == freeze.recorded_hash(ROOT)
     assert plan.images["2.22.0"].startswith("sha256:c48358f7")
+
+
+def test_model_text_matches_and_the_local_allow_list(root, monkeypatch):
+    monkeypatch.setattr(trials, "gitleaks_findings", lambda r, folder: [])
+    folder = root / "benchmark" / "agent" / "p" / "t-1"
+    folder.mkdir(parents=True)
+    said = "Here the zebrafish rests on the report. Nothing else."
+    reply_event = {"event": "reply", "turn": 1, "message": {"role": "assistant", "content": said}}
+    (folder / "transcript.jsonl.gz").write_bytes(gzip.compress(json.dumps(reply_event).encode()))
+    (folder / "claims.json").write_text(json.dumps({"summary": said}))
+    (folder / "notes.json").write_text(json.dumps({"x": "a zebrafish from the harness"}))
+    quotes = trials.Quotes(root)
+    found = trials.scan_export(root, folder, quotes, None, ["zebrafish"])
+    assert (
+        "model text: claims.json: 'zebrafish' in: Here the zebrafish rests on the report." in found
+    )
+    assert "notes.json: 'zebrafish' that is not a quote of Medusa or a report" in found
+    allow = [
+        {"path": "benchmark/agent/p/t-1/claims.json", "sentence": "the zebrafish rests on"},
+        {"path": "benchmark/agent/p/t-1/transcript.jsonl.gz", "sentence": "the zebrafish rests on"},
+    ]
+    found = trials.scan_export(root, folder, quotes, None, ["zebrafish"], allow)
+    assert found == ["notes.json: 'zebrafish' that is not a quote of Medusa or a report"]
+
+
+def test_a_trial_with_only_model_text_matches_is_held_and_the_plan_goes_on(root):
+    calls = []
+
+    def scanner(folder):
+        calls.append(folder.name)
+        if len(calls) == 1:
+            return ["model text: claims.json: 'zebrafish' in: my zebrafish idea."]
+        return []
+
+    assert make_runner(root, write_plan(root), scanner=scanner).run() == 0
+    held = [e for e in events(root) if e["event"] == "trial-held"]
+    assert held[0]["notes"] == ["model text: claims.json: 'zebrafish' in: my zebrafish idea."]
+    assert kinds(root).count("trial-exported") == 1 and kinds(root)[-1] == "plan-done"
+    assert not (root / "runs" / "export" / "17032-none-1").exists()
+
+
+def test_a_path_match_still_stops_the_plan(root):
+    def scanner(folder):
+        return ["model text: a.json: 'zebrafish' in: x.", "a.json: holds a local path"]
+
+    assert make_runner(root, write_plan(root), scanner=scanner).run() == 1
+    assert kinds(root)[-2:] == ["trial-export-failed", "plan-stop"]
