@@ -16,5 +16,5 @@ The trial is in [16502-history-1/](16502-history-1/):
 - `attempts.json` and `attempts/`: each attempt as submitted and as run, with its prediction and results.
 - `claims.json`: empty, since finish took no claims then.
 - `ledger.jsonl`: the trial's ledger lines.
-- `transcript.jsonl.gz`: everything the model was shown and wrote, with anything that looks like a key masked. It quotes Medusa source code, which is under the MIT license.
+- `transcript.jsonl.gz`: everything the model was shown and wrote, with anything that looks like a key masked. It quotes Medusa source code from files under the [MIT license](https://github.com/medusajs/medusa/blob/v2.22.0/LICENSE), and none from Medusa's Enterprise Edition files, which are under a different license.
 - `runs/`: every Oversold run with its full history, rechecked by `oversold check --verify` in CI.

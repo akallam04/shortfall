@@ -31,9 +31,13 @@ Two simple methods that use no AI were measured for comparison, each in 3 trials
 - A fixed list of test shapes found all three scenarios in 3 of 3 trials.
 - Randomly drawn tests found the two #17032 scenarios in 3 of 3 trials and the #16502 scenario in 1 of 3.
 
+## What the agent has done so far
+
+The AI agent has run 12 guided trials with the model Claude Haiku 5.5. In a guided trial the agent is given the public bug report, like an open-book test. With the #16502 report, all 6 trials reproduced that bug. With the #17032 report, 5 of 6 trials reproduced the #16502 bug instead, and none reproduced #17032. Each trial and its full record is on [the agent trials page](benchmark/agent/README.md).
+
 ## What is not done yet
 
-The AI agent is built and can now call a real AI model, but no trial of it has been published. No results for it are published yet.
+Guided trials are not a fair comparison with the two simple methods above, because the agent was given the bug report. The fair comparison will come from unguided trials, where the agent gets no bug report. Those have not run yet.
 
 ## Why you can trust the numbers
 
@@ -98,14 +102,18 @@ make engine-down
 
 ## The agent
 
-`src/shortfall/agent.py` runs one trial of the agent. The model can list, read and search the Medusa 2.22.0 source, submit an attempt (a file, a cause from a fixed list, a short hypothesis and a scenario) and finish. Each attempt and its prediction go into `runs/ledger.jsonl` before its first run, and each is scored the same way as the baselines. A trial stops at 300 runs, 12 attempts, 60 model turns or a dollar cap. In the `none` feedback mode the model only learns that an attempt was recorded. In the `history` mode it also sees, for the runs on plain Medusa only, how often each check failed and a short summary of each run. It never sees control runs, the benchmark cases or their answers. The prompts are in `src/shortfall/prompts/`.
+`src/shortfall/agent.py` runs one trial of the agent. The model can list, read and search the Medusa 2.22.0 source, submit an attempt (a file, a cause from a fixed list, the check it expects to fail, a short hypothesis and a scenario) and finish with its claims. Each attempt and its prediction go into `runs/ledger.jsonl` before its first run, and each is scored the same way as the baselines. A trial stops at 300 runs, 12 attempts, 60 model turns or a dollar cap. In the `none` feedback mode the model only learns whether an attempt was accepted or refused, and how many runs, attempts and turns are left. In the `history` mode it also sees, for the runs on plain Medusa only, how often each check failed and a short summary of each run. It never sees control runs, the benchmark cases or their answers. The prompts are in `src/shortfall/prompts/`, and the scenario format text the model reads is built from the same list of fields that the candidate check accepts, in `src/shortfall/scenario_format.py`. One sha256 over everything the model is shown and the loop settings is kept in [benchmark/agent/prompts.sha256](benchmark/agent/prompts.sha256).
 
 `src/shortfall/models.py` connects the agent to Claude through the official `anthropic` Python SDK, pinned in `pyproject.toml`. It knows `claude-haiku-5-5` and `claude-sonnet-5-5`. Each call may write up to 2,000 output tokens and runs without extended thinking (on Claude Sonnet 5.5, which cannot turn thinking off, at its lowest setting). The tool definitions and the system prompt are cached, and a second cache marker moves along the conversation to the last message that the next turn will send unchanged. Prices are dated constants taken from the [pricing page](https://platform.claude.com/docs/en/about-claude/pricing). Before each call the trial reserves the most the call could cost, and afterwards it records the real cost from the response's usage: input, cache write, cache read and output tokens. A call that would pass the trial's dollar cap or the $20 total is not made. Rate-limit and server errors are retried at most twice, and billing or authentication errors end the trial. The API key is read only from `.env`, which git ignores, and anything that looks like a key is masked in the ledger and in transcripts.
 
-A trial with a real model needs the key in `.env` (copy `.env.example`), the engine and Oversold's Postgres:
+`src/shortfall/trials.py` runs a plan of trials, such as [benchmark/agent/plans/guided-haiku-1.yaml](benchmark/agent/plans/guided-haiku-1.yaml), in round-robin order. Before each trial it checks the engine, the image ids, the prompt hash, the Oversold pin, the dollar room and the free disk space, and it stops the plan on any mismatch. A trial that was interrupted is rerun from the start with a new id. Each finished trial is exported under `benchmark/agent/<plan>/`, its histories are verified, and its files are scanned for local paths and keys before it counts as exported. A plan with a real model needs the key in `.env` (copy `.env.example`), the engine and Oversold's Postgres:
 
 ```bash
-.venv/bin/python -m shortfall.agent run --model claude-haiku-5-5 --task-mode guided --issue medusa-16502-lines --feedback history --max-runs 120 --max-attempts 6 --max-turns 40 --raise-dollar-cap 0.50
+.venv/bin/python -m shortfall.trials benchmark/agent/plans/guided-haiku-1.yaml --raise-dollar-cap 3
+```
+
+```bash
+.venv/bin/python -m shortfall.trials --status benchmark/agent/plans/guided-haiku-1.yaml
 ```
 
 ## Benchmark
