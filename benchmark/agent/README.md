@@ -54,25 +54,37 @@ Each cell says in how many of 3 trials the test scenario was reproduced, and the
 
 | Test scenario | Grid (no AI) | Random (no AI) | Agent, unguided, feedback none | Agent, unguided, feedback history |
 |---|---|---|---|---|
-| medusa-17032-last-unit | 3 of 3, median 81 | 3 of 3, median 117 | 3 of 3, median 33 | held for review |
-| medusa-17032-counter | 3 of 3, median 39 | 3 of 3, median 42 | 3 of 3, median 33 | held for review |
-| medusa-16502-lines | 3 of 3, median 29 | 1 of 3, at 51 | 2 of 3, median 56 | held for review |
+| medusa-17032-last-unit | 3 of 3, median 81 | 3 of 3, median 117 | 3 of 3, median 33 | 1 of 3, at 53 |
+| medusa-17032-counter | 3 of 3, median 39 | 3 of 3, median 42 | 3 of 3, median 33 | 2 of 3, median 38 |
+| medusa-16502-lines | 3 of 3, median 29 | 1 of 3, at 51 | 2 of 3, median 56 | 0 of 3 |
 
 This is a small sample: 3 trials per method. No difference in this table is called significant.
 
-The three unguided trials with feedback history are held for a manual review and are not published yet, so their column is empty.
-
 In the three unguided trials with feedback none, the agent named the file and the cause in the answer key every time it reproduced a #17032 scenario. When it reproduced medusa-16502-lines, the cause matched the answer key and the file did not. Each of these trials stopped on its own after 2 attempts and 66 of its 300 runs.
+
+In the three unguided trials with feedback history, the cause matched the answer key every time a #17032 scenario was reproduced, and the file matched in one of the three reproductions. These trials stopped on their own after 23 to 53 runs.
 
 ## Plan unguided-haiku-1
 
-The [plan file](plans/unguided-haiku-1.yaml) asked for 6 unguided trials with `claude-haiku-5-5`, 3 with feedback none and 3 with feedback history, on prompt version v2. All 6 ended with the agent calling finish. The 3 published trials used 198 runs and cost $0.0202.
+The [plan file](plans/unguided-haiku-1.yaml) asked for 6 unguided trials with `claude-haiku-5-5`, 3 with feedback none and 3 with feedback history, on prompt version v2. All 6 ended with the agent calling finish. Together they used 314 runs and cost $0.0479.
 
 | Trial | Feedback | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed / unbacked | Expected check failed | Dollars |
 |---|---|---|---|---|---|---|---|---|
 | [unguided-none-1](unguided-haiku-1/unguided-none-1/) | none | 10 | 2 (0) | 66 | medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | 0 / 0 | 2 of 2 | 0.0068 |
 | [unguided-none-2](unguided-haiku-1/unguided-none-2/) | none | 10 | 2 (0) | 66 | medusa-16502-lines (run 56), medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | 1 / 0 | 2 of 2 | 0.0039 |
 | [unguided-none-3](unguided-haiku-1/unguided-none-3/) | none | 15 | 2 (0) | 66 | medusa-16502-lines (run 56), medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | 0 / 0 | 2 of 2 | 0.0095 |
+| [unguided-history-1](unguided-haiku-1/unguided-history-1/) | history | 11 | 3 (0) | 53 | medusa-17032-counter (run 53), medusa-17032-last-unit (run 53) | 1 / 0 | 1 of 3 | 0.0062 |
+| [unguided-history-2](unguided-haiku-1/unguided-history-2/) | history | 14 | 1 (0) | 23 | medusa-17032-counter (run 23) | 1 / 0 | 1 of 1 | 0.0107 |
+| [unguided-history-3](unguided-haiku-1/unguided-history-3/) | history | 15 | 4 (1) | 40 | none | 1 / 0 | 1 of 3 | 0.0108 |
+
+The three trials with feedback history were held and reviewed before they were published. In two of them, one check failed in a single run and not again in that attempt's scoring runs, so the score could not pin the failure on one case. For each of these two, the exact scenario of that attempt was run again 60 times on plain Medusa 2.22.0, 60 times with the fix from pull request #17420, and 60 times with Medusa's Redis locking. These review runs were made after the trial, only to decide whether to publish it. They do not change the trial's score or its runs to first reproduction.
+
+| Trial | Scenario | Check | Plain Medusa | With the #17420 fix | With Redis locking |
+|---|---|---|---|---|---|
+| unguided-history-2 | 12 carts with one OVS-PIECE each and 10 WIDGET in stock; every cart is completed twice at the same moment, once on each of two servers | no_oversell | 3 of 60 | 0 of 60 | 0 of 60 |
+| unguided-history-3 | 3 carts with one OVS-SOLO each on two servers, SOLO stock raised to 5 before the race, all completed together | reserved_matches_reservations | 1 of 60 | 0 of 60 | 0 of 60 |
+
+No other check failed on the fix or with Redis locking in these runs. Both failures are labeled "covered by #17032, rare in this scenario": two servers with in-memory locking, which issue #17032 describes. Each trial's review runs are in its `review/` folder, with a `review.json` summary.
 
 ## Plan guided-haiku-2
 
