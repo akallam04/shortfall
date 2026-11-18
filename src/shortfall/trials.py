@@ -255,6 +255,7 @@ class State:
         self.folder.mkdir(parents=True, exist_ok=True)
         self.events_path = self.folder / "events.jsonl"
         self.pid_path = self.root / "runs" / "trials" / f"{plan.name}.pid"
+        self.pause_path = self.root / "runs" / "trials" / f"{plan.name}.pause"
 
     def events(self) -> list[dict]:
         if not self.events_path.exists():
@@ -889,6 +890,9 @@ class Runner:
                     self.state.add("trial-interrupted", trial=spec.id, run_id=run_id)
             if len(st["unfinished"]) >= 2:
                 return self.stop(f"trial {spec.id} was interrupted twice")
+            if self.state.pause_path.exists():
+                self.state.add("plan-paused", before=spec.id)
+                return 0
             problems = preflight(self.root, self.plan, self.cap, self.checks, spec)
             if problems:
                 return self.stop("; ".join(problems))
@@ -1157,7 +1161,7 @@ def status(root: Path, plan: Plan) -> dict:
     if state.pid_path.exists():
         pid = int(state.pid_path.read_text().strip() or 0)
         alive = bool(pid) and pid_alive(pid)
-    stops = [e for e in events if e["event"] in ("plan-stop", "plan-done")]
+    stops = [e for e in events if e["event"] in ("plan-stop", "plan-done", "plan-paused")]
     return {
         "plan": plan.name,
         "trials": len(trial_order(plan)),
@@ -1171,6 +1175,7 @@ def status(root: Path, plan: Plan) -> dict:
         "pid": pid,
         "alive": alive,
         "last_stop": stops[-1] if stops else None,
+        "pause_file": state.pause_path.exists(),
     }
 
 

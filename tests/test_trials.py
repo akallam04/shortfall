@@ -754,3 +754,15 @@ def test_the_scale_10_plan():
     )
     assert plan.baseline_runs == 300 and plan.dollar_cap == 3.0 and plan.model == "claude-haiku-5-5"
     assert len(plan.report) == 7
+
+
+def test_a_pause_file_stops_the_plan_before_the_next_trial(root):
+    path = write_plan(root)
+    runner = make_runner(root, path)
+    runner.state.pause_path.write_text("")
+    assert runner.run() == 0
+    assert kinds(root)[-1] == "plan-paused" and "trial-start" not in kinds(root)
+    assert trials.status(root, runner.plan)["pause_file"] is True
+    runner.state.pause_path.unlink()
+    assert make_runner(root, path).run() == 0
+    assert kinds(root).count("trial-exported") == 2
