@@ -113,3 +113,19 @@ def test_the_prompt_hash_moves_with_what_the_model_is_shown(tmp_path, monkeypatc
     changed = freeze.prompt_hash(root)
     monkeypatch.setattr(agent, "KEEP_TURNS", 6)
     assert freeze.prompt_hash(root) != changed
+
+
+def test_the_variants_hash_differently_and_v2_has_no_variant_key(tmp_path):
+    from test_agent import make_root
+
+    root = make_root(tmp_path)
+    assert "variant" not in freeze.manifest(root)
+    assert freeze.manifest(root, "v2-nomenu")["variant"] == "v2-nomenu"
+    assert freeze.prompt_hash(root) != freeze.prompt_hash(root, "v2-nomenu")
+
+
+@pytest.mark.skipif(not (CHECKS_DOC.exists() and ISSUES.exists()), reason="no local snapshots")
+def test_the_recorded_nomenu_hash_is_current():
+    assert freeze.recorded_hash(ROOT, "v2-nomenu") == freeze.prompt_hash(ROOT, "v2-nomenu")
+    text = (ROOT / freeze.HASH_FILES["v2-nomenu"]).read_text()
+    assert "Prompt version v2-nomenu." in text and "causes.yaml" not in text

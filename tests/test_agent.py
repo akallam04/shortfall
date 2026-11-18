@@ -550,3 +550,54 @@ def test_the_trial_hides_enterprise_files(root):
     assert results(model)[0].startswith(
         "error: packages/core/src/cart.ts: this file is not available"
     )
+
+
+def test_the_nomenu_variant_drops_the_causes(root):
+    tools = agent.tools_for("v2-nomenu")
+    submit = next(t for t in tools if t["name"] == "submit_attempt")
+    finish = next(t for t in tools if t["name"] == "finish")
+    assert "cause" not in submit["parameters"]["properties"]
+    assert "cause" not in submit["parameters"]["required"]
+    assert "cause" not in finish["parameters"]["properties"]["claims"]["items"]["properties"]
+    assert "cause" not in json.dumps(tools).lower().replace("the cause,", "")
+    assert agent.tools_for("v2") is agent.TOOLS
+    terms = agent.forbidden_terms(root / "benchmark" / "cases")
+    menu = agent.opening(root, "unguided", None, terms)
+    plain = agent.opening(root, "unguided", None, terms, "v2-nomenu")
+    assert "Causes you can name" in menu[1]["content"]
+    assert "Causes you can name" not in plain[1]["content"]
+    assert "cause id" in menu[0]["content"] and "cause id" not in plain[0]["content"]
+    assert menu[1]["content"].replace(menu[1]["content"].split("\n\n")[0], "") != ""
+    with pytest.raises(ValueError):
+        agent.tools_for("v3")
+
+
+def test_a_nomenu_trial_runs_without_causes(root):
+    replies = [
+        reply(
+            call(
+                "submit_attempt",
+                file="packages/core/src/cart.ts",
+                expected_check="no_oversell",
+                hypothesis="Two servers each reserve the last unit.",
+                scenario=SCENARIO,
+            )
+        ),
+        reply(
+            call(
+                "finish", summary="x", claims=[{"attempt": 1, "file": "packages/core/src/cart.ts"}]
+            )
+        ),
+    ]
+    t, model, _ = trial(root, replies, variant="v2-nomenu")
+    end = t.run()
+    assert end["reason"] == "finished by the model"
+    records = ledger.load(score.ledger_path_for(root))
+    assert records[0]["prompts"] == "v2-nomenu"
+    pred = next(r for r in records if r["kind"] == "prediction")
+    assert pred["cause"] is None and pred["refused"] is None
+    assert records[-1]["claims"] == [{"attempt": 1, "file": "packages/core/src/cart.ts"}]
+    final = next(r for r in records if r["kind"] == "final")
+    graded = final["located"]["cases"]["medusa-17032-last-unit"]
+    assert graded["cause"] == "not named"
+    assert all("cause" not in json.dumps(t) for t in model.seen[0][:0])

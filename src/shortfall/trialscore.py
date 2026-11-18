@@ -98,7 +98,7 @@ def score_trial(root: Path, records: list[dict]) -> dict:
                 "grades": {
                     case_id: {
                         k: v
-                        for k, v in grade(info.folder, c["file"], c["cause"]).items()
+                        for k, v in grade(info.folder, c["file"], c.get("cause")).items()
                         if k in ("file", "cause")
                     }
                     for case_id, info in sorted(cases.items())

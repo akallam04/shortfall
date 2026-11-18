@@ -1,4 +1,5 @@
 import argparse
+import copy
 import datetime
 import hashlib
 import json
@@ -39,6 +40,8 @@ SNAPSHOT_NOTE = (
 )
 EXPECTED_CHECKS = (*CHECK_NAMES, "none")
 MAX_CLAIMS = 5
+VARIANTS = ("v2", "v2-nomenu")
+NOMENU = "v2-nomenu"
 
 TOOLS = [
     {
@@ -255,7 +258,35 @@ def check_leaks(messages: list[dict], terms: tuple[str, ...]) -> None:
                 raise LeakError(f"a {message['role']} message holds {term!r}")
 
 
-def opening(root: Path, task_mode: str, issue: str | None, terms: tuple[str, ...]) -> list[dict]:
+def tools_for(variant: str) -> list[dict]:
+    if variant not in VARIANTS:
+        raise ValueError(f"prompt variant must be one of {', '.join(VARIANTS)}")
+    if variant != NOMENU:
+        return TOOLS
+    tools = copy.deepcopy(TOOLS)
+    submit = next(t for t in tools if t["name"] == "submit_attempt")
+    submit["description"] = (
+        "Submit one attempt: the source file you think holds the cause, the one check you "
+        "expect to fail, a short paragraph with your hypothesis, and the scenario YAML that "
+        "tests it."
+    )
+    del submit["parameters"]["properties"]["cause"]
+    submit["parameters"]["required"].remove("cause")
+    finish = next(t for t in tools if t["name"] == "finish")
+    finish["description"] = (
+        "End the trial with a short summary and your claims: for each attempt you believe "
+        f"found a real problem, its number and the source file. At most {MAX_CLAIMS} claims, "
+        "or none."
+    )
+    items = finish["parameters"]["properties"]["claims"]["items"]
+    del items["properties"]["cause"]
+    items["required"].remove("cause")
+    return tools
+
+
+def opening(
+    root: Path, task_mode: str, issue: str | None, terms: tuple[str, ...], variant: str = "v2"
+) -> list[dict]:
     causes = load_causes(root / "benchmark" / "causes.yaml")
     docs = root / ".oversold" / "docs"
     parts = []
@@ -275,8 +306,12 @@ def opening(root: Path, task_mode: str, issue: str | None, terms: tuple[str, ...
         "Scenario format:\n\n" + format_text(),
         "Check rules:\n\n" + check_rules_text((docs / "checks.md").read_text(encoding="utf-8")),
     ]
+    system = "system.md"
+    if variant == NOMENU:
+        parts = [p for p in parts if not p.startswith("Causes you can name:")]
+        system = "system-nomenu.md"
     return [
-        {"role": "system", "content": (PROMPTS / "system.md").read_text(encoding="utf-8").strip()},
+        {"role": "system", "content": (PROMPTS / system).read_text(encoding="utf-8").strip()},
         {"role": "user", "content": "\n\n".join(parts)},
     ]
 
@@ -382,6 +417,7 @@ class Trial:
         keep_turns: int = KEEP_TURNS,
         shorten_every: int = SHORTEN_EVERY,
         sleep: Callable[[float], None] = time.sleep,
+        variant: str = "v2",
     ):
         if task_mode not in ledger.TASK_MODES:
             raise ValueError(f"task mode must be one of {', '.join(ledger.TASK_MODES)}")
@@ -401,6 +437,8 @@ class Trial:
         self.keep_turns = keep_turns
         self.shorten_every = shorten_every
         self.sleep = sleep
+        self.variant = variant
+        self.tools = tools_for(variant)
         self.ledger_path = score.ledger_path_for(self.root)
         self.folder = self.root / "runs" / "agent" / trial_id
         self.folder.mkdir(parents=True, exist_ok=False)
@@ -417,7 +455,7 @@ class Trial:
         before = ledger.spent(ledger.load(self.ledger_path))["dollars"]
         self.budget = from_flags(self.caps.runs, self.caps.dollars or None, before)
         self.meter = Meter(self.ledger_path, self.budget, f"{trial_id}-model")
-        self.messages = opening(self.root, task_mode, issue, self.terms)
+        self.messages = opening(self.root, task_mode, issue, self.terms, variant)
         self.turns = 0
         self.attempts = 0
         self.tokens = {"input": 0, "cache_write": 0, "cache_read": 0, "output": 0}
@@ -482,6 +520,7 @@ class Trial:
                 "feedback": self.feedback,
                 "issue": self.issue,
                 "model": self.model.name,
+                "prompts": self.variant,
                 "sdk_version": getattr(self.model, "sdk_version", None),
                 "knowledge_cutoff": getattr(self.model, "knowledge_cutoff", None),
                 "medusa_version": VERSION,
@@ -576,7 +615,7 @@ class Trial:
         view = self.model_view()
 
         def call():
-            reply = self.model.reply(view, TOOLS)
+            reply = self.model.reply(view, self.tools)
             usage = Usage(
                 self.model.name,
                 reply.input_tokens,
@@ -589,7 +628,7 @@ class Trial:
 
         for retry in range(MODEL_RETRIES + 1):
             try:
-                cap = self.model.max_dollars(view, TOOLS)
+                cap = self.model.max_dollars(view, self.tools)
                 return self.meter.paid_call(self.model.name, cap, call)
             except RetryLater as err:
                 if retry == MODEL_RETRIES:
@@ -627,6 +666,9 @@ class Trial:
                 return [], f"claim {n}: file must be one source path under packages/"
             if self.safe(file) != file:
                 return [], f"claim {n}: file must not hold a local path"
+            if self.variant == NOMENU:
+                out.append({"attempt": attempt, "file": file})
+                continue
             if cause not in self.causes:
                 return [], f"claim {n}: cause must be one id from the cause list"
             out.append({"attempt": attempt, "file": file, "cause": cause})
@@ -686,7 +728,7 @@ class Trial:
                 "trial_id": self.trial_id,
                 "attempt": number,
                 "file": self.safe(args.get("file")),
-                "cause": self.safe(args.get("cause")),
+                "cause": None if self.variant == NOMENU else self.safe(args.get("cause")),
                 "hypothesis": self.safe(args.get("hypothesis")),
                 "scenario_sha256": None,
                 "expected_check": None
@@ -702,10 +744,12 @@ class Trial:
         self.attempts += 1
         number = self.attempts
         file, cause = args.get("file"), args.get("cause")
+        if self.variant == NOMENU:
+            cause = None
         hypothesis, text = args.get("hypothesis"), args.get("scenario")
         if not (isinstance(file, str) and file.startswith("packages/")):
             return self.refuse(number, args, "file must be one source path under packages/")
-        if cause not in self.causes:
+        if self.variant != NOMENU and cause not in self.causes:
             return self.refuse(number, args, "cause must be one id from the cause list")
         expected = args.get("expected_check")
         if expected not in EXPECTED_CHECKS:

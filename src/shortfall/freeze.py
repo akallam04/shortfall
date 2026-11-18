@@ -8,6 +8,10 @@ from shortfall import agent, models
 
 HASH_FILE = Path("benchmark") / "agent" / "prompts.sha256"
 PROMPT_VERSION = "v2"
+HASH_FILES = {
+    "v2": HASH_FILE,
+    "v2-nomenu": Path("benchmark") / "agent" / "prompts-v2-nomenu.sha256",
+}
 COVERS = (
     ("src/shortfall/prompts/system.md", "system prompt"),
     ("src/shortfall/prompts/setup.md", "description of the test setup"),
@@ -33,13 +37,15 @@ def issue_files(root: Path) -> list[Path]:
     return sorted((Path(root) / "snapshots" / "issues").glob("*.md"))
 
 
-def manifest(root: Path) -> dict:
+def manifest(root: Path, variant: str = "v2") -> dict:
     root = Path(root)
     terms = agent.forbidden_terms(root / "benchmark" / "cases")
-    return {
-        "unguided": agent.opening(root, "unguided", None, terms),
-        "guided": {p.stem: agent.opening(root, "guided", p.stem, terms) for p in issue_files(root)},
-        "tools": agent.TOOLS,
+    out = {
+        "unguided": agent.opening(root, "unguided", None, terms, variant),
+        "guided": {
+            p.stem: agent.opening(root, "guided", p.stem, terms, variant) for p in issue_files(root)
+        },
+        "tools": agent.tools_for(variant),
         "feedback": agent.FEEDBACK,
         "settings": {
             "keep_turns": agent.KEEP_TURNS,
@@ -54,25 +60,44 @@ def manifest(root: Path) -> dict:
             "thinking": {name: spec.thinking for name, spec in sorted(models.MODELS.items())},
         },
     }
+    if variant != "v2":
+        out["variant"] = variant
+    return out
 
 
-def prompt_hash(root: Path) -> str:
-    text = json.dumps(manifest(root), sort_keys=True, ensure_ascii=True, separators=(",", ":"))
+def prompt_hash(root: Path, variant: str = "v2") -> str:
+    text = json.dumps(
+        manifest(root, variant), sort_keys=True, ensure_ascii=True, separators=(",", ":")
+    )
     return hashlib.sha256(text.encode("ascii")).hexdigest()
 
 
-def hash_file_text(root: Path) -> str:
+def covers(variant: str) -> tuple[tuple[str, str], ...]:
+    if variant == "v2":
+        return COVERS
+    out = []
+    for path, what in COVERS:
+        if path == "benchmark/causes.yaml":
+            continue
+        if path == "src/shortfall/prompts/system.md":
+            path, what = "src/shortfall/prompts/system-nomenu.md", "system prompt without causes"
+        out.append((path, what))
+    return tuple(out)
+
+
+def hash_file_text(root: Path, variant: str = "v2") -> str:
     root = Path(root)
+    version = PROMPT_VERSION if variant == "v2" else variant
     lines = [
-        prompt_hash(root),
+        prompt_hash(root, variant),
         "",
-        f"Prompt version {PROMPT_VERSION}.",
+        f"Prompt version {version}.",
         "",
         "This sha256 covers everything the agent is shown and the loop settings,",
         "taken from these files:",
         "",
     ]
-    lines += [f"- {path}: {what}" for path, what in COVERS]
+    lines += [f"- {path}: {what}" for path, what in covers(variant)]
     lines += ["", "and the bug reports shown in guided mode, kept outside the repo:", ""]
     for p in issue_files(root):
         digest = hashlib.sha256(p.read_bytes()).hexdigest()
@@ -80,8 +105,8 @@ def hash_file_text(root: Path) -> str:
     return "\n".join(lines) + "\n"
 
 
-def recorded_hash(root: Path) -> str | None:
-    path = Path(root) / HASH_FILE
+def recorded_hash(root: Path, variant: str = "v2") -> str | None:
+    path = Path(root) / HASH_FILES[variant]
     if not path.is_file():
         return None
     return path.read_text(encoding="utf-8").splitlines()[0].strip()
@@ -90,18 +115,23 @@ def recorded_hash(root: Path) -> str | None:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m shortfall.freeze")
     p.add_argument("command", choices=("write", "check", "print"))
+    p.add_argument("--variant", choices=sorted(HASH_FILES), default="v2")
     args = p.parse_args(argv)
     root = Path(__file__).resolve().parents[2]
+    target = root / HASH_FILES[args.variant]
     if args.command == "write":
-        (root / HASH_FILE).parent.mkdir(parents=True, exist_ok=True)
-        (root / HASH_FILE).write_text(hash_file_text(root), encoding="utf-8")
-        print(recorded_hash(root))
+        if target.exists():
+            print(f"{target.name} exists and is frozen; remove it first to refreeze")
+            return 1
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(hash_file_text(root, args.variant), encoding="utf-8")
+        print(recorded_hash(root, args.variant))
         return 0
-    current = prompt_hash(root)
+    current = prompt_hash(root, args.variant)
     if args.command == "print":
         print(current)
         return 0
-    recorded = recorded_hash(root)
+    recorded = recorded_hash(root, args.variant)
     if recorded != current:
         print(f"prompt hash {current} differs from the recorded {recorded}")
         return 1

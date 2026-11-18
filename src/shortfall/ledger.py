@@ -153,6 +153,7 @@ AGENT_TRIAL_FIELDS = (
     "feedback",
     "issue",
     "model",
+    "prompts",
     "sdk_version",
     "knowledge_cutoff",
     "medusa_version",
@@ -164,7 +165,7 @@ AGENT_TRIAL_FIELDS = (
     "timestamp",
 )
 AGENT_TRIAL_REQUIRED = tuple(
-    f for f in AGENT_TRIAL_FIELDS if f not in ("sdk_version", "knowledge_cutoff")
+    f for f in AGENT_TRIAL_FIELDS if f not in ("prompts", "sdk_version", "knowledge_cutoff")
 )
 
 PREDICTION_FIELDS = (
@@ -361,9 +362,12 @@ def validate(entry: dict, legacy: bool = True) -> None:
         if entry.get("feedback") not in FEEDBACK_MODES:
             problems.append(f"feedback must be one of {', '.join(FEEDBACK_MODES)}")
     if kind == "prediction" and entry.get("refused") is None:
-        for key in ("file", "cause", "hypothesis", "scenario_sha256"):
+        for key in ("file", "hypothesis", "scenario_sha256"):
             if not (isinstance(entry.get(key), str) and entry[key].strip()):
                 problems.append(f"an accepted prediction needs {key}")
+        cause = entry.get("cause")
+        if cause is not None and not (isinstance(cause, str) and cause.strip()):
+            problems.append("a prediction's cause is a cause id or empty")
     if kind in (None, "final", "started", "trial") and entry.get("source") not in SOURCES:
         problems.append(f"source must be one of {', '.join(SOURCES)}")
     if kind == "final" and not _is_dollars(entry.get("dollars")):
