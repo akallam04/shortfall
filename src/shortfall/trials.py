@@ -15,12 +15,16 @@ from pathlib import Path
 
 import yaml
 
-from shortfall import agent, freeze, ledger, redact, score
+from shortfall import agent, control, freeze, ledger, redact, score
 from shortfall.budget import TOTAL_DOLLAR_CAP
 from shortfall.pin import read_pin
 from shortfall.trialscore import score_trial
 
 PLAN_SCHEMA = "shortfall.plan/v1"
+PLAN_SCHEMA_V2 = "shortfall.plan/v2"
+REVIEW_RUNS = 60
+REVIEW_FIX = "pr-17420"
+WORD_FILES = Path(".git") / "info" / "private-word-files"
 ENGINE_NAME = "colima-shortfall"
 ENGINE_PROFILE = "shortfall"
 MIN_FREE_BYTES = 5 * 1024**3
@@ -52,8 +56,13 @@ class Cell:
 @dataclass(frozen=True)
 class TrialSpec:
     id: str
-    cell: Cell
+    cell: Cell | None
     number: int
+    kind: str = "agent"
+    variant: str = "v2"
+    prompt_hash: str | None = None
+    method: str | None = None
+    mode: str = "unguided"
 
 
 @dataclass
@@ -72,12 +81,18 @@ class Plan:
     order: str
     export_root: Path
     script: Path | None = None
+    specs: list[TrialSpec] = field(default_factory=list)
+    baseline_runs: int = 300
+    baseline_root: Path | None = None
+    report: list[str] = field(default_factory=list)
 
 
 def load_plan(root: Path, path: Path) -> Plan:
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    if isinstance(data, dict) and data.get("schema") == PLAN_SCHEMA_V2:
+        return load_plan_v2(root, path, data)
     if not isinstance(data, dict) or data.get("schema") != PLAN_SCHEMA:
-        raise PlanError(f"a plan needs schema {PLAN_SCHEMA}")
+        raise PlanError(f"a plan needs schema {PLAN_SCHEMA} or {PLAN_SCHEMA_V2}")
     name = data.get("name")
     if not (isinstance(name, str) and re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name)):
         raise PlanError("name must be kebab-case")
@@ -127,15 +142,95 @@ def load_plan(root: Path, path: Path) -> Plan:
         raise PlanError("a scripted plan needs a script")
     if not plan.images:
         raise PlanError("a plan lists the image ids it expects")
+    plan.specs = [
+        TrialSpec(f"{cell.label}-{k}", cell, k, prompt_hash=plan.prompt_hash, mode=plan.mode)
+        for k in range(1, plan.trials_per_cell + 1)
+        for cell in plan.cells
+    ]
+    return plan
+
+
+def load_plan_v2(root: Path, path: Path, data: dict) -> Plan:
+    name = data.get("name")
+    if not (isinstance(name, str) and re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name)):
+        raise PlanError("name must be kebab-case")
+    specs: dict[str, TrialSpec] = {}
+    for arm in data.get("arms") or []:
+        kind = arm.get("kind")
+        if kind == "agent":
+            if arm.get("prompts") not in agent.VARIANTS:
+                raise PlanError(f"prompts must be one of {', '.join(agent.VARIANTS)}")
+            if arm.get("mode") not in ledger.TASK_MODES:
+                raise PlanError(f"mode must be one of {', '.join(ledger.TASK_MODES)}")
+            if arm.get("feedback") not in ledger.FEEDBACK_MODES:
+                raise PlanError(f"feedback must be one of {', '.join(ledger.FEEDBACK_MODES)}")
+            issue = None if arm.get("issue") is None else str(arm["issue"])
+            if (issue is None) != (arm["mode"] == "unguided"):
+                raise PlanError("guided arms need an issue and unguided arms none")
+            cell = Cell(issue, arm["feedback"])
+            for n in arm.get("trials") or []:
+                spec = TrialSpec(
+                    f"{arm['name']}-{n}",
+                    cell,
+                    int(n),
+                    "agent",
+                    arm["prompts"],
+                    str(arm.get("prompt_hash")),
+                    None,
+                    arm["mode"],
+                )
+                specs[spec.id] = spec
+        elif kind == "baseline":
+            if arm.get("method") not in ("grid", "random"):
+                raise PlanError("a baseline arm's method is grid or random")
+            for n in arm.get("seeds") or []:
+                spec_id = f"{arm['method']}-seed-{n}"
+                specs[spec_id] = TrialSpec(
+                    spec_id, None, int(n), "baseline", "", None, arm["method"], "unguided"
+                )
+        else:
+            raise PlanError("an arm's kind is agent or baseline")
+    order = data.get("order") or []
+    if sorted(order) != sorted(specs) or len(set(order)) != len(order):
+        raise PlanError("order must list every trial of every arm exactly once")
+    caps = data.get("agent_caps") or {}
+    script = data.get("script")
+    plan = Plan(
+        path=Path(path),
+        name=name,
+        model=str(data.get("model")),
+        mode="mixed",
+        cells=[],
+        trials_per_cell=0,
+        caps=agent.Caps(
+            runs=int(caps.get("runs", agent.RUN_CAP)),
+            attempts=int(caps.get("attempts", agent.ATTEMPT_CAP)),
+            turns=int(caps.get("turns", agent.TURN_CAP)),
+            dollars=float(caps.get("dollars", 0.0)),
+        ),
+        dollar_cap=float(data.get("dollar_cap", 0.0)),
+        prompt_hash="",
+        oversold_pin=str(data.get("oversold_pin")),
+        images={str(k): str(v) for k, v in (data.get("images") or {}).items()},
+        order="explicit",
+        export_root=Path(root) / data.get("export_root", f"benchmark/agent/{name}"),
+        script=None if script is None else Path(root) / script,
+        specs=[specs[i] for i in order],
+        baseline_runs=int(data.get("baseline_runs", 300)),
+        baseline_root=Path(root) / data.get("baseline_root", "benchmark/baselines/2004ed5"),
+        report=[str(x) for x in data.get("report") or []],
+    )
+    if plan.dollar_cap > TOTAL_DOLLAR_CAP:
+        raise PlanError(f"dollar_cap cannot be above {TOTAL_DOLLAR_CAP:.2f}")
+    if plan.model == "scripted" and plan.script is None:
+        raise PlanError("a scripted plan needs a script")
+    if not plan.images:
+        raise PlanError("a plan lists the image ids it expects")
     return plan
 
 
 def trial_order(plan: Plan) -> list[TrialSpec]:
-    return [
-        TrialSpec(f"{cell.label}-{k}", cell, k)
-        for k in range(1, plan.trials_per_cell + 1)
-        for cell in plan.cells
-    ]
+    return list(plan.specs)
 
 
 def issue_stem(root: Path, issue: str | None) -> str | None:
@@ -177,7 +272,12 @@ class State:
 
     def trial(self, spec: TrialSpec, records: list[dict]) -> dict:
         events = [e for e in self.events() if e.get("trial") == spec.id]
-        ended = {r["trial_id"] for r in records if r.get("kind") == "agent-end"}
+        if spec.kind == "baseline":
+            ended = {
+                e["run_id"] for e in events if e["event"] == "trial-end" and e.get("exit") == 0
+            }
+        else:
+            ended = {r["trial_id"] for r in records if r.get("kind") == "agent-end"}
         starts = [e["run_id"] for e in events if e["event"] == "trial-start"]
         return {
             "exported": any(e["event"] == "trial-exported" for e in events),
@@ -248,7 +348,9 @@ class Checks:
     oversold_running: Callable[[], bool] = oversold_running
 
 
-def preflight(root: Path, plan: Plan, cap: float, checks: Checks) -> list[str]:
+def preflight(
+    root: Path, plan: Plan, cap: float, checks: Checks, spec: TrialSpec | None = None
+) -> list[str]:
     problems = []
     name = checks.engine_name()
     if name != ENGINE_NAME:
@@ -264,13 +366,15 @@ def preflight(root: Path, plan: Plan, cap: float, checks: Checks) -> list[str]:
             problems.append(f"the engine VM has {fmt_bytes(free)} free, 5 GB needed")
         if checks.oversold_running():
             problems.append("another Oversold run is still going")
-    current = freeze.prompt_hash(root)
-    recorded = freeze.recorded_hash(root)
-    if not (current == recorded == plan.prompt_hash):
-        problems.append(
-            f"prompt hash {current} does not match the plan's {plan.prompt_hash} "
-            f"and the recorded {recorded}"
-        )
+    pairs = sorted({(s.variant, s.prompt_hash) for s in plan.specs if s.kind == "agent"})
+    for variant, wanted in pairs:
+        current = freeze.prompt_hash(root, variant)
+        recorded = freeze.recorded_hash(root, variant)
+        if not (current == recorded == wanted):
+            problems.append(
+                f"{variant} prompt hash {current} does not match the plan's {wanted} "
+                f"and the recorded {recorded}"
+            )
     pin = read_pin(Path(root) / "oversold.lock")[1]
     if plan.oversold_pin != pin:
         problems.append(f"the plan's Oversold pin {plan.oversold_pin} is not oversold.lock's {pin}")
@@ -278,7 +382,8 @@ def preflight(root: Path, plan: Plan, cap: float, checks: Checks) -> list[str]:
     if free < MIN_FREE_BYTES:
         problems.append(f"the Mac has {fmt_bytes(free)} free, 5 GB needed")
     records = ledger.load(score.ledger_path_for(root))
-    need = 0.0 if plan.model == "scripted" else MIN_ROOM
+    paid = plan.model != "scripted" and (spec is None or spec.kind == "agent")
+    need = MIN_ROOM if paid else 0.0
     room = rooms(records, State(root, plan).run_ids(), cap)
     if room["plan"] < need:
         problems.append(f"no dollar room under the plan cap: {room['plan']:.4f} left")
@@ -447,6 +552,23 @@ def allowed(entries: list[dict], where: str, flat: str, start: int, end: int) ->
     return False
 
 
+def word_file_rules(root: Path) -> list[dict]:
+    path = Path(root) / WORD_FILES
+    if not path.is_file():
+        return []
+    return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
+
+
+def file_rule_allows(rules: list[dict], word: str, where: str) -> bool:
+    name = Path(where).name
+    return any(
+        r.get("word") == word
+        and where.startswith(r.get("under", ""))
+        and name in r.get("files", [])
+        for r in rules
+    )
+
+
 def scan_export(
     root: Path,
     folder: Path,
@@ -454,6 +576,8 @@ def scan_export(
     key: str | None,
     words: list[str] | None,
     allow: list[dict] | None = None,
+    file_rules: list[dict] | None = None,
+    allowed_out: list[dict] | None = None,
 ) -> list[str]:
     problems = []
     if words is None:
@@ -480,6 +604,11 @@ def scan_export(
                 if quotes.quoted(flat, m.start(), m.end(), word):
                     continue
                 if allowed(allow or [], where, flat, m.start(), m.end()):
+                    continue
+                if file_rule_allows(file_rules or [], word, where):
+                    if allowed_out is not None:
+                        sentence = sentence_at(flat, m.start(), m.end())
+                        allowed_out.append({"path": where, "word": word, "sentence": sentence})
                     continue
                 left = flat[max(0, m.start() - QUOTE_WINDOW) : m.end()]
                 right = flat[m.start() : m.end() + QUOTE_WINDOW]
@@ -612,6 +741,37 @@ def export_trial(
     return summary
 
 
+def export_baseline(
+    root: Path, run_id: str, dest: Path, records: list[dict], exporter: Callable[[str, Path], None]
+) -> dict:
+    root = Path(root)
+    if dest.exists():
+        shutil.rmtree(dest)
+    (dest / "runs").mkdir(parents=True)
+    folders = []
+    for r in records:
+        if r.get("kind") == "final":
+            folders += [f for f in r.get("run_folders") or [] if f not in folders]
+    for folder in folders:
+        exporter(folder, dest / "runs" / Path(folder).name)
+    trial = next(r for r in records if r.get("kind") == "trial")
+    (dest / "candidates").mkdir()
+    for name in trial["candidate_names"]:
+        shutil.copy(root / "runs" / "sweep" / run_id / f"{name}.yaml", dest / "candidates")
+    paths = [dest / "candidates" / f"{n}.yaml" for n in trial["candidate_names"]]
+    if score.candidate_list_sha256(paths) != trial["candidates_sha256"]:
+        raise RuntimeError("the exported candidate list does not match its sha256")
+    with (dest / "ledger.jsonl").open("w", encoding="ascii") as f:
+        for r in records:
+            f.write(json.dumps(r, ensure_ascii=True) + "\n")
+    cases = score.load_cases(root / "benchmark" / "cases")
+    return score.trial_summary(records, {c: cases[c].rule for c in cases})
+
+
+def baseline_manual_checks(records: list[dict]) -> list[str]:
+    return [n for r in records if r.get("kind") == "final" for n in r.get("manual_check") or []]
+
+
 class Runner:
     def __init__(
         self,
@@ -640,17 +800,28 @@ class Runner:
         self.verifier = verifier or self.oversold_verify
         self.quotes = Quotes(self.root)
         self.validate = validate
-        key = None
+        self.key = None
         env = self.root / ".env"
         if env.exists() and plan.model != "scripted":
             from shortfall.models import load_key
 
-            key = load_key(env)
-        words = private_words(self.root)
-        self.scanner = scanner or (
-            lambda folder: scan_export(
-                self.root, folder, self.quotes, key, words, allow_entries(self.root)
-            )
+            self.key = load_key(env)
+        self.words = private_words(self.root)
+        self.last_allowed: list[dict] = []
+        self.scanner = scanner or self.scan
+        self.sweep_command = [sys.executable, "-u", "-m", "shortfall.sweep"]
+
+    def scan(self, folder: Path) -> list[str]:
+        self.last_allowed = []
+        return scan_export(
+            self.root,
+            folder,
+            self.quotes,
+            self.key,
+            self.words,
+            allow_entries(self.root),
+            word_file_rules(self.root),
+            self.last_allowed,
         )
 
     def default_model(self) -> agent.Model:
@@ -693,6 +864,11 @@ class Runner:
         self.state.add("plan-stop", reason=score.clean(reason, self.root))
         return 1
 
+    def dest(self, spec: TrialSpec) -> Path:
+        if spec.kind == "baseline":
+            return self.plan.baseline_root / spec.id
+        return self.plan.export_root / spec.id
+
     def run(self) -> int:
         self.state.add("plan-start", plan=self.plan.name, dollar_cap=self.cap)
         for spec in trial_order(self.plan):
@@ -701,7 +877,10 @@ class Runner:
             if st["exported"] or st["held"] or st["kept_local"]:
                 continue
             if st["finished"]:
-                outcome = self.finish(spec, st["finished"][-1], records, False)
+                if spec.kind == "baseline":
+                    outcome = self.finish_baseline(spec, st["finished"][-1], records)
+                else:
+                    outcome = self.finish(spec, st["finished"][-1], records, False)
                 if outcome:
                     return outcome
                 continue
@@ -710,16 +889,19 @@ class Runner:
                     self.state.add("trial-interrupted", trial=spec.id, run_id=run_id)
             if len(st["unfinished"]) >= 2:
                 return self.stop(f"trial {spec.id} was interrupted twice")
-            problems = preflight(self.root, self.plan, self.cap, self.checks)
+            problems = preflight(self.root, self.plan, self.cap, self.checks, spec)
             if problems:
                 return self.stop("; ".join(problems))
-            room = rooms(records, self.state.run_ids(), self.cap)["plan"]
-            trial_dollars = min(self.plan.caps.dollars, room)
-            outcome = self.run_trial(spec, trial_dollars, trial_dollars < self.plan.caps.dollars)
+            if spec.kind == "baseline":
+                outcome = self.run_baseline(spec)
+            else:
+                room = rooms(records, self.state.run_ids(), self.cap)["plan"]
+                dollars = min(self.plan.caps.dollars, room)
+                outcome = self.run_trial(spec, dollars, dollars < self.plan.caps.dollars)
             if outcome:
                 return outcome
         self.state.add("plan-done", plan=self.plan.name)
-        return 0
+        return self.review_held()
 
     def run_trial(self, spec: TrialSpec, dollars: float, lowered: bool) -> int:
         while True:
@@ -740,17 +922,54 @@ class Runner:
             self.make_model(),
             self.oversold,
             trial_id=run_id,
-            task_mode=self.plan.mode,
+            task_mode=spec.mode,
             feedback=spec.cell.feedback,
             issue=issue_stem(self.root, spec.cell.issue),
             caps=caps,
             image=self.oversold.image(agent.VERSION),
             pin=self.oversold.pin,
             validate=self.validate,
+            variant=spec.variant,
         )
         end = trial.run()
         self.state.add("trial-end", trial=spec.id, run_id=run_id, reason=end["reason"])
         return self.finish(spec, run_id, self.records(), lowered)
+
+    def run_baseline(self, spec: TrialSpec) -> int:
+        cmd = [*self.sweep_command, "--mode", spec.method]
+        cmd += ["--max-runs", str(self.plan.baseline_runs)]
+        flag = "--order-seed" if spec.method == "grid" else "--seed"
+        cmd += [flag, str(spec.number)]
+        log = self.state.folder / f"{spec.id}.log"
+        proc = subprocess.Popen(
+            cmd, cwd=self.root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        )
+        run_id = None
+        with log.open("a", encoding="utf-8") as f:
+            for line in proc.stdout:
+                f.write(line)
+                f.flush()
+                found = re.search(r"to runs/sweep/(\S+?), list sha256", line)
+                if run_id is None and found:
+                    run_id = found.group(1)
+                    self.state.add("trial-start", trial=spec.id, run_id=run_id, kind="baseline")
+        code = proc.wait()
+        if run_id is None:
+            return self.stop(f"trial {spec.id}: the sweep did not start, exit {code}")
+        self.state.add("trial-end", trial=spec.id, run_id=run_id, exit=code)
+        if code != 0:
+            reason = f"sweep exit {code}" + (", uncovered failure" if code == 3 else "")
+            self.state.add("trial-kept-local", trial=spec.id, run_id=run_id, reason=reason)
+            return self.stop(f"trial {spec.id}: {reason}")
+        return self.finish_baseline(spec, run_id, self.records())
+
+    def finish_baseline(self, spec: TrialSpec, run_id: str, records: list[dict]) -> int:
+        mine = [r for r in records if r["attempt_id"].startswith(f"{run_id}-")]
+        notes = baseline_manual_checks(mine)
+        if notes:
+            self.state.add("trial-held", trial=spec.id, run_id=run_id, notes=notes)
+            return 0
+        return self.export_and_record(spec, run_id, mine, None)
 
     def finish(self, spec: TrialSpec, run_id: str, records: list[dict], lowered: bool) -> int:
         mine = [r for r in records if r["attempt_id"].startswith(f"{run_id}-")]
@@ -763,15 +982,34 @@ class Runner:
         if scored["manual_check"]:
             self.state.add("trial-held", trial=spec.id, run_id=run_id, notes=scored["manual_check"])
             return self.stop(stop) if stop else 0
-        dest = self.plan.export_root / spec.id
+        return self.export_and_record(spec, run_id, mine, stop)
+
+    def check_export(self, dest: Path) -> list[str]:
+        bad = []
+        folders = sorted(p.parent for p in dest.rglob("report.json"))
+        for folder in folders:
+            ok, text = self.verifier(folder)
+            if not ok:
+                bad.append(f"verify {folder.name}: {text.strip()[-120:]}")
+        return bad + self.scanner(dest)
+
+    def export_and_record(
+        self,
+        spec: TrialSpec,
+        run_id: str,
+        mine: list[dict],
+        stop: str | None,
+        review: list[dict] | None = None,
+    ) -> int:
+        dest = self.dest(spec)
         try:
-            export_trial(self.root, run_id, dest, mine, self.exporter)
-            bad = []
-            for folder in sorted((dest / "runs").iterdir()):
-                ok, text = self.verifier(folder)
-                if not ok:
-                    bad.append(f"verify {folder.name}: {text.strip()[-120:]}")
-            bad += self.scanner(dest)
+            if spec.kind == "baseline":
+                export_baseline(self.root, run_id, dest, mine, self.exporter)
+            else:
+                export_trial(self.root, run_id, dest, mine, self.exporter)
+            if review:
+                self.write_review(spec, dest, run_id, review)
+            bad = self.check_export(dest)
         except (RuntimeError, OSError) as err:
             bad = [f"export: {err}"]
         held = [b for b in bad if b.startswith(HOLDS)]
@@ -783,16 +1021,116 @@ class Runner:
             shutil.rmtree(dest, ignore_errors=True)
             self.state.add("trial-export-failed", trial=spec.id, run_id=run_id, problems=bad)
             return self.stop(f"trial {spec.id} failed its export checks: {bad[0]}")
-        copy = self.plan.export_root / "prompts.sha256"
-        if not copy.exists():
-            shutil.copy(self.root / freeze.HASH_FILE, copy)
-        self.state.add(
-            "trial-exported",
-            trial=spec.id,
-            run_id=run_id,
-            folder=score.relative(self.root, dest),
-        )
+        if spec.kind == "agent":
+            name = freeze.HASH_FILES[spec.variant]
+            copy = self.plan.export_root / name.name
+            if not copy.exists():
+                shutil.copy(self.root / name, copy)
+        fields = {"trial": spec.id, "run_id": run_id, "folder": score.relative(self.root, dest)}
+        if self.last_allowed:
+            fields["allowed_words"] = list(self.last_allowed)
+        if review:
+            fields["note"] = "published after review"
+        self.state.add("trial-exported", **fields)
         return self.stop(stop) if stop else 0
+
+    def review_attempt(self, spec: TrialSpec, final: dict) -> dict:
+        scenario = self.root / final["scenario"]
+        text = scenario.read_text(encoding="utf-8")
+        folder = self.root / "runs" / "review" / self.plan.name / spec.id
+        folder.mkdir(parents=True, exist_ok=True)
+        builds = {
+            "plain": (scenario.stem, text),
+            REVIEW_FIX: (
+                f"{scenario.stem}-{REVIEW_FIX}-control",
+                control.variant(text, REVIEW_FIX, agent.VERSION),
+            ),
+            "redis": (f"{scenario.stem}-redis-control", control.redis_locking(text)),
+        }
+        out = {"attempt_id": final["attempt_id"], "scenario": final["scenario"], "sets": {}}
+        for label, (stem, body) in builds.items():
+            path = folder / f"{stem}.yaml"
+            path.write_text(body, encoding="utf-8")
+            result = self.oversold.run(path, REVIEW_RUNS, agent.VERSION)
+            c = score.counts(result.histories)
+            out["sets"][label] = {
+                "folder": result.folder,
+                "runs": len(result.histories),
+                "fails": {rule: row["fail"] for rule, row in c.items()},
+                "inconclusive": score.inconclusive_runs(result.histories),
+            }
+        return out
+
+    def write_review(self, spec: TrialSpec, dest: Path, run_id: str, review: list[dict]) -> None:
+        folder = dest / "review"
+        folder.mkdir()
+        for item in review:
+            for data in item["sets"].values():
+                self.exporter(data["folder"], folder / Path(data["folder"]).name)
+        write_json(
+            folder / "review.json",
+            {
+                "trial": spec.id,
+                "run_id": run_id,
+                "label": "covered by #17032, rare in this scenario",
+                "note": "These runs were made after the trial, only to decide whether to "
+                "publish it. They do not change the trial's score or its runs to first "
+                "reproduction.",
+                "attempts": [
+                    {
+                        **item,
+                        "sets": {
+                            k: {**v, "folder": Path(v["folder"]).name}
+                            for k, v in item["sets"].items()
+                        },
+                    }
+                    for item in review
+                ],
+            },
+        )
+
+    def review_held(self) -> int:
+        events = self.state.events()
+        closed = {
+            e["trial"]
+            for e in events
+            if e["event"] in ("trial-exported", "review-kept-held", "review-stop")
+        }
+        specs = {s.id: s for s in self.plan.specs}
+        for e in events:
+            if e["event"] != "trial-held" or e["trial"] in closed or e["trial"] not in specs:
+                continue
+            notes = e.get("notes") or []
+            if not notes or any(str(n).startswith(HOLDS) for n in notes):
+                continue
+            spec, run_id = specs[e["trial"]], e["run_id"]
+            mine = [r for r in self.records() if r["attempt_id"].startswith(f"{run_id}-")]
+            finals = [r for r in mine if r.get("kind") == "final" and r.get("manual_check")]
+            review = []
+            for final in finals:
+                rules = sorted({n.split(" ")[0] for n in final["manual_check"]})
+                item = self.review_attempt(spec, final)
+                item["rules"] = rules
+                fixed = [
+                    f"{label} {rule} {n}"
+                    for label in (REVIEW_FIX, "redis")
+                    for rule, n in item["sets"][label]["fails"].items()
+                    if n
+                ]
+                if fixed:
+                    self.state.add("review-stop", trial=spec.id, run_id=run_id, failures=fixed)
+                    return self.stop(
+                        f"review of {spec.id}: a check failed on a fix build or with Redis"
+                    )
+                item["plain_hits"] = all(item["sets"]["plain"]["fails"].get(r, 0) for r in rules)
+                review.append(item)
+            if review and all(item["plain_hits"] for item in review):
+                outcome = self.export_and_record(spec, run_id, mine, None, review)
+                if outcome:
+                    return outcome
+            else:
+                self.state.add("review-kept-held", trial=spec.id, run_id=run_id, review=review)
+        return 0
 
 
 def status(root: Path, plan: Plan) -> dict:
@@ -840,6 +1178,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m shortfall.trials")
     p.add_argument("plan")
     p.add_argument("--status", action="store_true")
+    p.add_argument("--review", action="store_true", help="only review held trials")
     p.add_argument("--raise-dollar-cap", type=float, default=0.0)
     args = p.parse_args(argv)
     root = Path(__file__).resolve().parents[2]
@@ -855,7 +1194,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"plan {plan.name} is already running as process {pid}")
             return 1
     os.setpgrp()
-    return Runner(root, plan, args.raise_dollar_cap).run()
+    runner = Runner(root, plan, args.raise_dollar_cap)
+    return runner.review_held() if args.review else runner.run()
 
 
 if __name__ == "__main__":

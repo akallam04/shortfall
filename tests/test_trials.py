@@ -1,6 +1,7 @@
 import gzip
 import json
 import shutil
+import sys
 from pathlib import Path
 
 import pytest
@@ -52,6 +53,8 @@ def root(tmp_path):
     shutil.copy(ROOT / "oversold.lock", root / "oversold.lock")
     (root / freeze.HASH_FILE).parent.mkdir(parents=True)
     (root / freeze.HASH_FILE).write_text(freeze.hash_file_text(root))
+    nomenu = root / freeze.HASH_FILES["v2-nomenu"]
+    nomenu.write_text(freeze.hash_file_text(root, "v2-nomenu"))
     return root
 
 
@@ -448,3 +451,306 @@ def test_an_enterprise_hold_keeps_the_plan_going(root):
     assert make_runner(root, write_plan(root), scanner=scanner).run() == 0
     assert kinds(root).count("trial-held") == 1 and kinds(root)[-1] == "plan-done"
     assert (root / "runs" / "export" / "prompts.sha256").exists()
+
+
+def write_v2_plan(root: Path, **over) -> Path:
+    pin = (root / "oversold.lock").read_text().split("commit=")[1].strip()
+    data = {
+        "schema": trials.PLAN_SCHEMA_V2,
+        "name": "mix",
+        "model": "scripted",
+        "script": "runs/script.json",
+        "agent_caps": {"runs": 300, "attempts": 30, "turns": 100, "dollars": 1},
+        "dollar_cap": 3,
+        "oversold_pin": pin,
+        "images": {"2.22.0": IMAGE},
+        "export_root": "runs/export",
+        "baseline_root": "runs/baselines",
+        "arms": [
+            {
+                "name": "unguided-none",
+                "kind": "agent",
+                "mode": "unguided",
+                "feedback": "none",
+                "prompts": "v2",
+                "prompt_hash": freeze.prompt_hash(root),
+                "trials": [4, 5],
+            },
+            {
+                "name": "nomenu-none",
+                "kind": "agent",
+                "mode": "unguided",
+                "feedback": "none",
+                "prompts": "v2-nomenu",
+                "prompt_hash": freeze.prompt_hash(root, "v2-nomenu"),
+                "trials": [1],
+            },
+            {"name": "grid", "kind": "baseline", "method": "grid", "seeds": [4]},
+        ],
+        "order": ["nomenu-none-1", "unguided-none-4", "grid-seed-4", "unguided-none-5"],
+        "report": ["per case and arm: trials that reproduced it"],
+        **over,
+    }
+    path = root / "plan2.yaml"
+    path.write_text(yaml.safe_dump(data, sort_keys=False))
+    return path
+
+
+def test_a_v2_plan_lists_every_arm_in_its_order(root):
+    plan = trials.load_plan(root, write_v2_plan(root))
+    specs = trials.trial_order(plan)
+    assert [s.id for s in specs] == [
+        "nomenu-none-1",
+        "unguided-none-4",
+        "grid-seed-4",
+        "unguided-none-5",
+    ]
+    assert [s.kind for s in specs] == ["agent", "agent", "baseline", "agent"]
+    assert specs[0].variant == "v2-nomenu" and specs[2].method == "grid" and specs[2].number == 4
+    assert plan.report == ["per case and arm: trials that reproduced it"]
+    with pytest.raises(trials.PlanError):
+        trials.load_plan(root, write_v2_plan(root, order=["nomenu-none-1"]))
+
+
+def test_a_v2_plan_runs_agent_arms_with_their_prompts(root, monkeypatch):
+    path = write_v2_plan(
+        root, order=["nomenu-none-1", "unguided-none-4", "unguided-none-5", "grid-seed-4"]
+    )
+    runner = make_runner(root, path)
+    seen = []
+    monkeypatch.setattr(runner, "run_baseline", lambda spec: seen.append(spec.id) or 0)
+    nomenu_script = [
+        reply(
+            call(
+                "submit_attempt",
+                file="packages/core/src/cart.ts",
+                expected_check="no_oversell",
+                hypothesis="Two servers each reserve the last unit.",
+                scenario=SCENARIO,
+            )
+        ),
+        reply(
+            call(
+                "finish", summary="x", claims=[{"attempt": 1, "file": "packages/core/src/cart.ts"}]
+            )
+        ),
+    ]
+    scripts = iter([nomenu_script, script(), script()])
+    runner.make_model = lambda: ScriptedModel(replies=next(scripts))
+    assert runner.run() == 0
+    assert seen == ["grid-seed-4"]
+    exported = [
+        e["trial"]
+        for e in trials.State(root, runner.plan).events()
+        if e["event"] == "trial-exported"
+    ]
+    assert exported == ["nomenu-none-1", "unguided-none-4", "unguided-none-5"]
+    assert (root / "runs" / "export" / "prompts.sha256").exists()
+    assert (root / "runs" / "export" / "prompts-v2-nomenu.sha256").exists()
+    first = json.loads((root / "runs" / "export" / "nomenu-none-1" / "score.json").read_text())
+    assert first["claims_backed"] == 1
+
+
+def test_the_baseline_command_and_its_stamp(root, tmp_path, monkeypatch):
+    fake = tmp_path / "fake_sweep.py"
+    fake.write_text(
+        "import sys\n"
+        "print('sweep: wrote 3 grid candidates to runs/sweep/20990101T000000Z, list sha256 abc')\n"
+        "print(' '.join(sys.argv[1:]))\n"
+        "sys.exit(int(open(sys.argv[0] + '.code').read()))\n"
+    )
+    (tmp_path / "fake_sweep.py.code").write_text("0")
+    runner = make_runner(root, write_v2_plan(root))
+    runner.sweep_command = [sys.executable, str(fake)]
+    finished = []
+    monkeypatch.setattr(
+        runner, "finish_baseline", lambda spec, run_id, records: finished.append(run_id) or 0
+    )
+    spec = next(s for s in runner.plan.specs if s.kind == "baseline")
+    assert runner.run_baseline(spec) == 0
+    assert finished == ["20990101T000000Z"]
+    log = (runner.state.folder / "grid-seed-4.log").read_text()
+    assert "--mode grid --max-runs 300 --order-seed 4" in log
+    (tmp_path / "fake_sweep.py.code").write_text("3")
+    assert runner.run_baseline(spec) == 1
+    assert [e["event"] for e in runner.state.events()][-2:] == ["trial-kept-local", "plan-stop"]
+    assert "uncovered failure" in runner.state.events()[-1]["reason"]
+
+
+def test_a_baseline_trial_exports_in_the_baseline_layout(root):
+    source = ROOT / "benchmark" / "baselines" / "2004ed5" / "grid-seed-1"
+    records = [json.loads(x) for x in (source / "ledger.jsonl").read_text().splitlines()]
+    trial_line = next(r for r in records if r.get("kind") == "trial")
+    stamp = trial_line["attempt_id"].removesuffix("-trial")
+    sweep = root / "runs" / "sweep" / stamp
+    sweep.mkdir(parents=True)
+    for name in trial_line["candidate_names"]:
+        shutil.copy(source / "candidates" / f"{name}.yaml", sweep)
+
+    def exporter(folder, dest):
+        dest.mkdir(parents=True)
+
+    dest = root / "runs" / "baselines" / "grid-seed-1"
+    summary = trials.export_baseline(root, stamp, dest, records, exporter)
+    assert summary["runs_used"] == 298 and summary["cases_reproduced"] == 3
+    assert len(list((dest / "candidates").iterdir())) == 32
+    assert len(list((dest / "runs").iterdir())) > 0
+
+
+def held_run(root, monkeypatch):
+    real = trials.score_trial
+
+    def held_first(r, records):
+        out = real(r, records)
+        if not getattr(held_first, "done", False):
+            out["manual_check"] = [
+                "no_oversell failed 1 of 13 runs on plain Medusa 2.22.0: violation"
+            ]
+            held_first.done = True
+        return out
+
+    monkeypatch.setattr(trials, "score_trial", held_first)
+    review = trials.Runner.review_held
+    monkeypatch.setattr(trials.Runner, "review_held", lambda self: 0)
+    path = write_plan(root, cells=[{"issue": 17032, "feedback": "none"}])
+    assert make_runner(root, path).run() == 0
+    monkeypatch.setattr(trials, "score_trial", real)
+    monkeypatch.setattr(trials.Runner, "review_held", review)
+    event = next(e for e in events(root) if e["event"] == "trial-held")
+    ledger_path = score.ledger_path_for(root)
+    lines = []
+    for line in ledger_path.read_text().splitlines():
+        r = json.loads(line)
+        if r.get("kind") == "final" and r["attempt_id"].startswith(event["run_id"]):
+            r["manual_check"] = [
+                "no_oversell failed 1 of 13 runs on plain Medusa 2.22.0: violation"
+            ]
+        lines.append(json.dumps(r))
+    ledger_path.write_text("\n".join(lines) + "\n")
+    return path
+
+
+class FailsOn(Oversold):
+    def __init__(self, failing, **kw):
+        super().__init__(**kw)
+        self.failing = failing
+
+    def run(self, scenario, runs, version):
+        out = super().run(scenario, runs, version)
+        if scenario.stem.endswith(self.failing):
+            src = PLAIN_HISTORY
+            out = score.RunSet(
+                folder=out.folder, histories=[json.loads(json.dumps(src)) for _ in range(runs)]
+            )
+        return out
+
+
+PLAIN_HISTORY = json.loads(
+    (ROOT / "tests" / "data" / "histories" / "five-checks-fail.json").read_text()
+)
+
+
+def test_a_held_trial_whose_failure_shows_on_plain_only_is_published_with_review(root, monkeypatch):
+    path = held_run(root, monkeypatch)
+    runner = make_runner(root, path)
+    assert runner.review_held() == 0
+    ev = events(root)
+    assert ev[-1]["event"] == "trial-exported" and ev[-1]["note"] == "published after review"
+    review = json.loads(
+        (root / "runs" / "export" / "17032-none-1" / "review" / "review.json").read_text()
+    )
+    sets = review["attempts"][0]["sets"]
+    assert sets["plain"]["runs"] == 60 and sets["plain"]["fails"]["no_oversell"] == 60
+    assert (
+        sets["pr-17420"]["fails"]["no_oversell"] == 0 and sets["redis"]["fails"]["no_oversell"] == 0
+    )
+    assert review["label"] == "covered by #17032, rare in this scenario"
+
+
+def test_a_failure_with_redis_in_a_review_stops_everything(root, monkeypatch):
+    path = held_run(root, monkeypatch)
+    runner = make_runner(root, path)
+    runner.oversold = FailsOn("redis-control", ledger_path=score.ledger_path_for(root))
+    assert runner.review_held() == 1
+    assert [e["event"] for e in events(root)][-2:] == ["review-stop", "plan-stop"]
+    assert not (root / "runs" / "export" / "17032-none-1").exists()
+
+
+def test_a_held_trial_whose_failure_never_shows_on_plain_stays_held(root, monkeypatch):
+    path = held_run(root, monkeypatch)
+    runner = make_runner(root, path)
+
+    class Passes(Oversold):
+        def run(self, scenario, runs, version):
+            out = super().run(Path(str(scenario).replace(".yaml", "-control.yaml")), runs, version)
+            return out
+
+    runner.oversold = Passes(ledger_path=score.ledger_path_for(root))
+    assert runner.review_held() == 0
+    assert events(root)[-1]["event"] == "review-kept-held"
+
+
+def test_the_local_word_rule_allows_model_files_under_benchmark_agent(root, monkeypatch):
+    monkeypatch.setattr(trials, "gitleaks_findings", lambda r, folder: [])
+    rules = [
+        {
+            "word": "zebrafish",
+            "under": "benchmark/agent/",
+            "files": ["claims.json", "transcript.jsonl.gz"],
+        }
+    ]
+    folder = root / "benchmark" / "agent" / "p" / "t-1"
+    folder.mkdir(parents=True)
+    said = "My zebrafish idea held up. Nothing else."
+    event = {"event": "reply", "turn": 1, "message": {"role": "assistant", "content": said}}
+    (folder / "transcript.jsonl.gz").write_bytes(gzip.compress(json.dumps(event).encode()))
+    (folder / "claims.json").write_text(json.dumps({"summary": said}))
+    found, allowed = [], []
+    found = trials.scan_export(
+        root, folder, trials.Quotes(root), None, ["zebrafish"], [], rules, allowed
+    )
+    assert found == []
+    assert [a["path"] for a in allowed] == [
+        "benchmark/agent/p/t-1/claims.json",
+        "benchmark/agent/p/t-1/transcript.jsonl.gz",
+    ]
+    (folder / "attempts.json").write_text(json.dumps({"hypothesis": said}))
+    found = trials.scan_export(
+        root, folder, trials.Quotes(root), None, ["zebrafish"], [], rules, []
+    )
+    assert found == ["model text: attempts.json: 'zebrafish' in: My zebrafish idea held up."]
+    other = root / "runs" / "elsewhere"
+    other.mkdir(parents=True)
+    (other / "claims.json").write_text(json.dumps({"summary": said}))
+    found = trials.scan_export(root, other, trials.Quotes(root), None, ["zebrafish"], [], rules, [])
+    assert found == ["claims.json: 'zebrafish' that is not a quote of Medusa or a report"]
+
+
+@pytest.mark.skipif(not (ROOT / "snapshots" / "issues").exists(), reason="no local snapshots")
+def test_the_scale_10_plan():
+    plan = trials.load_plan(ROOT, ROOT / "benchmark" / "agent" / "plans" / "scale-10.yaml")
+    specs = trials.trial_order(plan)
+    assert len(specs) == 38
+    assert [s.id for s in specs[:3]] == ["nomenu-none-1", "nomenu-none-2", "nomenu-none-3"]
+    for n in range(4, 11):
+        block = [s.id for s in specs[3 + (n - 4) * 5 : 3 + (n - 3) * 5]]
+        assert block == [
+            f"unguided-none-{n}",
+            f"unguided-history-{n}",
+            f"grid-seed-{n}",
+            f"random-seed-{n}",
+            f"nomenu-none-{n}",
+        ]
+    agents = [s for s in specs if s.kind == "agent"]
+    assert {(s.variant, s.prompt_hash) for s in agents} == {
+        ("v2", freeze.recorded_hash(ROOT)),
+        ("v2-nomenu", freeze.recorded_hash(ROOT, "v2-nomenu")),
+    }
+    assert (plan.caps.runs, plan.caps.attempts, plan.caps.turns, plan.caps.dollars) == (
+        300,
+        30,
+        100,
+        1.0,
+    )
+    assert plan.baseline_runs == 300 and plan.dollar_cap == 3.0 and plan.model == "claude-haiku-5-5"
+    assert len(plan.report) == 7
