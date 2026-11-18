@@ -1,0 +1,47 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "stale-counter-write",
+  "expected_check": "reserved_matches_reservations",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 1,
+    "reserved_matches_reservations": 13
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 1,
+   "reserved_matches_reservations": 13
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-17032-counter": "reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "cases": {
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [
+   "no_oversell failed 1 of 13 runs on plain Medusa 2.22.0: violation, cause not isolated, no case's scoring control clears it"
+  ],
+  "stop_reason": null,
+  "oversold_runs": 23,
+  "hypothesis": "createReservationItems_ reads inventory levels (ensureInventoryLevels, a plain list with no row lock) and then writes reserved_quantity as the absolute value read earlier plus the adjustment. When two complete calls reserve the same inventory level concurrently, possibly on two servers so the in-memory locks do not serialize them, both can read the same reserved_quantity and one increment is lost. I expect the level's reserved_quantity to differ from the sum of live reservations, failing reserved_matches_reservations. Many carts on the seeded WIDGET stock (10 units, one unit each) are raced across two servers to widen the window.",
+  "scenario_sha256": "b19ccd426637e48ea27f53b2a166f13592b78625176d2d47ba859d258bc998c3",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: widget-race-two-servers\ndescription: Twelve single-unit carts on shared WIDGET stock are completed together across two servers, to check whether concurrent reservations lose counter updates.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  WIDGET: 10\ncarts:\n  buyer:\n    server: 1\n    count: 12\n    lines:\n    - sku: OVS-PIECE\n      qty: 1\nrace:\n- id: complete-buyer-s1\n  server: 1\n  do: complete\n  cart: buyer\n- id: complete-buyer-s2\n  server: 2\n  do: complete\n  cart: buyer\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 5\nruns: 10\nseed: 7"
+ }
+]

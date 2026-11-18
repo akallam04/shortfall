@@ -1,0 +1,46 @@
+{
+ "trial": "unguided-history-2",
+ "attempt_id": "agent-20261117T234509Z-01",
+ "check": "no_oversell",
+ "label": "covered by #17032, rare in this scenario",
+ "note": "These runs were made after the trial, only to decide whether to publish it. They do not change the trial's score or its runs to first reproduction.",
+ "scenario": "the trial's attempt-01.yaml, run unchanged on plain Medusa 2.22.0, and as the pr-17420 and Redis-locking controls",
+ "sets": {
+  "plain": {
+   "folder": "20261118T012457Z-attempt-01-agent-20261117t234509z-2.22.0",
+   "runs": 60,
+   "fails": {
+    "no_oversell": 3,
+    "reserved_matches_reservations": 60,
+    "one_order_per_cart": 0,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0
+  },
+  "pr-17420": {
+   "folder": "20261118T013359Z-attempt-01-agent-20261117t234509z-pr-17420-control-2.22.0-pr-17420",
+   "runs": 60,
+   "fails": {
+    "no_oversell": 0,
+    "reserved_matches_reservations": 0,
+    "one_order_per_cart": 0,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0
+  },
+  "redis": {
+   "folder": "20261118T014300Z-attempt-01-agent-20261117t234509z-redis-control-2.22.0",
+   "runs": 60,
+   "fails": {
+    "no_oversell": 0,
+    "reserved_matches_reservations": 0,
+    "one_order_per_cart": 0,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0
+  }
+ }
+}

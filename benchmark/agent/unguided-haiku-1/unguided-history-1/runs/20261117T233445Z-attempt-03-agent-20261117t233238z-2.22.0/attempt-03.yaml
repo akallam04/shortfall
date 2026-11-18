@@ -1,0 +1,38 @@
+schema: oversold.scenario/v1
+name: attempt-03-agent-20261117t233238z
+description: Several single-unit carts on the shared WIDGET item complete together
+  to stress the reserved counter.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+carts:
+  piece:
+    server: 1
+    count: 5
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  twin:
+    server: 2
+    count: 5
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+race:
+- id: piece
+  server: 1
+  do: complete
+  cart: piece
+- id: twin
+  server: 2
+  do: complete
+  cart: twin
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 20
+seed: 23

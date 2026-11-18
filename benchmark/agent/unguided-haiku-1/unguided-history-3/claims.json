@@ -1,0 +1,26 @@
+{
+ "summary": "Tested the cart-level lock (same cart on two servers: blocked, one order, no failures), stock sufficiency across mixed lines sharing WIDGET (no oversell), and concurrent completions of carts sharing SOLO stock raised before the race. The last one produced one run out of 20 where three orders existed but SOLO reserved_quantity ended at 2 while three live reservations existed, so reserved_matches_reservations failed. The inventory module updates reserved_quantity as MathBN.add(level.reserved_quantity, adjustment) from a level read earlier, without a row lock, which explains the lost update. Only one occurrence in 20 runs, so the signal is real but rare.",
+ "claims": [
+  {
+   "attempt": 4,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,26 @@
+{
+ "summary": "Ran three attempts. Attempt 1 (two servers racing to complete the same cart) and attempt 2 (two carts on shared WIDGET stock, mixing OVS-PIECE and OVS-TWOPACK) passed all checks: the same-cart race yielded one order, and cross-line stock accounting held. Attempt 3 (ten single-cart completions of WIDGET-using carts across two servers, with ten WIDGET units in stock) failed no_oversell and reserved_matches_reservations in every run: 9 to 10 orders completed, more WIDGET units were promised than were stocked, and the reserved counter disagreed with the live reservation rows. The lost update fits the stale-counter-write cause, which I attribute to the inventory reservation path. I did not confirm the exact source line from the source code, because the inventory module is not in the snapshot. The claim rests on the observed failure, so treat the file attribution as a best guess and the cause label as the reported hypothesis.",
+ "claims": [
+  {
+   "attempt": 3,
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "stale-counter-write",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}

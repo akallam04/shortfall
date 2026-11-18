@@ -1,0 +1,26 @@
+{
+ "summary": "Raced single-unit carts for shared WIDGET stock (10 units) across two Medusa servers. In all 13 runs reserved_matches_reservations failed: the level's reserved_quantity (e.g. 7 to 9) disagreed with the live reservation sum of the completed orders. In one run no_oversell also failed, with 11 orders for 10 units. The cause is in inventory-module createReservationItems_: it reads inventory levels through ensureInventoryLevels with a plain list (no row lock) and then writes reserved_quantity as the stale value plus the adjustment, so concurrent reservations from two servers (where the in-memory lock does not serialize) lose increments. Other checks (one_order_per_cart, no_orphaned_orders, no_missing_orders) passed.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}

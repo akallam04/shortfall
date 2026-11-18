@@ -1,0 +1,49 @@
+schema: oversold.scenario/v1
+name: attempt-04-agent-20261117t235509z-redis-control
+description: Redis-locking control of attempt-04-agent-20261117t235509z. Three carts
+  each hold one SOLO unit, stock is raised to 5 before the race, and all three complete
+  together on two servers.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  locking: redis
+stock_before_race:
+  SOLO: 5
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 2
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  carol:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+- id: carol-completes
+  server: 1
+  do: complete
+  cart: carol
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 20
+seed: 13

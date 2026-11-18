@@ -1,0 +1,75 @@
+{
+ "trial_id": "agent-20261117T235509Z",
+ "task_mode": "unguided",
+ "feedback": "history",
+ "issue": null,
+ "model": "claude-haiku-5-5",
+ "sdk_version": "2.9.0",
+ "knowledge_cutoff": "Jun 2026",
+ "caps": {
+  "runs": 300,
+  "attempts": 30,
+  "turns": 100,
+  "dollars": 1.0
+ },
+ "end_reason": "finished by the model",
+ "finished_by_model": true,
+ "turns": 15,
+ "attempts": 4,
+ "refused": 1,
+ "oversold_runs": 40,
+ "cases": {
+  "medusa-16502-lines": {
+   "reproduced": false
+  },
+  "medusa-17032-counter": {
+   "reproduced": false
+  },
+  "medusa-17032-last-unit": {
+   "reproduced": false
+  }
+ },
+ "cases_reproduced": 0,
+ "claims": [
+  {
+   "attempt": 4,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ],
+ "claims_backed": 1,
+ "claims_unbacked": 0,
+ "expected_check": {
+  "hits": 1,
+  "of": 3
+ },
+ "manual_check": [
+  "reserved_matches_reservations failed 1 of 20 runs on plain Medusa 2.22.0: violation, cause not isolated, no case's scoring control clears it"
+ ],
+ "tokens": {
+  "input": 17750,
+  "cache_write": 38370,
+  "cache_read": 191105,
+  "output": 4722
+ },
+ "model_calls": 15,
+ "largest_prompt_tokens": 25155,
+ "dollars": 0.010843,
+ "wall_seconds": 251
+}
