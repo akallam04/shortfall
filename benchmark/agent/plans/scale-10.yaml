@@ -1,0 +1,119 @@
+schema: shortfall.plan/v2
+name: scale-10
+model: claude-haiku-5-5
+agent_caps:
+  runs: 300
+  attempts: 30
+  turns: 100
+  dollars: 1
+baseline_runs: 300
+dollar_cap: 3
+oversold_pin: 2004ed534b765a3b3341efaadb3f352ffdecef90
+images:
+  2.22.0: sha256:c48358f78c193ccba70f4a7bf5e1e0048decb55bf4019cec48cc631658da0527
+  2.22.0-pr-17420: sha256:e3bcacbc669133e02b8372ceccf0e7184623625404fdf274a5880f392805e29a
+  2.22.0-pr-16961: sha256:0075cea17c12ad8e6db26908d310d823cad73216547ab3a6f05042a001e82a9c
+export_root: benchmark/agent/scale-10
+baseline_root: benchmark/baselines/2004ed5
+arms:
+- name: unguided-none
+  kind: agent
+  mode: unguided
+  feedback: none
+  prompts: v2
+  prompt_hash: 14a82a957b7b5b002037f7bde9978b692b1ba3bde93ac54ecc318a00f2b684cb
+  trials: &id001
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+- name: unguided-history
+  kind: agent
+  mode: unguided
+  feedback: history
+  prompts: v2
+  prompt_hash: 14a82a957b7b5b002037f7bde9978b692b1ba3bde93ac54ecc318a00f2b684cb
+  trials: *id001
+- name: grid
+  kind: baseline
+  method: grid
+  seeds: *id001
+- name: random
+  kind: baseline
+  method: random
+  seeds: *id001
+- name: nomenu-none
+  kind: agent
+  mode: unguided
+  feedback: none
+  prompts: v2-nomenu
+  prompt_hash: 47934e6f6c6df629d1e162b2025e896234719b3f05df49182a7d6dbf94050d64
+  trials:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+order:
+- nomenu-none-1
+- nomenu-none-2
+- nomenu-none-3
+- unguided-none-4
+- unguided-history-4
+- grid-seed-4
+- random-seed-4
+- nomenu-none-4
+- unguided-none-5
+- unguided-history-5
+- grid-seed-5
+- random-seed-5
+- nomenu-none-5
+- unguided-none-6
+- unguided-history-6
+- grid-seed-6
+- random-seed-6
+- nomenu-none-6
+- unguided-none-7
+- unguided-history-7
+- grid-seed-7
+- random-seed-7
+- nomenu-none-7
+- unguided-none-8
+- unguided-history-8
+- grid-seed-8
+- random-seed-8
+- nomenu-none-8
+- unguided-none-9
+- unguided-history-9
+- grid-seed-9
+- random-seed-9
+- nomenu-none-9
+- unguided-none-10
+- unguided-history-10
+- grid-seed-10
+- random-seed-10
+- nomenu-none-10
+report:
+- 'Arms: grid, random, unguided v2 with feedback none, unguided v2 with feedback history, and unguided
+  v2-nomenu with feedback none. Every trial has a budget of 300 runs.'
+- Trials 1 to 3 of grid, random and the two unguided v2 arms are the earlier ones in benchmark/baselines/2004ed5
+  and benchmark/agent/unguided-haiku-1. Trials 4 to 10 of those arms and all 10 v2-nomenu trials come
+  from this plan.
+- 'For each of the three cases and each arm: the number of trials, out of 10, that reproduced the case,
+  and the median runs to first reproduction over all 10 trials, counting a trial that missed the case
+  as over 300. If half or more of the 10 trials missed it, the median is reported as over 300.'
+- 'For each arm: the number of trials, out of 10, that reproduced all three cases.'
+- 'The ablation: unguided v2 with feedback none against unguided v2-nomenu with feedback none, on the
+  two race cases medusa-17032-last-unit and medusa-17032-counter, with the same two numbers per case as
+  above.'
+- 'Located is reported for the agent arms: file and cause for v2, file only for v2-nomenu.'
+- Held trials are reviewed after the plan with the rule used for unguided-haiku-1. A trial that stays
+  held is reported as held and is not counted in the table.
