@@ -1,0 +1,47 @@
+{
+ "summary": "Two findings reproduced against Medusa 2.22.0 with the harness. (1) A single-server race where one cart holds WIDGET on two lines (5 pieces vs. 3 pieces + 2 two-packs, stock 10) oversold in 8 of 20 runs: reserved reached 12 of 10. The root cause is in ensureInventoryLevels in packages/modules/inventory/src/services/inventory-module.ts, which checks each input line against available_quantity separately and never sums lines sharing a level. (2) A two-server race for SOLO (stock 1) placed two orders in 11 of 13 runs, with reserved_quantity stuck at 1 while two reservation rows existed. The cause is the absolute-value write of reserved_quantity computed from an earlier read (MathBN.add(level.reserved_quantity, adjustment)) in the reservation adjust/update path of the same file. Single-line, single-server races did not oversell in my attempts; I did not test the other listed causes.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  },
+  {
+   "attempt": 2,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}

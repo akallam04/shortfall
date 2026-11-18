@@ -1,0 +1,143 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": "a candidate may not set request_timeout_ms: not a field of the scenario format",
+  "ran": false,
+  "violation": null,
+  "plain_failed_rules": {},
+  "expected_check_failed": null,
+  "reproduced": null,
+  "located": null,
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": null,
+  "hypothesis": "ensureInventoryLevels (lines 173-191) checks each reservation input against available_quantity on its own and never sums inputs sharing an (inventory_item, location). Two carts that each hold WIDGET on multiple lines (5 x OVS-PIECE and 3 x OVS-PIECE plus 2 x OVS-TWOPACK, i.e. 4 units) should both pass the per-line check when stock is 10 and reserve 5 + 3 + 4 = 12 units, causing reserved > stocked and no_oversell to fail in some runs.",
+  "scenario_sha256": null,
+  "scenario_file": null,
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: multi-line-widget-race\ndescription: Cart A holds 5 pieces; cart B holds 3 pieces plus 2 two-packs (4 units) of the shared WIDGET item, stock 10. Both are completed together on one server.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  cart-a:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 5\n  cart-b:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 3\n    - sku: OVS-TWOPACK\n      qty: 2\nrace:\n- id: a-completes\n  server: 1\n  do: complete\n  cart: cart-a\n- id: b-completes\n  server: 1\n  do: complete\n  cart: cart-b\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nrequest_timeout_ms: 30000\nfaults: []\nruns: 20\nseed: 7"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 8
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 8
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "ensureInventoryLevels (lines 173-191) checks each reservation input against available_quantity on its own and never sums inputs sharing an (inventory_item, location). Cart A holds 5 pieces and cart B holds 3 pieces plus 2 two-packs (4 WIDGET units), stock 10. Both pre-completion aggregate checks can pass, and the per-line check lets both reserve, so reserved can reach 12 of 10 and no_oversell should fail in some runs.",
+  "scenario_sha256": "d63020eca22ccb178278680889267f1b8d474b025bcf7c93cd6a1fa851e4b9a7",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: multi-line-widget-race\ndescription: Cart A holds 5 pieces; cart B holds 3 pieces plus 2 two-packs (4 units) of the shared WIDGET item, stock 10. Both are completed together on one server.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  cart-a:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 5\n  cart-b:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 3\n    - sku: OVS-TWOPACK\n      qty: 2\nrace:\n- id: a-completes\n  server: 1\n  do: complete\n  cart: cart-a\n- id: b-completes\n  server: 1\n  do: complete\n  cart: cart-b\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 20\nseed: 7"
+ },
+ {
+  "attempt": 3,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "stale-counter-write",
+  "expected_check": "reserved_matches_reservations",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "createReservationItems_ (lines 292-307) and the reservation update path compute reserved_quantity as an absolute value from a level read before the lock-free write. With two servers on one database, two processes reserving the last unit concurrently can each read reserved=0, each write reserved=1, so reserved_quantity drops below the live reservation sum (2 reservation rows, reserved 1), tripping reserved_matches_reservations and possibly no_oversell.",
+  "scenario_sha256": "ec99749e5c9a48903ccba0788c62c90883da3f44070f2ba30ea4cfaa169795c3",
+  "scenario_file": "attempts/attempt-03.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: two-servers-solo-race\ndescription: Two carts each hold one SOLO unit (stock 1), built on server 1 and completed concurrently across two servers sharing one database.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 2\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 30\nseed: 11"
+ },
+ {
+  "attempt": 4,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "stale-counter-write",
+  "expected_check": "reserved_matches_reservations",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 9,
+    "reserved_matches_reservations": 9
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 9,
+   "reserved_matches_reservations": 9
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "not reproduced",
+   "medusa-17032-counter": "reproduced",
+   "medusa-17032-last-unit": "reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "cases": {
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "Same mechanism as before (absolute reserved_quantity write at lines 292-307 from a stale read), but with more runs and zero jitter to increase the chance two processes read the level before either writes. Expect reserved to read 1 against 2 reservation rows in some runs, failing reserved_matches_reservations.",
+  "scenario_sha256": "355321b298eb18bc5ae28e470b877813e4be665ad7502774a0ffda4690d76269",
+  "scenario_file": "attempts/attempt-04.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: two-servers-solo-race-wide\ndescription: Two carts each hold one SOLO unit (stock 1), completed together, one on each of two servers sharing one database, many runs with no jitter.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 2\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 2\n  do: complete\n  cart: bob\ntiming:\n  release: together\nfaults: []\nruns: 100\nseed: 23"
+ }
+]

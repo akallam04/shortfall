@@ -1,0 +1,41 @@
+schema: oversold.scenario/v1
+name: attempt-02-agent-20261118t000933z
+description: Cart A holds 5 pieces; cart B holds 3 pieces plus 2 two-packs of the
+  shared WIDGET item (stock 10). Completed together on one server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  cart-a:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 5
+  cart-b:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 3
+    - sku: OVS-TWOPACK
+      qty: 2
+race:
+- id: a-completes
+  server: 1
+  do: complete
+  cart: cart-a
+- id: b-completes
+  server: 1
+  do: complete
+  cart: cart-b
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+  request_timeout_ms: 30000
+faults: []
+runs: 30
+seed: 17032

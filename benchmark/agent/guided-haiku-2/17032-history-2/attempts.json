@@ -1,0 +1,64 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": "a candidate may not set request_timeout_ms: not a field of the scenario format",
+  "ran": false,
+  "violation": null,
+  "plain_failed_rules": {},
+  "expected_check_failed": null,
+  "reproduced": null,
+  "located": null,
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": null,
+  "hypothesis": "ensureInventoryLevels with validateQuantityAtLocation checks each reservation input alone against available_quantity and never sums entries sharing (inventory_item_id, location_id). A cart with 3 OVS-PIECE plus 2 OVS-TWOPACK (4 WIDGET units) and another with 5 OVS-PIECE, against stock 10, should both pass the per-line check if they reserve sequentially under the lock: A reserves 5, then B's lines are each checked against 5 (3<=5, 4<=5), so reserved reaches 14 on 10 stock. Expect no_oversell to fail in some runs, likely reserved_matches_reservations to hold since both use the same counter path.",
+  "scenario_sha256": null,
+  "scenario_file": null,
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: multi-line-same-item-race\ndescription: Two carts share WIDGET stock of 10 on one server; one holds a multi-line mix that sums past stock, completed together.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  cart-a:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 5\n  cart-b:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 3\n    - sku: OVS-TWOPACK\n      qty: 2\nrace:\n- id: a-completes\n  server: 1\n  do: complete\n  cart: cart-a\n- id: b-completes\n  server: 1\n  do: complete\n  cart: cart-b\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nrequest_timeout_ms: 30000\nfaults: []\nruns: 30\nseed: 17032\n"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 6
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 6
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "ensureInventoryLevels with validateQuantityAtLocation checks each reservation input alone against available_quantity and never sums entries sharing (inventory_item_id, location_id). A cart with 3 OVS-PIECE plus 2 OVS-TWOPACK (4 WIDGET units) and another with 5 OVS-PIECE, against stock 10, should both pass the per-line check if they reserve sequentially under the lock, so reserved reaches 14 on 10 stock. Expect no_oversell to fail in some runs.",
+  "scenario_sha256": "deb06fce5003f9937682119d0a128c2b71167e882b8b9fd5305f4642f5b23b62",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: multi-line-same-item-race\ndescription: Two carts share WIDGET stock of 10 on one server; one holds a multi-line mix that sums past stock, completed together.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  cart-a:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 5\n  cart-b:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 3\n    - sku: OVS-TWOPACK\n      qty: 2\nrace:\n- id: a-completes\n  server: 1\n  do: complete\n  cart: cart-a\n- id: b-completes\n  server: 1\n  do: complete\n  cart: cart-b\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\n  request_timeout_ms: 30000\nfaults: []\nruns: 30\nseed: 17032\n"
+ }
+]

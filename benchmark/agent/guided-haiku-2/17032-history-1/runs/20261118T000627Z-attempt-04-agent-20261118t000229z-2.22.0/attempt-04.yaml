@@ -1,0 +1,35 @@
+schema: oversold.scenario/v1
+name: attempt-04-agent-20261118t000229z
+description: Two carts each hold one SOLO unit (stock 1), completed together, one
+  on each of two servers sharing one database, many runs with no jitter.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  SOLO: 1
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 2
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+timing:
+  release: together
+faults: []
+runs: 100
+seed: 23

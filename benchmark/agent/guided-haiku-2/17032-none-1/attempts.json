@@ -1,0 +1,44 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 13
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 13
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "ensureInventoryLevels (line ~185) compares each reservation input against level.available_quantity separately and never sums inputs sharing the same inventory item and location. Two carts that each hold WIDGET on more than one line (a piece plus a two-pack) can each pass an aggregate check made before the reservation lock, and then each per-line check passes against the un-decremented level, so reserved exceeds stock and at least one run should show live reservations above stocked quantity (no_oversell failure). Expected to be reproducible, though the race window is narrow.",
+  "scenario_sha256": "8650f3e591bb090d0f6a3310f480605d37da78e0f1b9959fbbf8e550e54cbf96",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: multi-line-carts-widget\ndescription: Two carts each hold WIDGET on two lines (piece plus two-pack, 6 units each against stock 10) and are completed together on one server.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 2\n    - sku: OVS-TWOPACK\n      qty: 2\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 2\n    - sku: OVS-TWOPACK\n      qty: 2\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 1\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 30\nseed: 7"
+ }
+]

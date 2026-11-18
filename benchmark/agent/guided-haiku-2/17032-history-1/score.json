@@ -1,0 +1,112 @@
+{
+ "trial_id": "agent-20261118T000229Z",
+ "task_mode": "guided",
+ "feedback": "history",
+ "issue": "medusa-17032-counter",
+ "model": "claude-haiku-5-5",
+ "sdk_version": "2.9.0",
+ "knowledge_cutoff": "Jun 2026",
+ "caps": {
+  "runs": 300,
+  "attempts": 30,
+  "turns": 100,
+  "dollars": 1.0
+ },
+ "end_reason": "finished by the model",
+ "finished_by_model": true,
+ "turns": 9,
+ "attempts": 4,
+ "refused": 1,
+ "oversold_runs": 76,
+ "cases": {
+  "medusa-16502-lines": {
+   "reproduced": true,
+   "attempt": 2,
+   "runs_to_first": 23,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  },
+  "medusa-17032-counter": {
+   "reproduced": true,
+   "attempt": 4,
+   "runs_to_first": 76,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  },
+  "medusa-17032-last-unit": {
+   "reproduced": true,
+   "attempt": 4,
+   "runs_to_first": 76,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  }
+ },
+ "cases_reproduced": 3,
+ "claims": [
+  {
+   "attempt": 2,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  },
+  {
+   "attempt": 4,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ],
+ "claims_backed": 2,
+ "claims_unbacked": 0,
+ "expected_check": {
+  "hits": 2,
+  "of": 3
+ },
+ "manual_check": [],
+ "tokens": {
+  "input": 20,
+  "cache_write": 10852,
+  "cache_read": 113678,
+  "output": 4292
+ },
+ "model_calls": 9,
+ "largest_prompt_tokens": 19576,
+ "dollars": 0.004641,
+ "wall_seconds": 418
+}

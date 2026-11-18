@@ -1,0 +1,26 @@
+{
+ "summary": "Reproduced the reported per-line oversell. With WIDGET stock 10 on one server, a cart with 5 OVS-PIECE raced against a cart with 3 OVS-PIECE plus 2 OVS-TWOPACK (4 units) produced two orders in 6 of 13 runs, and WIDGET reserved reached 12 of 10 stock, failing no_oversell. The source confirms the cause: ensureInventoryLevels (validateQuantityAtLocation loop, inventory-module.ts ~lines 173-191) checks each reservation input alone against available_quantity and never sums inputs sharing an inventory item and location. I did not test the second-process lost-update part of the report (stale-counter-write), so I am not claiming it.",
+ "claims": [
+  {
+   "attempt": 2,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,4 @@
+{
+ "summary": "I read the inventory reservation code that the bug report names. In packages/modules/inventory/src/services/inventory-module.ts, the validateQuantityAtLocation loop (around line 185) checks each reservation input against level.available_quantity on its own and does not sum inputs that share an inventory item and location. That matches the per-line-check cause. The reserved_quantity write (around line 303) computes an absolute value from an earlier read, which matches the stale-counter-write cause. I submitted one attempt (attempt 1: two carts each holding WIDGET on two lines, raced together, expecting no_oversell to fail). I have not received its run results, so I am not claiming either finding as confirmed. The source evidence is strong, but the race may be too narrow to reproduce without the aggregate-check window the report describes.",
+ "claims": []
+}

@@ -1,0 +1,4 @@
+{
+ "summary": "I read the cart completion and inventory reservation code. Two hypotheses are pending verification by the scenarios I submitted: (1) inventory-module createReservationItems_ reads reserved_quantity without a row lock and writes an absolute value, so concurrent reservations on the same level can lose an update (stale-counter-write); (2) the reservation step's locking.execute is keyed per process, so two servers may not serialize the SOLO stock check (process-local-lock). No attempt results are in yet, so I am not claiming either as confirmed.",
+ "claims": []
+}

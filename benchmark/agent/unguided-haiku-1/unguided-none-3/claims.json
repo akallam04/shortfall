@@ -1,0 +1,4 @@
+{
+ "summary": "I submitted two attempts but received no run results, and several source reads failed, so I could not confirm either hypothesis. The main lead from the code: the default locking provider (packages/modules/locking/src/providers/in-memory.ts) only serializes within one process, and reservation writes use a read-then-write on reserved_quantity in createReservationItems_, so a two-server race could oversell SOLO. This is unverified. The per-line-check hypothesis for shared WIDGET lines was not confirmed by reading the code. No claims are made with confidence.",
+ "claims": []
+}

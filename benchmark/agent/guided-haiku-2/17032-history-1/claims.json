@@ -1,0 +1,47 @@
+{
+ "summary": "Reproduced both defects from the report. (1) Attempt 2: two carts on one server, one holding 5 pieces and one holding 3 pieces plus 2 two-packs of the shared WIDGET item (stock 10), both completed together. no_oversell failed in 8 of 13 runs, with WIDGET reserved at 12 of 10. The code cause is ensureInventoryLevels checking each input line against available_quantity without summing lines on the same item and location. (2) Attempt 4: two carts for the single SOLO unit, completed on two servers sharing one database. In 9 of 13 runs both orders were placed, leaving reserved_quantity at 1 against 2 live reservations, so reserved_matches_reservations and no_oversell failed. The code cause is the absolute reserved_quantity write computed from an earlier read in createReservationItems_ and the reservation update path. I did not confirm the report's multi-line bundle-plus-single variant beyond what attempt 2 covers, and I did not verify the report's exact rates.",
+ "claims": [
+  {
+   "attempt": 2,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  },
+  {
+   "attempt": 4,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}
