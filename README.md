@@ -33,11 +33,11 @@ Two simple methods that use no AI were measured for comparison, each in 3 trials
 
 ## What the agent has done so far
 
-The AI agent has run 12 guided trials with the model Claude Haiku 5.5. In a guided trial the agent is given the public bug report, like an open-book test. With the #16502 report, all 6 trials reproduced that bug. With the #17032 report, 5 of 6 trials reproduced the #16502 bug instead, and none reproduced #17032. Each trial and its full record is on [the agent trials page](benchmark/agent/README.md).
+The AI agent has run trials with the model Claude Haiku 5.5. In an unguided trial it gets no bug report and has the same 300-run budget as the two simple methods above. In the 3 published unguided trials, it reproduced both #17032 scenarios in all 3 trials, each time at run 33, and the #16502 scenario in 2 of 3 trials, at a median of 56 runs. It has also run 18 guided trials, where it is given the public bug report, like an open-book test. Each trial and its full record is on [the agent trials page](benchmark/agent/README.md).
 
 ## What is not done yet
 
-Guided trials are not a fair comparison with the two simple methods above, because the agent was given the bug report. The fair comparison will come from unguided trials, where the agent gets no bug report. Those have not run yet.
+Three trials per method is a small sample, so no difference between the agent and the simple methods is called significant. Three more unguided trials, with the history feedback mode, are held for a manual review and are not published yet.
 
 ## Why you can trust the numbers
 
