@@ -1,0 +1,4 @@
+{
+ "summary": "I read the reservation path for cart completion. reserveInventoryStep takes a lock keyed on inventory item ids and then calls createReservationItems, which checks available_quantity and writes reservations. The default locking provider is InMemoryLockingProvider, so that lock only serializes completions inside a single Medusa process. With two servers on one database, two completions that each need the last unit could each pass the availability check and both reserve it, which would break no_oversell. I submitted two attempts: attempt 1 tests that cross-server race (SOLO 1 unit, one cart per server); attempt 2 is a same-server control (WIDGET 3 units, two TWOPACK carts). I have not yet seen the results of either run, so no finding is confirmed. Claims are withheld until the results are known.",
+ "claims": []
+}

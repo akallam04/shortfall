@@ -1,0 +1,30 @@
+schema: oversold.scenario/v1
+name: attempt-03-agent-20261118t104200z
+description: Carts are prepared against stock 10, then stock drops to 2 before four
+  carts of one twopack each complete together.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+carts:
+  alice:
+    server: 1
+    count: 4
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+stock_before_race:
+  WIDGET: 2
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 10
+seed: 1

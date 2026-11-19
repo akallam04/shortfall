@@ -1,0 +1,36 @@
+schema: oversold.scenario/v1
+name: grid-029-s2-solo-c2-short-sequential
+description: 'Sweep grid candidate 29. 2 servers, 2 carts: 1 on server 1 holding OVS-SOLO
+  1; 1 on server 2 holding OVS-SOLO 1. Stock: SOLO 1. Completions released one after
+  another.'
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  SOLO: 1
+carts:
+  buyer-a:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  buyer-b:
+    server: 2
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: complete-a
+  server: 1
+  do: complete
+  cart: buyer-a
+- id: complete-b
+  server: 2
+  do: complete
+  cart: buyer-b
+timing:
+  release: sequential
+faults: []
+runs: 10
+seed: 29

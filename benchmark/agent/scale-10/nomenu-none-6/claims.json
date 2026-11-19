@@ -1,0 +1,25 @@
+{
+ "summary": "I reviewed Medusa 2.22.0's complete-cart workflow. The cart-level guard (acquireLockStep on the cart id) uses the default in-memory locking provider, which is per process, so it does not serialize completions across two servers sharing one database. The order_cart link is checked before the order is created with no database-level uniqueness on that link that I could confirm, so two servers could each create an order for one cart. I submitted two attempts: attempt 1 tests this cross-server race (expected one_order_per_cart to fail), and attempt 2 is a same-server control (expected to pass). I did not get the run results back, and I could not read several key files (reserve-inventory step, lock provider, link module) because of tool errors, so the hypothesis is unverified.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+   "backed": false,
+   "why": "no violation",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not named"
+    },
+    "medusa-17032-counter": {
+     "file": "not accepted",
+     "cause": "not named"
+    },
+    "medusa-17032-last-unit": {
+     "file": "not accepted",
+     "cause": "not named"
+    }
+   }
+  }
+ ]
+}

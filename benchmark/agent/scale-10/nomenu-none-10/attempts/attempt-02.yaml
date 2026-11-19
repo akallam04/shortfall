@@ -1,0 +1,25 @@
+schema: oversold.scenario/v1
+name: attempt-02-agent-20261119t060108z
+description: A TWOPACK cart is built against stock 10, stock drops to 1 before the
+  race, then the cart is completed.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock_before_race:
+  WIDGET: 1
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: together
+runs: 10
+seed: 3

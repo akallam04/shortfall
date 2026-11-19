@@ -1,0 +1,43 @@
+schema: oversold.scenario/v1
+name: random-045-s2-pr-16961-control-redis-control
+description: 'Redis-locking control of random-045-s2-pr-16961-control. Variant control
+  of random-045-s2 on Medusa 2.22.0 with pr-16961. Sweep random candidate 45. 2 servers,
+  19 carts: 10 on server 1 holding OVS-PIECE 1 and OVS-TWOPACK 2; 9 on server 2 holding
+  OVS-TWOPACK 1. Stock: WIDGET 8. Completions released together.'
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-16961
+  locking: redis
+stock:
+  WIDGET: 8
+carts:
+  buyer-a:
+    server: 1
+    count: 10
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+    - sku: OVS-TWOPACK
+      qty: 2
+  buyer-b:
+    server: 2
+    count: 9
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+race:
+- id: complete-a
+  server: 1
+  do: complete
+  cart: buyer-a
+- id: complete-b
+  server: 2
+  do: complete
+  cart: buyer-b
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 172457

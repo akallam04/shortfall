@@ -1,0 +1,63 @@
+{
+ "trial_id": "agent-20261118T043237Z",
+ "task_mode": "unguided",
+ "feedback": "none",
+ "issue": null,
+ "model": "claude-haiku-5-5",
+ "sdk_version": "2.9.0",
+ "knowledge_cutoff": "Jun 2026",
+ "caps": {
+  "runs": 300,
+  "attempts": 30,
+  "turns": 100,
+  "dollars": 1.0
+ },
+ "end_reason": "the model stopped without calling finish",
+ "finished_by_model": false,
+ "turns": 13,
+ "attempts": 1,
+ "refused": 0,
+ "oversold_runs": 33,
+ "cases": {
+  "medusa-16502-lines": {
+   "reproduced": false
+  },
+  "medusa-17032-counter": {
+   "reproduced": true,
+   "attempt": 1,
+   "runs_to_first": 33,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": null,
+   "file_grade": "accepted",
+   "cause_grade": "not named"
+  },
+  "medusa-17032-last-unit": {
+   "reproduced": true,
+   "attempt": 1,
+   "runs_to_first": 33,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": null,
+   "file_grade": "accepted",
+   "cause_grade": "not named"
+  }
+ },
+ "cases_reproduced": 2,
+ "claims": null,
+ "claims_backed": 0,
+ "claims_unbacked": 0,
+ "expected_check": {
+  "hits": 1,
+  "of": 1
+ },
+ "manual_check": [],
+ "tokens": {
+  "input": 15863,
+  "cache_write": 37392,
+  "cache_read": 157317,
+  "output": 3491
+ },
+ "model_calls": 13,
+ "largest_prompt_tokens": 23010,
+ "dollars": 0.009579,
+ "wall_seconds": 210
+}

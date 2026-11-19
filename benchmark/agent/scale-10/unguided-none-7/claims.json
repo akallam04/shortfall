@@ -1,0 +1,4 @@
+{
+ "summary": "I read the complete-cart and reservation code and submitted two attempts. Attempt 1 targets a possible process-local lock letting two servers complete the same cart (one_order_per_cart). Attempt 2 targets a possible stock-location mismatch in reserve-inventory.ts (no_oversell). I did not get verified results for either attempt, and I could not read the in-memory locking provider's source, so I make no confirmed claims.",
+ "claims": []
+}

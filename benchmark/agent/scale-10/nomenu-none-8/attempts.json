@@ -1,0 +1,81 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": null,
+  "expected_check": "reserved_matches_reservations",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 9,
+    "reserved_matches_reservations": 9
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 9,
+   "reserved_matches_reservations": 9
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "not reproduced",
+   "medusa-17032-counter": "reproduced",
+   "medusa-17032-last-unit": "reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": null,
+   "cases": {
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not named",
+     "located": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not named",
+     "located": "not accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "Default locking is InMemoryLockingProvider, which only serializes within one process. The reservation path reads inventory_level.reserved_quantity, checks available_quantity, then writes back a computed reserved_quantity (read-modify-write, no row lock). With two servers on one database, two concurrent completions can both read the same reserved_quantity and both write back a stale total, so reserved_quantity may disagree with the live reservation rows, and possibly oversell. Test: two carts on different servers each holding OVS-PIECE (WIDGET stock 10), each with qty 6, so only one should succeed, completed together.",
+  "scenario_sha256": "7ae5b70685b2346b12e30e0486b28d8edb97d5817747d7ffd26e42be9661dd24",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: cross-server-widget-race\ndescription: Two carts on different servers each need 6 of 10 WIDGET units and are completed at once, testing a cross-process reservation race.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  WIDGET: 10\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 6\n  bob:\n    server: 2\n    lines:\n    - sku: OVS-PIECE\n      qty: 6\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 2\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 5\nfaults: []\nruns: 20\nseed: 7"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+  "cause": null,
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": null,
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "The availability check in ensureInventoryLevels compares available_quantity against item.quantity, where quantity is already multiplied by required_quantity in reserve-inventory. For OVS-TWOPACK (required_quantity 2) the check and the reservation should both use 2 per unit ordered. If the multiplication or the location choice is inconsistent between the check and the write, several two-pack orders could pass with only 10 WIDGET stocked. Test: several carts each buying 3 two-packs (6 WIDGET) against 10 stocked, completed together on one server.",
+  "scenario_sha256": "64dbf981a4b4fee87c7e451f2f03cf9861974e5aa822cfd5d576477f797e71c6",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: twopack-same-server\ndescription: Three carts each buy three two-packs (6 WIDGET units each) against 10 stocked, completed together on one server.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-TWOPACK\n      qty: 3\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-TWOPACK\n      qty: 3\n  carol:\n    server: 1\n    lines:\n    - sku: OVS-TWOPACK\n      qty: 3\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 1\n  do: complete\n  cart: bob\n- id: carol-completes\n  server: 1\n  do: complete\n  cart: carol\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 20\nseed: 11"
+ }
+]

@@ -1,0 +1,29 @@
+schema: oversold.scenario/v1
+name: grid-024-s1-piece-twopack-c2-short-together
+description: 'Sweep grid candidate 24. 1 server, 2 carts: 2 on server 1 holding OVS-PIECE
+  1 and OVS-TWOPACK 1. Stock: WIDGET 3. Completions released together.'
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 3
+carts:
+  buyer:
+    server: 1
+    count: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+    - sku: OVS-TWOPACK
+      qty: 1
+race:
+- id: complete
+  server: 1
+  do: complete
+  cart: buyer
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 24

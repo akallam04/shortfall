@@ -1,0 +1,4 @@
+{
+ "summary": "I read the complete-cart inventory reservation path. Reservation availability checks and reserved_quantity updates are serialized only by the locking module's in-memory provider (the default), which is process-local. With two servers sharing one database, two completes on different servers could both pass the availability check for the last unit. I submitted one attempt (SOLO stock 1, two carts completed on two servers) to test this; I have not seen its result, so this is a hypothesis, not a confirmed finding. I did not verify the other checks or the order-linking paths in depth.",
+ "claims": []
+}

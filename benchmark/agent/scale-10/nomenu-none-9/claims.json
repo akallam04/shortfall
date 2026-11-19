@@ -1,0 +1,25 @@
+{
+ "summary": "I read the cart completion and inventory reservation code and identified a candidate oversell path. Medusa's default locking provider (InMemoryLockingProvider) keeps locks in process memory, so with two servers sharing one database, the locks that should serialize stock checks in reserve-inventory and ensureInventoryLevels (validateQuantityAtLocation) do not coordinate across servers. Attempt 1 is a two-server race for the single SOLO unit, expected to fail no_oversell; attempt 2 is the one-server control, expected to pass. I have not seen the run results for either attempt, and I did not verify that the transaction isolation does not already prevent the double reservation, so the claim is a hypothesis, not a confirmed bug.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not named"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not named"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not named"
+    }
+   }
+  }
+ ]
+}

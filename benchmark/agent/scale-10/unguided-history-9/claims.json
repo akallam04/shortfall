@@ -1,0 +1,26 @@
+{
+ "summary": "Found an oversell across two servers. With two carts each needing the single SOLO unit and completed on different servers at the same time, both completions returned ok in 11 of 13 runs, creating two orders against stock of 1. no_oversell and reserved_matches_reservations failed in those runs. The cause is the default in-memory locking provider: reserveInventoryStep takes its inventory-item lock with locking.execute, but that lock only excludes callers inside one process, so the second server does not wait. A same-cart race across two servers was blocked correctly (one order, second call failed), so I made no claim about the cart lock.",
+ "claims": [
+  {
+   "attempt": 2,
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "process-local-lock",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}

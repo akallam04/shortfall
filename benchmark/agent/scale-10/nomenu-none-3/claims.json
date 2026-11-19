@@ -1,0 +1,4 @@
+{
+ "summary": "I read the inventory reservation path and found a possible race: ensureInventoryLevels checks available_quantity with an unlocked read, and createReservationItems_ then writes reserved_quantity as a stale level value plus the adjustment, with no row lock (packages/modules/inventory/src/services/inventory-module.ts). This could let concurrent completions oversell a single unit or leave the reserved counter out of step with the reservation rows. I submitted one attempt (SOLO stock 1, two carts across two servers, completed together) to test it, but I have not seen its results, so the hypothesis is unconfirmed. No claims are made yet.",
+ "claims": []
+}

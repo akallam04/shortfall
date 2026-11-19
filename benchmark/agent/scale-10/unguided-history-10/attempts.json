@@ -1,0 +1,44 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 13
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 13
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "A single cart holds two lines on the same inventory item WIDGET (OVS-PIECE x6 and OVS-TWOPACK x3, i.e. 12 units against 10 stocked). The availability check in ensureInventoryLevels runs per reservation input against the same pre-batch available_quantity, so each line passes on its own and neither is summed. Completion should succeed, producing an order that needs 12 WIDGET units while only 10 were stocked, so no_oversell should fail (and reserved_matches_reservations should still pass since the counter sums the adjustments).",
+  "scenario_sha256": "03a1d21642162f733b895b45f4a58a2d13c7971d1e35aae3b32b676490ab6a5a",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: one-cart-shared-widget-lines\ndescription: One cart holds two lines sharing the WIDGET item whose combined units exceed stock; completed once.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  greedy:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 6\n    - sku: OVS-TWOPACK\n      qty: 3\nrace:\n- id: greedy-completes\n  server: 1\n  do: complete\n  cart: greedy\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 10\nseed: 1\n"
+ }
+]

@@ -1,0 +1,38 @@
+schema: oversold.scenario/v1
+name: attempt-01-agent-20261119t025911z
+description: Two carts on different servers each need 6 of 10 WIDGET units and are
+  completed at once, testing a cross-process reservation race.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 6
+  bob:
+    server: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 6
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 5
+faults: []
+runs: 20
+seed: 7

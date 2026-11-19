@@ -1,0 +1,484 @@
+{
+  "schema": "oversold.report/v1",
+  "scenario": {
+    "name": "random-039-s2-pr-16961-control",
+    "file": "random-039-s2-pr-16961-control.yaml",
+    "sha256": "df5c12fd89b4339087a03da6742cbcfb2fe6206f1847f0e02448e772c3d32b54",
+    "version": "2.22.0"
+  },
+  "oversold": [
+    {
+      "commit": "2004ed534b765a3b3341efaadb3f352ffdecef90",
+      "dirty": false
+    }
+  ],
+  "checked_by": {
+    "commit": "2004ed534b765a3b3341efaadb3f352ffdecef90",
+    "dirty": false
+  },
+  "versions_used": [
+    "2.22.0"
+  ],
+  "servers": [
+    {
+      "service": "medusa",
+      "medusa_version": "2.22.0",
+      "image_id": "sha256:0075cea17c12ad8e6db26908d310d823cad73216547ab3a6f05042a001e82a9c",
+      "image_inputs": "ee262621f93e2ba8e44d0e7d090c616f40ad572fe2c2c8706cdd0cb01e5e6ae5"
+    },
+    {
+      "service": "medusa-2",
+      "medusa_version": "2.22.0",
+      "image_id": "sha256:0075cea17c12ad8e6db26908d310d823cad73216547ab3a6f05042a001e82a9c",
+      "image_inputs": "ee262621f93e2ba8e44d0e7d090c616f40ad572fe2c2c8706cdd0cb01e5e6ae5"
+    }
+  ],
+  "postgres_version": "15.19",
+  "variant": {
+    "name": "pr-16961",
+    "base_version": "2.22.0",
+    "description": "Medusa 2.22.0 with the source change of medusajs/medusa#16961 by pqa-labs, which checks the summed demand of entries that share an inventory item",
+    "source": {
+      "pr": "https://github.com/medusajs/medusa/pull/16961",
+      "author": "pqa-labs",
+      "state": "closed",
+      "merged": false,
+      "head_sha": "5ac8ae437ee0b7771a945b5b30f265b76f214172",
+      "base_sha": "340da77f722a5a53c48bf35276f96ec261a65736"
+    },
+    "source_files": [
+      "packages/modules/inventory/src/services/inventory-module.ts",
+      "packages/core/core-flows/src/cart/steps/confirm-inventory.ts"
+    ],
+    "files": [
+      {
+        "path": "@medusajs/inventory/dist/services/inventory-module.js",
+        "replaces_sha256": "6d2643ef94e7ffe20fb2b4a35f8f1de503ad4429c85c64cc4262ceae2a776c58",
+        "sha256": "8e150f6b9de7bc64f431e91a803716646a782379d3cc993a31f301056d5ac919"
+      },
+      {
+        "path": "@medusajs/core-flows/dist/cart/steps/confirm-inventory.js",
+        "replaces_sha256": "01a7cf229b6854a7840207c6ba62234bbdedc651adfd50276536e06d6e46134d",
+        "sha256": "2af8432c719836364a143d9fe7f4ee6f9aba17062d555e2fdace47315c11c569"
+      }
+    ]
+  },
+  "runs_planned": 10,
+  "runs_recorded": 10,
+  "checks": [
+    {
+      "check": "no_oversell",
+      "version": 2,
+      "runs": 10,
+      "fail": 10,
+      "pass": 0,
+      "inconclusive": 0
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 2,
+      "runs": 10,
+      "fail": 10,
+      "pass": 0,
+      "inconclusive": 0
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 2,
+      "runs": 10,
+      "fail": 0,
+      "pass": 10,
+      "inconclusive": 0
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 2,
+      "runs": 10,
+      "fail": 0,
+      "pass": 10,
+      "inconclusive": 0
+    },
+    {
+      "check": "no_missing_orders",
+      "version": 1,
+      "runs": 10,
+      "fail": 0,
+      "pass": 10,
+      "inconclusive": 0
+    }
+  ],
+  "runs": [
+    {
+      "index": 1,
+      "file": "run-001.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET live reservations 51 exceed stocked 35; WIDGET orders need 51 units but 35 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 33 but live reservations sum to 51"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 0 order; cart buyer-a-10: 0 order; cart buyer-a-2: 1 order; cart buyer-a-3: 0 order; cart buyer-a-4: 1 order; cart buyer-a-5: 0 order; cart buyer-a-6: 1 order; cart buyer-a-7: 1 order; cart buyer-a-8: 1 order; cart buyer-a-9: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order; cart buyer-b-6: 1 order; cart buyer-b-7: 1 order; cart buyer-b-8: 1 order; cart buyer-b-9: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "15 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (15 checked)"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "file": "run-002.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET live reservations 51 exceed stocked 35; WIDGET orders need 51 units but 35 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 33 but live reservations sum to 51"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-10: 0 order; cart buyer-a-2: 0 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-a-6: 0 order; cart buyer-a-7: 1 order; cart buyer-a-8: 1 order; cart buyer-a-9: 0 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order; cart buyer-b-6: 1 order; cart buyer-b-7: 1 order; cart buyer-b-8: 1 order; cart buyer-b-9: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "15 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (15 checked)"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "file": "run-003.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET live reservations 47 exceed stocked 35; WIDGET orders need 47 units but 35 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 32 but live reservations sum to 47"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 0 order; cart buyer-a-10: 0 order; cart buyer-a-2: 0 order; cart buyer-a-3: 0 order; cart buyer-a-4: 0 order; cart buyer-a-5: 1 order; cart buyer-a-6: 1 order; cart buyer-a-7: 1 order; cart buyer-a-8: 1 order; cart buyer-a-9: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order; cart buyer-b-6: 1 order; cart buyer-b-7: 1 order; cart buyer-b-8: 1 order; cart buyer-b-9: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "14 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (14 checked)"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "file": "run-004.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET live reservations 55 exceed stocked 35; WIDGET orders need 55 units but 35 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 33 but live reservations sum to 55"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-10: 0 order; cart buyer-a-2: 1 order; cart buyer-a-3: 0 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-a-6: 1 order; cart buyer-a-7: 0 order; cart buyer-a-8: 1 order; cart buyer-a-9: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order; cart buyer-b-6: 1 order; cart buyer-b-7: 1 order; cart buyer-b-8: 1 order; cart buyer-b-9: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "16 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (16 checked)"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "file": "run-005.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET live reservations 55 exceed stocked 35; WIDGET orders need 55 units but 35 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 34 but live reservations sum to 55"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-10: 1 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 0 order; cart buyer-a-6: 0 order; cart buyer-a-7: 0 order; cart buyer-a-8: 1 order; cart buyer-a-9: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order; cart buyer-b-6: 1 order; cart buyer-b-7: 1 order; cart buyer-b-8: 1 order; cart buyer-b-9: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "16 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (16 checked)"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "file": "run-006.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET live reservations 59 exceed stocked 35; WIDGET orders need 59 units but 35 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 34 but live reservations sum to 59"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-10: 0 order; cart buyer-a-2: 1 order; cart buyer-a-3: 1 order; cart buyer-a-4: 0 order; cart buyer-a-5: 1 order; cart buyer-a-6: 1 order; cart buyer-a-7: 1 order; cart buyer-a-8: 1 order; cart buyer-a-9: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order; cart buyer-b-6: 1 order; cart buyer-b-7: 1 order; cart buyer-b-8: 1 order; cart buyer-b-9: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "17 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (17 checked)"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "file": "run-007.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET live reservations 55 exceed stocked 35; WIDGET orders need 55 units but 35 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 34 but live reservations sum to 55"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-10: 1 order; cart buyer-a-2: 0 order; cart buyer-a-3: 0 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-a-6: 1 order; cart buyer-a-7: 0 order; cart buyer-a-8: 1 order; cart buyer-a-9: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order; cart buyer-b-6: 1 order; cart buyer-b-7: 1 order; cart buyer-b-8: 1 order; cart buyer-b-9: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "16 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (16 checked)"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "file": "run-008.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET live reservations 51 exceed stocked 35; WIDGET orders need 51 units but 35 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 34 but live reservations sum to 51"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 0 order; cart buyer-a-10: 1 order; cart buyer-a-2: 0 order; cart buyer-a-3: 1 order; cart buyer-a-4: 0 order; cart buyer-a-5: 1 order; cart buyer-a-6: 1 order; cart buyer-a-7: 0 order; cart buyer-a-8: 1 order; cart buyer-a-9: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order; cart buyer-b-6: 1 order; cart buyer-b-7: 1 order; cart buyer-b-8: 1 order; cart buyer-b-9: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "15 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (15 checked)"
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "file": "run-009.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET live reservations 59 exceed stocked 35; WIDGET orders need 59 units but 35 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 35 but live reservations sum to 59"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 0 order; cart buyer-a-10: 1 order; cart buyer-a-2: 0 order; cart buyer-a-3: 1 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-a-6: 1 order; cart buyer-a-7: 1 order; cart buyer-a-8: 1 order; cart buyer-a-9: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order; cart buyer-b-6: 1 order; cart buyer-b-7: 1 order; cart buyer-b-8: 1 order; cart buyer-b-9: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "17 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (17 checked)"
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "file": "run-010.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET live reservations 55 exceed stocked 35; WIDGET orders need 55 units but 35 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "WIDGET reserved_quantity 33 but live reservations sum to 55"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart buyer-a-1: 1 order; cart buyer-a-10: 0 order; cart buyer-a-2: 0 order; cart buyer-a-3: 0 order; cart buyer-a-4: 1 order; cart buyer-a-5: 1 order; cart buyer-a-6: 1 order; cart buyer-a-7: 1 order; cart buyer-a-8: 1 order; cart buyer-a-9: 1 order; cart buyer-b-1: 1 order; cart buyer-b-2: 1 order; cart buyer-b-3: 1 order; cart buyer-b-4: 1 order; cart buyer-b-5: 1 order; cart buyer-b-6: 1 order; cart buyer-b-7: 1 order; cart buyer-b-8: 1 order; cart buyer-b-9: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "16 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (16 checked)"
+        }
+      ]
+    }
+  ],
+  "exit_code": 1,
+  "generated": "2026-11-18T10:24:55.285845000Z"
+}

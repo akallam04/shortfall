@@ -1,0 +1,26 @@
+{
+ "summary": "Found an oversell caused by per-line stock checking. A single cart with two lines sharing the WIDGET inventory item (OVS-PIECE x6 and OVS-TWOPACK x3, 12 units against 10 stocked) completed successfully. In ensureInventoryLevels (packages/modules/inventory/src/services/inventory-module.ts), each reservation input is checked against the same pre-batch available_quantity, and the shared item's quantities are never summed. The result was an order holding 12 reserved WIDGET units against 10 stocked, failing no_oversell in 13 of 13 runs. reserved_matches_reservations passed, since the counter matches the live reservations. I did not explore the two-server process-local-lock or other causes within this budget.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

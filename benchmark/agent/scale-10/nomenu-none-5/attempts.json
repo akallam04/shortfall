@@ -1,0 +1,81 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/locking/src/providers/in-memory.ts",
+  "cause": null,
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 10,
+    "reserved_matches_reservations": 10
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 10,
+   "reserved_matches_reservations": 10
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "not reproduced",
+   "medusa-17032-counter": "reproduced",
+   "medusa-17032-last-unit": "reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": null,
+   "cases": {
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not named",
+     "located": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not named",
+     "located": "not accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "The reserve-inventory step serializes reservations with a lock, but the default locking provider is InMemoryLockingProvider, which only lives inside one server process. With two servers on one database, two carts for the single SOLO unit (stock 1) can each pass the available_quantity check in createReservationItems_ and each write reserved_quantity from a stale read, so both orders get the unit. I expect no_oversell to fail (and possibly reserved_matches_reservations) in some runs.",
+  "scenario_sha256": "d8b7131d9a13865d31a98a0cdb91d61aa7e803ca0320cfc74114f05fdedb911f",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: solo-two-servers-race\ndescription: Two carts each want the single SOLO unit and are completed at the same moment on two different servers sharing one database.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 2\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 2\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 5\n  request_timeout_ms: 30000\nruns: 50\nseed: 7\n"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+  "cause": null,
+  "expected_check": "none",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": true,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": null,
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "Control: the same two SOLO carts on a single server. The in-process lock around createReservationItems should serialize the two reservations, so I expect no_oversell to pass in every run. If it fails here too, the bug is in the reservation math rather than the cross-server locking.",
+  "scenario_sha256": "ece999e63864fdd15ddc3768a4f71a6e8bcabe4c2c9742062136d42a94d930bd",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: solo-one-server-control\ndescription: Two carts each want the single SOLO unit and are completed together on one server.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 1\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 5\nruns: 50\nseed: 7\n"
+ }
+]

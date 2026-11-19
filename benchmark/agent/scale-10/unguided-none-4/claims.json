@@ -1,0 +1,4 @@
+{
+ "summary": "Read the cart completion and inventory code. The reservation step uses Modules.LOCKING, whose default provider is in-memory, so its lock is process-local and would not serialize completions across two servers (process-local-lock candidate). The confirm step checks each line against stock alone, which could miss shared WIDGET usage across OVS-PIECE and OVS-TWOPACK lines (per-line-check candidate). I submitted one attempt (per-line-check, shared-WIDGET overcommit) but have no run results yet, so no claims are made. The process-local-lock candidate was not tested.",
+ "claims": []
+}

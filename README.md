@@ -26,23 +26,27 @@ The benchmark has three test scenarios built from two real Medusa bugs that were
 | The count of reserved stock goes wrong | [#17032](https://github.com/medusajs/medusa/issues/17032) | 30 of 30 runs | 0 of 30 runs ([fix #17420](https://github.com/medusajs/medusa/pull/17420)) |
 | Two cart lines that use the same stock are oversold | [#16502](https://github.com/medusajs/medusa/issues/16502) | 30 of 30 runs | 0 of 30 runs ([fix #16961](https://github.com/medusajs/medusa/pull/16961)) |
 
-Two simple methods that use no AI were measured for comparison, each in 3 trials of at most 300 runs:
+Two simple methods that use no AI were measured for comparison, each in 10 trials of at most 300 runs:
 
-- A fixed list of test shapes found all three scenarios in 3 of 3 trials.
-- Randomly drawn tests found the two #17032 scenarios in 3 of 3 trials and the #16502 scenario in 1 of 3.
+- A fixed list of test shapes found all three scenarios in every one of its 10 trials.
+- Randomly drawn tests found the #17032 counter scenario in 10 of 10 trials, the #17032 last-unit scenario in 9 of 10 and the #16502 scenario in 7 of 10, and all three in 6 of 10.
 
 ## What the agent has done so far
 
-The AI agent has run trials with the model Claude Haiku 5.5. In an unguided trial it gets no bug report and has the same 300-run budget as the two simple methods above. It ran 6 unguided trials, 3 in each of its two feedback modes:
+The AI agent has run trials with the model Claude Haiku 5.5. In an unguided trial it gets no bug report and has the same 300-run budget as the two simple methods above. It ran 10 unguided trials in each of its two feedback modes:
 
-- With no feedback on its results, it reproduced both #17032 scenarios in all 3 trials, each time at run 33, and the #16502 scenario in 2 of 3 trials, at a median of 56 runs.
-- With feedback on its results, it reproduced the #17032 counter scenario in 2 of 3 trials, the #17032 last-unit scenario in 1 of 3, and the #16502 scenario in none.
+- With no feedback on its results, it reproduced both #17032 scenarios in 7 of 10 trials, at a median of 33 runs, and the #16502 scenario in 3 of 10.
+- With feedback on its results, it reproduced the #17032 counter scenario in 6 of 10 trials, the #17032 last-unit scenario in 5 of 10, and the #16502 scenario in 2 of 10.
+- It reproduced all three scenarios in one trial in 3 of 10 trials with no feedback, and never with feedback. The fixed list of test shapes did that in every trial.
+- On the #17032 counter scenario, the fixed list tied the agent with no feedback: a median of 33 runs each.
+
+A further 10 trials tested whether the agent's list of likely causes helps, by leaving it out. Without it, the agent reproduced both #17032 scenarios in more trials, 9 of 10, and the #16502 scenario in none.
 
 It has also run 18 guided trials, where it is given the public bug report, like an open-book test. Each trial and its full record is on [the agent trials page](benchmark/agent/README.md).
 
 ## What is not done yet
 
-The sample is 3 trials per method, so no difference between the agent and the simple methods is called significant. In every trial so far the agent stopped on its own after at most 76 of its 300 runs.
+The sample is 10 trials per method, with one model, one Medusa version and three test scenarios from two bugs, so no difference between the agent and the simple methods is called significant. In every published trial so far the agent stopped on its own after at most 76 of its 300 runs.
 
 ## Why you can trust the numbers
 
@@ -107,7 +111,7 @@ make engine-down
 
 ## The agent
 
-`src/shortfall/agent.py` runs one trial of the agent. The model can list, read and search the Medusa 2.22.0 source, submit an attempt (a file, a cause from a fixed list, the check it expects to fail, a short hypothesis and a scenario) and finish with its claims. Each attempt and its prediction go into `runs/ledger.jsonl` before its first run, and each is scored the same way as the baselines. A trial stops at 300 runs, 12 attempts, 60 model turns or a dollar cap. In the `none` feedback mode the model only learns whether an attempt was accepted or refused, and how many runs, attempts and turns are left. In the `history` mode it also sees, for the runs on plain Medusa only, how often each check failed and a short summary of each run. It never sees control runs, the benchmark cases or their answers. The prompts are in `src/shortfall/prompts/`, and the scenario format text the model reads is built from the same list of fields that the candidate check accepts, in `src/shortfall/scenario_format.py`. One sha256 over everything the model is shown and the loop settings is kept in [benchmark/agent/prompts.sha256](benchmark/agent/prompts.sha256).
+`src/shortfall/agent.py` runs one trial of the agent. The model can list, read and search the Medusa 2.22.0 source, submit an attempt (a file, a cause from a fixed list, the check it expects to fail, a short hypothesis and a scenario) and finish with its claims. Prompt version v2-nomenu leaves out the list of causes, and the agent names only a file. Each attempt and its prediction go into `runs/ledger.jsonl` before its first run, and each is scored the same way as the baselines. A trial stops at 300 runs, 30 attempts, 100 model turns or a dollar cap (12 attempts and 60 turns on prompt version v1). In the `none` feedback mode the model only learns whether an attempt was accepted or refused, and how many attempts and turns are left (on v1 also how many runs). In the `history` mode it also sees, for the runs on plain Medusa only, how often each check failed and a short summary of each run. It never sees control runs, the benchmark cases or their answers. The prompts are in `src/shortfall/prompts/`, and the scenario format text the model reads is built from the same list of fields that the candidate check accepts, in `src/shortfall/scenario_format.py`. One sha256 over everything the model is shown and the loop settings is kept in [benchmark/agent/prompts.sha256](benchmark/agent/prompts.sha256).
 
 `src/shortfall/models.py` connects the agent to Claude through the official `anthropic` Python SDK, pinned in `pyproject.toml`. It knows `claude-haiku-5-5` and `claude-sonnet-5-5`. Each call may write up to 2,000 output tokens and runs without extended thinking (on Claude Sonnet 5.5, which cannot turn thinking off, at its lowest setting). The tool definitions and the system prompt are cached, and a second cache marker moves along the conversation to the last message that the next turn will send unchanged. Prices are dated constants taken from the [pricing page](https://platform.claude.com/docs/en/about-claude/pricing). Before each call the trial reserves the most the call could cost, and afterwards it records the real cost from the response's usage: input, cache write, cache read and output tokens. A call that would pass the trial's dollar cap or the $20 total is not made. Rate-limit and server errors are retried at most twice, and billing or authentication errors end the trial. The API key is read only from `.env`, which git ignores, and anything that looks like a key is masked in the ledger and in transcripts.
 

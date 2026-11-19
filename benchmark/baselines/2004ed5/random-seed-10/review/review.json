@@ -1,0 +1,102 @@
+{
+ "trial": "random-seed-10",
+ "run_id": "20261119T051833Z",
+ "label": "covered by #16502 and #17032 together",
+ "note": "These runs were made after the trial, only to decide whether to publish it. They do not change the trial's score or its runs to first reproduction.",
+ "attempts": [
+  {
+   "attempt_id": "20261119T051833Z-045",
+   "scenario": "runs/sweep/20261119T051833Z/random-045-s2.yaml",
+   "sets": {
+    "plain": {
+     "folder": "20261119T084303Z-random-045-s2-2.22.0",
+     "runs": 60,
+     "fails": {
+      "no_oversell": 58,
+      "reserved_matches_reservations": 58,
+      "one_order_per_cart": 0,
+      "no_orphaned_orders": 0,
+      "no_missing_orders": 0
+     },
+     "inconclusive": 0
+    },
+    "pr-16961-redis": {
+     "folder": "20261119T085514Z-random-045-s2-pr-16961-control-redis-control-2.22.0-pr-16961",
+     "runs": 60,
+     "fails": {
+      "no_oversell": 0,
+      "reserved_matches_reservations": 0,
+      "one_order_per_cart": 0,
+      "no_orphaned_orders": 0,
+      "no_missing_orders": 0
+     },
+     "inconclusive": 0
+    },
+    "pr-16961": {
+     "folder": "20261119T090744Z-random-045-s2-pr-16961-control-2.22.0-pr-16961",
+     "runs": 60,
+     "fails": {
+      "no_oversell": 49,
+      "reserved_matches_reservations": 49,
+      "one_order_per_cart": 0,
+      "no_orphaned_orders": 0,
+      "no_missing_orders": 0
+     },
+     "inconclusive": 0
+    },
+    "redis": {
+     "folder": "20261119T091906Z-random-045-s2-redis-control-2.22.0",
+     "runs": 60,
+     "fails": {
+      "no_oversell": 20,
+      "reserved_matches_reservations": 0,
+      "one_order_per_cart": 0,
+      "no_orphaned_orders": 0,
+      "no_missing_orders": 0
+     },
+     "inconclusive": 0
+    },
+    "first-review-plain": {
+     "folder": "20261119T060522Z-random-045-s2-2.22.0",
+     "runs": 60,
+     "fails": {
+      "no_oversell": 58,
+      "reserved_matches_reservations": 58,
+      "one_order_per_cart": 0,
+      "no_orphaned_orders": 0,
+      "no_missing_orders": 0
+     },
+     "inconclusive": 0
+    },
+    "first-review-pr-17420": {
+     "folder": "20261119T061639Z-random-045-s2-pr-17420-control-2.22.0-pr-17420",
+     "runs": 60,
+     "fails": {
+      "no_oversell": 25,
+      "reserved_matches_reservations": 0,
+      "one_order_per_cart": 0,
+      "no_orphaned_orders": 0,
+      "no_missing_orders": 0
+     },
+     "inconclusive": 0
+    },
+    "first-review-redis": {
+     "folder": "20261119T062804Z-random-045-s2-redis-control-2.22.0",
+     "runs": 60,
+     "fails": {
+      "no_oversell": 13,
+      "reserved_matches_reservations": 0,
+      "one_order_per_cart": 0,
+      "no_orphaned_orders": 0,
+      "no_missing_orders": 0
+     },
+     "inconclusive": 0
+    }
+   },
+   "rules": [
+    "no_oversell"
+   ],
+   "label": "covered by #16502 and #17032 together"
+  }
+ ]
+}

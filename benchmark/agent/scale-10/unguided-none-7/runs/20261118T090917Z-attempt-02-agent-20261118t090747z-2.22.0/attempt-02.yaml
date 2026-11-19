@@ -1,0 +1,39 @@
+schema: oversold.scenario/v1
+name: attempt-02-agent-20261118t090747z
+description: Two SOLO carts are prepared against stock 2, then stock drops to 1 before
+  both complete.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  SOLO: 2
+stock_before_race:
+  SOLO: 1
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+runs: 10
+seed: 3

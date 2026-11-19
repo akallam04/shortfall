@@ -1,0 +1,117 @@
+{
+  "schema": "oversold.report/v1",
+  "scenario": {
+    "name": "random-013-s1",
+    "file": "random-013-s1.yaml",
+    "sha256": "0bfcf0a80aeed3346f5134ec475be6dd03c08e710806a94cf5dd1c6b78777d64",
+    "version": "2.22.0"
+  },
+  "oversold": [
+    {
+      "commit": "2004ed534b765a3b3341efaadb3f352ffdecef90",
+      "dirty": false
+    }
+  ],
+  "checked_by": {
+    "commit": "2004ed534b765a3b3341efaadb3f352ffdecef90",
+    "dirty": false
+  },
+  "versions_used": [
+    "2.22.0"
+  ],
+  "servers": [
+    {
+      "service": "medusa",
+      "medusa_version": "2.22.0",
+      "image_id": "sha256:c48358f78c193ccba70f4a7bf5e1e0048decb55bf4019cec48cc631658da0527",
+      "image_inputs": "d701e53cf957c292585cdcafdd628b75a330047e838f35c985b7534153b72be5"
+    }
+  ],
+  "postgres_version": "15.19",
+  "runs_planned": 1,
+  "runs_recorded": 1,
+  "checks": [
+    {
+      "check": "no_oversell",
+      "version": 2,
+      "runs": 1,
+      "fail": 0,
+      "pass": 0,
+      "inconclusive": 1
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 2,
+      "runs": 1,
+      "fail": 0,
+      "pass": 0,
+      "inconclusive": 1
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 2,
+      "runs": 1,
+      "fail": 0,
+      "pass": 0,
+      "inconclusive": 1
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 2,
+      "runs": 1,
+      "fail": 0,
+      "pass": 0,
+      "inconclusive": 1
+    },
+    {
+      "check": "no_missing_orders",
+      "version": 1,
+      "runs": 1,
+      "fail": 0,
+      "pass": 0,
+      "inconclusive": 1
+    }
+  ],
+  "runs": [
+    {
+      "index": 1,
+      "file": "run-001.json.gz",
+      "result": "inconclusive",
+      "harness_error": "prepare cart buyer: add_line_item: outcome failed: http 400 not_allowed: Some variant does not have the required inventory",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "inconclusive",
+          "reason": "harness error: prepare cart buyer: add_line_item: outcome failed: http 400 not_allowed: Some variant does not have the required inventory"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "inconclusive",
+          "reason": "harness error: prepare cart buyer: add_line_item: outcome failed: http 400 not_allowed: Some variant does not have the required inventory"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "inconclusive",
+          "reason": "harness error: prepare cart buyer: add_line_item: outcome failed: http 400 not_allowed: Some variant does not have the required inventory"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "inconclusive",
+          "reason": "harness error: prepare cart buyer: add_line_item: outcome failed: http 400 not_allowed: Some variant does not have the required inventory"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "inconclusive",
+          "reason": "harness error: prepare cart buyer: add_line_item: outcome failed: http 400 not_allowed: Some variant does not have the required inventory"
+        }
+      ]
+    }
+  ],
+  "exit_code": 3,
+  "generated": "2026-11-18T09:54:21.661949000Z"
+}

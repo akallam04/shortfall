@@ -1,0 +1,30 @@
+schema: oversold.scenario/v1
+name: attempt-01-agent-20261119t043856z
+description: Four carts each hold one OVS-PIECE (shared WIDGET) and complete together
+  on two servers, racing the reserved counter.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    count: 4
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: complete-alice
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 10
+seed: 7

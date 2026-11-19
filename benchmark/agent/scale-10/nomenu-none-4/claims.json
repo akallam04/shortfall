@@ -1,0 +1,4 @@
+{
+ "summary": "Read the inventory reservation path. The main suspicion is that createReservationItems_ checks availability and writes reserved_quantity from an unlocked read, so concurrent completions of different carts on the same SKU could oversell or desynchronize the counter. Submitted one attempt (SOLO race across two servers with four carts) to test this. No run results are visible to me yet, so no claims are confirmed; I am not claiming a finding.",
+ "claims": []
+}

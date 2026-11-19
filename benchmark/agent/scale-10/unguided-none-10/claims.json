@@ -1,0 +1,4 @@
+{
+ "summary": "I submitted one attempt. I suspected a lost update in the inventory module: createReservationItems_ reads inventory levels without a row lock and then writes reserved_quantity as read value plus adjustment, so concurrent completions sharing a stock level can lose an increment. This is not yet confirmed; the attempt's result was not returned to me, and many of my searches and file reads failed, so my evidence is limited to reading the code in inventory-module.ts. I make no firm claim until the test run confirms it.",
+ "claims": []
+}

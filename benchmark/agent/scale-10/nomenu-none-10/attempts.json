@@ -1,0 +1,81 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+  "cause": null,
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 10,
+    "reserved_matches_reservations": 10
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 10,
+   "reserved_matches_reservations": 10
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "not reproduced",
+   "medusa-17032-counter": "reproduced",
+   "medusa-17032-last-unit": "reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+   "cause": null,
+   "cases": {
+    "medusa-17032-counter": {
+     "file": "not accepted",
+     "cause": "not named",
+     "located": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "not accepted",
+     "cause": "not named",
+     "located": "not accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "completeCartWorkflow never re-checks stock (confirmInventory runs only in add-to-cart/update-line-item/create-carts). Reservation in reserveInventoryStep (inventory-module createReservationItems_) only ensures a level exists and adds to reserved_quantity without an availability check, so when stock drops or two carts both pass an earlier check, completing both can oversell SOLO (stocked 1). I expect two SOLO carts each for 1 unit, both completed concurrently across two servers, to produce two orders needing 2 units against 1 stocked, failing no_oversell.",
+  "scenario_sha256": "61d4809e321ef2c9751cab9e8cfe3e8c02c37a15c82b855f431ce40143ad7389",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: solo-double-complete-two-servers\ndescription: Two carts each hold one SOLO unit, built on different servers, and both are completed at once against a SOLO stock of 1.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 2\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 2\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nruns: 20\nseed: 7\n"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+  "cause": null,
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+   "cause": null,
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "Since completeCartWorkflow does not re-confirm inventory before reserving, a cart built while stock was 10 should still complete after stock is lowered to 1 before the race, creating a reservation of 2 units (TWOPACK) with only 1 unit stocked, which breaks no_oversell and reserved_matches_reservations is expected to hold.",
+  "scenario_sha256": "00979d7f7335d77f8c65d4d1a68fd9fb9a0bc514900593b033d882ce4ba34fc7",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: stock-drop-before-complete\ndescription: A TWOPACK cart is built against stock 10, stock drops to 1 before the race, then the cart is completed.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock_before_race:\n  WIDGET: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-TWOPACK\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\ntiming:\n  release: together\nruns: 10\nseed: 3\n"
+ }
+]

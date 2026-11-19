@@ -1,0 +1,81 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/locking/src/providers/in-memory.ts",
+  "cause": "process-local-lock",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 7,
+    "reserved_matches_reservations": 7
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 7,
+   "reserved_matches_reservations": 7
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "not reproduced",
+   "medusa-17032-counter": "reproduced",
+   "medusa-17032-last-unit": "reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "cases": {
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "The default locking provider is InMemoryLockingProvider, whose lock lives in one process's Map. The inventory reservation step (reserve-inventory.ts) and the cart completion lock both rely on it. With two Medusa servers sharing one database, two carts that each need the single SOLO unit, completed on different servers at the same time, can both pass the availability check and both create reservations, overselling SOLO (stocked 1). I expect no_oversell to fail in some runs, since the lock does not serialize across processes.",
+  "scenario_sha256": "1f2529bc8fa0c3b40f12768467e3f869445ecade3859eb0b6fb5b7a6d05164e7",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: solo-race-two-servers\ndescription: Two carts each need the single SOLO unit and are completed on different servers at the same time.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 2\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 2\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 20\nseed: 7\n"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/core/core-flows/src/cart/utils/prepare-confirm-inventory-input.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/utils/prepare-confirm-inventory-input.ts",
+   "cause": "per-line-check",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "formatInventoryInput checks availability per cart line (MathBN.gte of stock against required_quantity times item.quantity) and never adds up lines that share an inventory item. OVS-PIECE (1 WIDGET) and OVS-TWOPACK (2 WIDGET) both draw on the shared WIDGET item, with 10 stocked. Two carts, one ordering 6 PIECE plus 0 and another ordering 6 TWOPACK (12 units), each pass the per-line check alone against 10 units, so if both complete the run promises 18 WIDGET units from 10. I expect no_oversell to fail when both carts complete, since the sum of their needs exceeds the stock. Simpler: one cart with 6 PIECE and 3 TWOPACK (12 units) on a single line set should also pass the per-line check. I test two carts so the race is between them.",
+  "scenario_sha256": "6a3320e7dfeb7bc6cbfa7b4c1ff9245170cbb1ce3c861619fb12648ae725c629",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: widget-shared-item-lines\ndescription: Two carts each use the shared WIDGET item through different SKUs; each line fits alone but the combined need exceeds stock.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  piece-buyer:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 6\n  twopack-buyer:\n    server: 1\n    lines:\n    - sku: OVS-TWOPACK\n      qty: 3\nrace:\n- id: piece-completes\n  server: 1\n  do: complete\n  cart: piece-buyer\n- id: twopack-completes\n  server: 1\n  do: complete\n  cart: twopack-buyer\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 20\nseed: 11\n"
+ }
+]

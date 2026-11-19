@@ -1,0 +1,38 @@
+schema: oversold.scenario/v1
+name: attempt-02-agent-20261118t043613z
+description: Two carts each want two WIDGET units through a two-pack variant, with
+  three WIDGET units stocked, completed together on one server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 3
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 20
+seed: 11

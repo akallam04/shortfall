@@ -1,0 +1,4 @@
+{
+ "summary": "I read the Medusa 2.22.0 cart-completion and reservation code. The reservation step (packages/core/core-flows/src/cart/steps/reserve-inventory.ts) guards its availability check and reservation write with the Locking module's execute(). The default InMemoryLockingProvider (packages/modules/locking/src/providers/in-memory.ts) keeps its lock map inside one process, so with two servers on one database the lock would not serialize completions across them. That is the process-local-lock hypothesis, which I submitted as attempt 1 (two servers racing for one SOLO unit). I also submitted attempt 2 for per-line-check, testing whether same-item entries across carts are summed. I have not received run results for either attempt, so I cannot confirm any finding. Claims are withheld until results are seen. The process-local-lock reasoning is plausible from the code alone but unverified.",
+ "claims": []
+}

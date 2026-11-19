@@ -1,0 +1,44 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/core/core-flows/src/cart/utils/prepare-confirm-inventory-input.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 13
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 13
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/utils/prepare-confirm-inventory-input.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "accepted",
+     "located": "not accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "The availability check in formatInventoryInput compares each cart line's needed units (required_quantity times quantity) against the location's availability independently, so lines that share the WIDGET inventory item are never added together. One cart with OVS-PIECE x6 and OVS-TWOPACK x3 needs 12 WIDGET units against 10 stocked. If the per-line check is the only guard, the order is created with 12 units reserved, which breaks no_oversell. If the reservation step rejects it, the completion should fail and no order is left behind, so the check should pass.",
+  "scenario_sha256": "4d6c682b6e2f0da1cf539d4beb6f982e2ef4509e4f24d84327b21aed93e3acdc",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: shared-item-lines-one-cart\ndescription: One cart has two lines on the shared WIDGET item whose combined units exceed stock.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  greedy:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 6\n    - sku: OVS-TWOPACK\n      qty: 3\nrace:\n- id: greedy-completes\n  server: 1\n  do: complete\n  cart: greedy\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nruns: 10\nseed: 1\n"
+ }
+]

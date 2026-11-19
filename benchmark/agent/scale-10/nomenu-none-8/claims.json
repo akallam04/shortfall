@@ -1,0 +1,25 @@
+{
+ "summary": "I read the reservation path (create-reservations, reserve-inventory, inventory-module createReservationItems_ and ensureInventoryLevels). Same-process reservations are serialized by a per-inventory-item lock, but the default locking provider is InMemoryLockingProvider, which does not coordinate across the two servers in a 2-server run. The inventory level update is also a read-modify-write of reserved_quantity computed from a value read before the lock-free update, so cross-server races could leave reserved_quantity out of sync with the reservation rows or oversell. I submitted two scenarios (a cross-server WIDGET race, and a same-server two-pack race) to test this. I have not seen their results, so no problem is confirmed yet. Claiming attempt 1 as a hypothesis only, pending its outcome.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "not named"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not named"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not named"
+    }
+   }
+  }
+ ]
+}

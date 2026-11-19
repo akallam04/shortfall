@@ -1,0 +1,26 @@
+{
+ "summary": "Attempt 1 used two servers racing two carts for the single SOLO unit. In 11 of 20 runs both carts completed, producing two orders for one unit, which failed no_oversell and reserved_matches_reservations. The reservation step guards stock with Modules.LOCKING, which defaults to the in-memory provider, and that lock is only held inside one process. Cross-server races therefore slip through. The finding is confirmed by the runs. I did not explore further causes (stale counters, duplicate completion, payment-order link, stock location) within the budget.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}

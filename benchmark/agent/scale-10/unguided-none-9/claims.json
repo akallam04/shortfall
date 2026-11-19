@@ -1,0 +1,4 @@
+{
+ "summary": "I submitted two attempts aimed at the process-local lock cause: a cart completed on two servers at once (one_order_per_cart), and two carts competing for the single SOLO unit across two servers (no_oversell). The reasoning rests on the default in-memory locking provider being used by acquireLockStep in complete-cart.ts, which only serializes within one process. I could not read the reservation step or the locking module source (most search and read calls failed), and no run results were returned, so nothing is confirmed. I make no claims.",
+ "claims": []
+}

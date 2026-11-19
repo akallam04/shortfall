@@ -1,0 +1,31 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "stale-counter-write",
+  "expected_check": "reserved_matches_reservations",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "createReservationItems_ reads inventory levels with a plain list (no row lock), then writes reserved_quantity as the value read plus the adjustment. Two concurrent completions touching the same inventory level can both read the same reserved_quantity, so one increment is lost: the reserved counter then disagrees with the sum of live reservation rows. With WIDGET stocked at 10, two carts of OVS-PIECE should both succeed and reserve 1 each, so the lost update should show as reserved_quantity != live reservation sum. The oversell check may also trip if stock is tight.",
+  "scenario_sha256": "b14c2b53c2ce81f8216618d6a068ae6f342e3424f9268134d6631ae5df9987db",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: shared-widget-race\ndescription: Four carts each hold one OVS-PIECE (shared WIDGET) and complete together on two servers, racing the reserved counter.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  WIDGET: 10\ncarts:\n  alice:\n    server: 1\n    count: 4\n    lines:\n    - sku: OVS-PIECE\n      qty: 1\nrace:\n- id: complete-alice\n  server: 1\n  do: complete\n  cart: alice\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 10\nseed: 7\n"
+ }
+]

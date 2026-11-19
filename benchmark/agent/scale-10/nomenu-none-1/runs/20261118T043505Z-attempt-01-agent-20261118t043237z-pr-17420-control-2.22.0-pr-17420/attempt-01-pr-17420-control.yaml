@@ -1,0 +1,40 @@
+schema: oversold.scenario/v1
+name: attempt-01-agent-20261118t043237z-pr-17420-control
+description: Variant control of attempt-01-agent-20261118t043237z on Medusa 2.22.0
+  with pr-17420. Two carts each hold the single SOLO unit, prepared on different servers
+  and completed together so the in-memory locks cannot serialize them.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-17420
+stock:
+  SOLO: 1
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 2
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 50
+seed: 7

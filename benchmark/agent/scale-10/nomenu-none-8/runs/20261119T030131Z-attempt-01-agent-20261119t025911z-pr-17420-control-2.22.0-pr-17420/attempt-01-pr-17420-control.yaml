@@ -1,0 +1,40 @@
+schema: oversold.scenario/v1
+name: attempt-01-agent-20261119t025911z-pr-17420-control
+description: Variant control of attempt-01-agent-20261119t025911z on Medusa 2.22.0
+  with pr-17420. Two carts on different servers each need 6 of 10 WIDGET units and
+  are completed at once, testing a cross-process reservation race.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-17420
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 6
+  bob:
+    server: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 6
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 5
+faults: []
+runs: 20
+seed: 7

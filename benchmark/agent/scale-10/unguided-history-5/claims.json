@@ -1,0 +1,26 @@
+{
+ "summary": "Found an oversell across two servers. Stock reservation in reserve-inventory.ts wraps createReservationItems in Modules.LOCKING, which defaults to the in-memory provider and only serializes within one process. A race with SOLO (stock 1) completed on two servers at once produced two orders in 9 of 13 runs, failing no_oversell and reserved_matches_reservations (the reserved counter was a lost update of the read-then-write in inventory-module.ts). The one_order_per_cart, orphan and missing-order checks passed.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "process-local-lock",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}

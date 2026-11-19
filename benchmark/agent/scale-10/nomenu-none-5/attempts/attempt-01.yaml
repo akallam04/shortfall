@@ -1,0 +1,38 @@
+schema: oversold.scenario/v1
+name: attempt-01-agent-20261118t073208z
+description: Two carts each want the single SOLO unit and are completed at the same
+  moment on two different servers sharing one database.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  SOLO: 1
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 2
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 5
+  request_timeout_ms: 30000
+runs: 50
+seed: 7

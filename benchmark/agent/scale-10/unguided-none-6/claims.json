@@ -1,0 +1,26 @@
+{
+ "summary": "Read the cart completion workflow and the inventory reservation step. Reservations and the cart-completion lock go through the locking module, and its default provider (packages/modules/locking/src/providers/in-memory.ts, selected in loaders/providers.ts) is process-local. So with two servers on one database, the locks no longer serialize completions, which could oversell SOLO or create duplicate orders for one cart. I submitted one attempt (SOLO stock 1, two carts on two servers) but did not see its result before finishing, so this is an unconfirmed hypothesis from code reading. I'm claiming it as a candidate only.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}

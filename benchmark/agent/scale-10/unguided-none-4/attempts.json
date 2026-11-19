@@ -1,0 +1,31 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/core/core-flows/src/cart/steps/confirm-inventory.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/steps/confirm-inventory.ts",
+   "cause": "per-line-check",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "Stock for WIDGET is 10 shared across OVS-PIECE (1 unit each) and OVS-TWOPACK (2 units each). The confirm step checks each cart line against available stock alone, so entries sharing WIDGET are never added up. Several carts that each take 6 WIDGET units (for example 3 TWOPACK lines of qty 1 in one cart, and a second such cart) should each pass the per-line check and both complete, yielding orders that need more than 10 units.",
+  "scenario_sha256": "062f4aca21096e0298b6e67c8a2dbb628b5cebbb699ad0ec87a79bd057d066bd",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: shared-widget-overcommit\ndescription: Two carts each hold 3 OVS-TWOPACK units (6 WIDGET units each) against 10 shared WIDGET; both are completed together on one server.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-TWOPACK\n      qty: 3\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-TWOPACK\n      qty: 3\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 1\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 10\nseed: 1\n"
+ }
+]

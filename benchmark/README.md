@@ -316,28 +316,51 @@ Two baselines that use no model, measured on Medusa 2.22.0 at Oversold v0.1.1, c
 - **Grid** varies the server count (1 or 2), the lines in each cart (OVS-SOLO 1, OVS-PIECE 1, or OVS-PIECE 1 with OVS-TWOPACK 1), the cart count (2 or 10), the stock level (`under`, `short` or `ample`) and the release (together, or one after another for 4 shapes). It was designed with knowledge of the bug shapes in the cases, so it is an informed baseline. An order seed shuffles its 32 shapes.
 - **Random** varies the server count, up to two cart groups of 1 to 10 carts, one or two of the three SKUs per cart with quantities from 1 to 3, the stock of each item from 0 to twice its demand, and the release. It was not designed from the cases. Each trial draws 100 candidates from its seed.
 
-Each row is one trial. "Runs to first" is the number of runs the trial had used when the case was first reproduced, counting from the trial's first run.
+Each row is one trial. "Runs to first" is the number of runs the trial had used when the case was first reproduced, counting from the trial's first run. Trials 1 to 3 of each method ran first. Trials 4 to 10 ran in the agent plan [scale-10](agent/README.md#plan-scale-10), between its agent trials, on the same images and Oversold commit.
 
 | Trial | Candidates reached | Runs used | Cases reproduced | Runs to first: medusa-17032-last-unit | medusa-17032-counter | medusa-16502-lines | Violations | Cause not isolated | Cut off by the run cap |
 |---|---|---|---|---|---|---|---|---|---|
 | [grid order seed 1](baselines/2004ed5/grid-seed-1/) | 16 of 32 | 298 | 3 of 3 | 144 | 39 | 29 | 10 | 0 | 0 |
 | [grid order seed 2](baselines/2004ed5/grid-seed-2/) | 21 of 32 | 293 | 3 of 3 | 81 | 81 | 26 | 10 | 0 | 1 |
 | [grid order seed 3](baselines/2004ed5/grid-seed-3/) | 19 of 32 | 297 | 3 of 3 | 33 | 33 | 157 | 11 | 0 | 1 |
+| [grid order seed 4](baselines/2004ed5/grid-seed-4/) | 19 of 32 | 297 | 3 of 3 | 121 | 33 | 23 | 10 | 0 | 1 |
+| [grid order seed 5](baselines/2004ed5/grid-seed-5/) | 20 of 32 | 300 | 3 of 3 | 33 | 33 | 196 | 10 | 0 | 1 |
+| [grid order seed 6](baselines/2004ed5/grid-seed-6/) | 20 of 32 | 300 | 3 of 3 | 33 | 33 | 124 | 9 | 0 | 0 |
+| [grid order seed 7](baselines/2004ed5/grid-seed-7/) | 19 of 32 | 297 | 3 of 3 | 36 | 36 | 134 | 10 | 0 | 1 |
+| [grid order seed 8](baselines/2004ed5/grid-seed-8/) | 25 of 32 | 295 | 3 of 3 | 209 | 23 | 52 | 10 | 0 | 1 |
+| [grid order seed 9](baselines/2004ed5/grid-seed-9/) | 20 of 32 | 300 | 3 of 3 | 107 | 74 | 35 | 10 | 0 | 1 |
+| [grid order seed 10](baselines/2004ed5/grid-seed-10/) | 20 of 32 | 300 | 3 of 3 | 33 | 33 | 56 | 9 | 0 | 0 |
 | [random seed 1](baselines/2004ed5/random-seed-1/) | 51 of 100 | 299 | 2 of 3 | 170 | 42 | not reproduced | 7 | 0 | 1 |
 | [random seed 2](baselines/2004ed5/random-seed-2/) | 48 of 100 | 296 | 3 of 3 | 103 | 103 | 51 | 7 | 0 | 1 |
 | [random seed 3](baselines/2004ed5/random-seed-3/) | 59 of 100 | 291 | 2 of 3 | 117 | 36 | not reproduced | 6 | 0 | 1 |
+| [random seed 4](baselines/2004ed5/random-seed-4/) | 40 of 100 | 300 | 3 of 3 | 213 | 59 | 26 | 7 | 1 | 0 |
+| [random seed 5](baselines/2004ed5/random-seed-5/) | 70 of 100 | 300 | 3 of 3 | 142 | 87 | 29 | 5 | 0 | 1 |
+| [random seed 6](baselines/2004ed5/random-seed-6/) | 62 of 100 | 300 | 3 of 3 | 46 | 46 | 176 | 5 | 0 | 0 |
+| [random seed 7](baselines/2004ed5/random-seed-7/) | 44 of 100 | 300 | 3 of 3 | 97 | 47 | 126 | 7 | 0 | 0 |
+| [random seed 8](baselines/2004ed5/random-seed-8/) | 67 of 100 | 291 | 2 of 3 | not reproduced | 33 | 86 | 6 | 0 | 1 |
+| [random seed 9](baselines/2004ed5/random-seed-9/) | 54 of 100 | 298 | 2 of 3 | 47 | 47 | not reproduced | 7 | 0 | 0 |
+| [random seed 10](baselines/2004ed5/random-seed-10/) | 52 of 100 | 300 | 3 of 3 | 62 | 26 | 145 | 6 | 1 | 0 |
 
-- Grid, across its 3 trials: each case was reproduced in 3 of 3 trials, with a median of 81 runs to first reproduction for medusa-17032-last-unit, 39 for medusa-17032-counter and 29 for medusa-16502-lines.
-- Random, across its 3 trials: medusa-17032-last-unit and medusa-17032-counter were reproduced in 3 of 3 trials, with medians of 117 and 42 runs, and medusa-16502-lines in 1 of 3 trials, at 51 runs.
+The median below is taken over all 10 trials, and a trial that missed a case counts as over 300 runs.
 
-Located is `not applicable` for both baselines, since they name no file and no cause. Three trials per method is a small sample, and no difference in this table is called significant.
+- Grid, across its 10 trials: each case was reproduced in 10 of 10 trials, with a median of 58.5 runs to first reproduction for medusa-17032-last-unit, 33 for medusa-17032-counter and 54 for medusa-16502-lines. Every grid trial reproduced all three cases.
+- Random, across its 10 trials: medusa-17032-counter was reproduced in 10 of 10 trials, with a median of 46.5 runs, medusa-17032-last-unit in 9 of 10, with a median of 110, and medusa-16502-lines in 7 of 10, with a median of 135.5. Six trials reproduced all three cases.
+
+Located is `not applicable` for both baselines, since they name no file and no cause. Ten trials per method is still a small sample, and no difference in this table is called significant.
 
 What else the trials show:
 
 - No trial reached a second pass. Each one spent its 300 runs before every candidate had its first screen, so no candidate got more than its first 3 runs unless it failed.
-- No trial had a `violation, cause not isolated`. In five trials the last attempt found a violation but reached the 300-run cap before its scoring controls could run, so it is `cut off by the run cap`. These attempts were written to the ledgers before the label existed, as `violation, cause not isolated` with a manual check note, and the summary reads them as cut off because their stop reason is the run cap and their controls did not all run.
+- In 12 trials the last attempt found a violation but reached the 300-run cap before its scoring controls could run, so it is `cut off by the run cap`. The five of these in trials 1 to 3 were written to the ledgers before the label existed, as `violation, cause not isolated` with a manual check note, and the summary reads them as cut off because their stop reason is the run cap and their controls did not all run.
 - pr-16961 left `no_oversell` failing only on two-server candidates, and pr-17420 left it failing only on candidates with two lines on one item, so each oversell was credited only to the case whose control cleared it.
-- The grid trials had no inconclusive run. In the random trials, 7, 9 and 8 candidates could not be prepared, and 21 and 2 runs in the first two trials had a complete call that ended in HTTP 500, which counts as inconclusive.
+- Random seeds 4 and 10 each had one `violation, cause not isolated`: a candidate with several carts on two servers, some with two lines on one item, where `no_oversell` kept failing with each fix on its own. Each was held and run again after the trial, 60 times on each of four sets. These runs were made only to decide whether to publish the trial, and they do not change its score. Both trials are labeled "covered by #16502 and #17032 together", and the runs are in each trial's `review/` folder. Seed 10's folder also holds the first review, which tried pr-17420 and Redis locking one at a time.
+
+| Trial | Check | Plain Medusa | pr-16961 with Redis locking | pr-16961 alone | Redis locking alone |
+|---|---|---|---|---|---|
+| random seed 4 | `no_oversell` | 60 of 60 | 0 of 60 | 56 of 60 | 13 of 60 |
+| random seed 10 | `no_oversell` | 58 of 60 | 0 of 60 | 49 of 60 | 20 of 60 |
+
+- The grid trials had no inconclusive run. In the random trials, 5 to 15 candidates per trial could not be prepared, and 0 to 21 runs per trial had a complete call that ended in HTTP 500, which counts as inconclusive.
 - No trial stopped for a failure outside the coverage map, a `no_missing_orders` failure or a harness error.
 
 The candidate list of each trial was fixed before it ran. These are the sha256 values in each trial's `trial` ledger line:
@@ -345,11 +368,25 @@ The candidate list of each trial was fixed before it ran. These are the sha256 v
 - grid-seed-1: `9e716126af7a412a5f3143d6f7271fe178ece01fa306f23cb29a5ab07d623e36`
 - grid-seed-2: `28a3304ef5f532d65fd39b7432d697ae7efd703f951439d7d04862d75664227c`
 - grid-seed-3: `7ad631c3840dee08cee096f4aef48705617abcbb24008cf92270fca73642efa7`
+- grid-seed-4: `7e779763e08aa381b83549816c06b06d37a036aa68d24412e30e2a4ae72f2210`
+- grid-seed-5: `df39d0b583549dda225e365747353d5dd791f1952dcfbe1108743e6c73a3ab48`
+- grid-seed-6: `47f30b837ffac6519a9a695b9985b7bfa816412c24c34c85d8d9561aa2f3e936`
+- grid-seed-7: `8de2af6688df1119bfe73420241603a8e77b02740fd4c026873a6494fe93a792`
+- grid-seed-8: `f23559cfd3cf0e51f9272f7de8c8a41e17345379b7c32278d204457b87f49430`
+- grid-seed-9: `f058febbb2fc7686d4e7dce5c4b7ca543a60ea1393fb29795240832439830877`
+- grid-seed-10: `afb993a7cbccf6e7babf1906fca11f759bbf887df0a083ab01ef42917084bb91`
 - random-seed-1: `c715bc8bb32aee5b81019227beb11056abe6443d6d64ac2f4b78366427830f7f`
 - random-seed-2: `0a5eb2c2f8d3530d4f068867b6bed3d316acc40ba5e1c5f690756857f6c3a8f8`
 - random-seed-3: `be2fc026d6151b318507f4af127bf30c06561a90ef3717651cf2110895e40e63`
+- random-seed-4: `613fd66b874bfa0b81bcca7e1acfefa4fdd5a7dd8312c56e9d5c00f5e34291a0`
+- random-seed-5: `b7a0216392258cc63a913657d0bfe4556ce336a6c1a6c6640b004006239b0349`
+- random-seed-6: `8e3bd4b3b26b21e81ecea4eb385510383f053ce3a6b975608f12ac2bb9898cb0`
+- random-seed-7: `960af6997f8afbe41afdd047b7e5813b120ebab144f8b7488ae1dc21386a6c11`
+- random-seed-8: `18cf0dead15dd3f1291342b88481eb3011b314a682c85f3c8939b9e0d26df71f`
+- random-seed-9: `23a560e04d6f162d8b8ddf7de274f1984ffcf071c2a1d81045a5529f77dfc2d8`
+- random-seed-10: `4b1d999b0891cbb6e2bc0c27a5283b7132c3f9b0af13ad88282a72f5931f113d`
 
-Each trial's folder holds its `ledger.jsonl`, its candidate files in trial order under `candidates/`, and every run set it ran under `runs/`, exported with `oversold export`.
+Each trial's folder holds its `ledger.jsonl`, its candidate files in trial order under `candidates/`, every run set it ran under `runs/`, exported with `oversold export`, and for seeds 4 and 10 the review runs under `review/`.
 
 ## How to recheck
 

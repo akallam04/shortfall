@@ -1,0 +1,4 @@
+{
+ "summary": "I ran three attempts covering the cart-completion race on two servers, shared-item stock across carts, and stock lowered between cart preparation and the race. None of the five checks failed in any run. Completion re-checked stock correctly, and the same cart completed on two servers produced exactly one order. I noticed that the default locking provider is in-memory and therefore process-local, which fits the process-local-lock cause, but my tests did not show it causing a violation, so I am not claiming a confirmed finding.",
+ "claims": []
+}

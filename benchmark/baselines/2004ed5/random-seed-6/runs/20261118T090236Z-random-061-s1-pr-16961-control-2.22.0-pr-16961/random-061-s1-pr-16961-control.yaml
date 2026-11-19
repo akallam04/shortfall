@@ -1,0 +1,31 @@
+schema: oversold.scenario/v1
+name: random-061-s1-pr-16961-control
+description: 'Variant control of random-061-s1 on Medusa 2.22.0 with pr-16961. Sweep
+  random candidate 61. 1 server, 2 carts: 2 on server 1 holding OVS-PIECE 2 and OVS-TWOPACK
+  2. Stock: WIDGET 4. Completions released one after another.'
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+  variant: pr-16961
+stock:
+  WIDGET: 4
+carts:
+  buyer:
+    server: 1
+    count: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 2
+    - sku: OVS-TWOPACK
+      qty: 2
+race:
+- id: complete
+  server: 1
+  do: complete
+  cart: buyer
+timing:
+  release: sequential
+faults: []
+runs: 10
+seed: 565679

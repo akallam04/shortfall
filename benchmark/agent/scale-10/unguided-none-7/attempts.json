@@ -1,0 +1,60 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/locking/src/services/locking-module.ts",
+  "cause": "process-local-lock",
+  "expected_check": "one_order_per_cart",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/locking/src/services/locking-module.ts",
+   "cause": "process-local-lock",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "The complete-cart flow serializes concurrent completions of one cart with the locking module. The default provider is in-memory, so its lock lives in one server process. When the same cart is completed concurrently on two servers sharing one database, both processes can take the lock and both can create an order for the cart, which would show up as two orders linked to one cart and two ok responses with different order ids. I expect one_order_per_cart (and possibly no_missing_orders) to fail.",
+  "scenario_sha256": "45d0efa68551385b706c7f0fa8205c333ff83226ab53b2bdea58a4c7871600c7",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: same-cart-two-servers\ndescription: One cart is completed at the same moment on both servers sharing one database.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 5\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-on-1\n  server: 1\n  do: complete\n  cart: alice\n- id: alice-on-2\n  server: 2\n  do: complete\n  cart: alice\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nruns: 20\nseed: 7\n"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+  "cause": "stock-location-mixup",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "stock-location-mixup",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "Stock availability is confirmed against the item's location list, but the reservation uses only location_ids[0]. If the item has more than one location, stock checked at one location can be reserved at another, so the reservation at the chosen location may exceed what is stocked there. I'll use SOLO with a stock reduction before the race so that completions run against changed levels, expecting no_oversell or reserved_matches_reservations to fail if the mismatch matters.",
+  "scenario_sha256": "31454e5b0eba955c2747f9b20dd8bfde6cf00683aeec6c069530260490b4cb18",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: solo-stock-drop-before-race\ndescription: Two SOLO carts are prepared against stock 2, then stock drops to 1 before both complete.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  SOLO: 2\nstock_before_race:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 1\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nruns: 10\nseed: 3\n"
+ }
+]

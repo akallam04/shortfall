@@ -1,0 +1,81 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+  "cause": "process-local-lock",
+  "expected_check": "one_order_per_cart",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+   "cause": "process-local-lock",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "Completion takes its cart lock and reservation lock through the default in-memory locking provider, which only serializes requests inside one Medusa process. With two servers sharing one database, two simultaneous complete calls on the same cart can each pass the order_cart existence check and each create an order, so one cart ends up linked to two orders (one_order_per_cart fails). A second expected effect is oversell on the single-unit SOLO item if both servers reserve it at once.",
+  "scenario_sha256": "51c131dade4f7154263a0a33681e2ef1f82a140db860ec370848d775cf4ba0d0",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: cart-double-complete-two-servers\ndescription: One cart is completed simultaneously on two servers, each server holding its own process-local lock.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    count: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: complete-on-server-1\n  server: 1\n  do: complete\n  cart: alice\n- id: complete-on-server-2\n  server: 2\n  do: complete\n  cart: alice\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 20\nseed: 7\n"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+  "cause": "process-local-lock",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 10,
+    "reserved_matches_reservations": 10
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 10,
+   "reserved_matches_reservations": 10
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "not reproduced",
+   "medusa-17032-counter": "reproduced",
+   "medusa-17032-last-unit": "reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+   "cause": "process-local-lock",
+   "cases": {
+    "medusa-17032-counter": {
+     "file": "not accepted",
+     "cause": "accepted",
+     "located": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "not accepted",
+     "cause": "accepted",
+     "located": "not accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "Two different carts each hold the single SOLO unit and are completed at the same moment on two servers. The reservation lock is process-local, so both servers can read stocked=1 with no reservation and both reserve it, giving an oversell (no_oversell and reserved_matches_reservations are the likely failures).",
+  "scenario_sha256": "19c2dea2f85160dc9fd604f5a06b4c49274582dfd99e72b3348aa54658a91fa3",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: solo-two-carts-two-servers\ndescription: Two carts each want the single SOLO unit and are completed together, one on each server.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 2\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 2\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 20\nseed: 11\n"
+ }
+]

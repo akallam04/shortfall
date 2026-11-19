@@ -1,0 +1,31 @@
+schema: oversold.scenario/v1
+name: attempt-01-agent-20261119t044024z
+description: One cart holds two lines sharing the WIDGET item whose combined units
+  exceed stock; completed once.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  greedy:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 6
+    - sku: OVS-TWOPACK
+      qty: 3
+race:
+- id: greedy-completes
+  server: 1
+  do: complete
+  cart: greedy
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 10
+seed: 1

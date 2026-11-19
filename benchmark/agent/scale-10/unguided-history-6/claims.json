@@ -1,0 +1,26 @@
+{
+ "summary": "Reading the reservation step showed that inventory reservation is guarded by Modules.LOCKING, which defaults to the in-memory provider. With two servers on one database, each process has its own lock, so two carts that each need the single SOLO unit can both be completed. Attempt 1 reproduced this: in 11 of 13 runs both carts got an order against stock 1, failing no_oversell and reserved_matches_reservations. The one-order-per-cart and no-orphan checks passed, since each order was a legitimate completion of its own cart.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "process-local-lock",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}

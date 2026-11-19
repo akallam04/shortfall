@@ -1,0 +1,30 @@
+schema: oversold.scenario/v1
+name: random-053-s1
+description: 'Sweep random candidate 53. 1 server, 8 carts: 8 on server 1 holding
+  OVS-PIECE 3 and OVS-TWOPACK 2. Stock: WIDGET 112. Completions released one after
+  another.'
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 112
+carts:
+  buyer:
+    server: 1
+    count: 8
+    lines:
+    - sku: OVS-PIECE
+      qty: 3
+    - sku: OVS-TWOPACK
+      qty: 2
+race:
+- id: complete
+  server: 1
+  do: complete
+  cart: buyer
+timing:
+  release: sequential
+faults: []
+runs: 10
+seed: 212171

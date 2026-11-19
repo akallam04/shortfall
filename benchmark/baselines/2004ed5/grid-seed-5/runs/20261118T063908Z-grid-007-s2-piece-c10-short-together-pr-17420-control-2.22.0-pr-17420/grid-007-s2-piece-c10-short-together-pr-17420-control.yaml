@@ -1,0 +1,40 @@
+schema: oversold.scenario/v1
+name: grid-007-s2-piece-c10-short-together-pr-17420-control
+description: 'Variant control of grid-007-s2-piece-c10-short-together on Medusa 2.22.0
+  with pr-17420. Sweep grid candidate 7. 2 servers, 10 carts: 5 on server 1 holding
+  OVS-PIECE 1; 5 on server 2 holding OVS-PIECE 1. Stock: WIDGET 9. Completions released
+  together.'
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-17420
+stock:
+  WIDGET: 9
+carts:
+  buyer-a:
+    server: 1
+    count: 5
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  buyer-b:
+    server: 2
+    count: 5
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: complete-a
+  server: 1
+  do: complete
+  cart: buyer-a
+- id: complete-b
+  server: 2
+  do: complete
+  cart: buyer-b
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 7
