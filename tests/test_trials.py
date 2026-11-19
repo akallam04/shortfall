@@ -766,3 +766,74 @@ def test_a_pause_file_stops_the_plan_before_the_next_trial(root):
     runner.state.pause_path.unlink()
     assert make_runner(root, path).run() == 0
     assert kinds(root).count("trial-exported") == 2
+
+
+def kept_local(root, path):
+    state = trials.State(root, trials.load_plan(root, path))
+    state.add("trial-start", trial="17032-none-1", run_id="agent-19990101T000000Z")
+    state.add("trial-end", trial="17032-none-1", run_id="agent-19990101T000000Z", reason="x")
+    state.add("trial-kept-local", trial="17032-none-1", run_id="agent-19990101T000000Z")
+
+
+def test_a_kept_local_trial_is_skipped_until_it_is_reopened(root):
+    path = write_plan(root, cells=[{"issue": 17032, "feedback": "none"}])
+    kept_local(root, path)
+    assert make_runner(root, path).run() == 0
+    assert kinds(root).count("trial-start") == 1
+    plan = trials.load_plan(root, path)
+    assert trials.reopen(root, plan, "17032-none-1", "stopped by a rule") is None
+    assert "reopened before" in trials.reopen(root, plan, "17032-none-1", "again")
+    assert make_runner(root, path).run() == 0
+    ev = events(root)
+    starts = [e["run_id"] for e in ev if e["event"] == "trial-start"]
+    assert len(starts) == 2 and starts[1] != "agent-19990101T000000Z"
+    assert ev[-2]["event"] == "trial-exported" and ev[-2]["run_id"] == starts[1]
+    assert "is exported" in trials.reopen(root, plan, "17032-none-1", "again")
+    assert "has no trial" in trials.reopen(root, plan, "17032-none-9", "x")
+
+
+def test_a_reopened_trial_counts_as_one_interrupt(root):
+    path = write_plan(root, cells=[{"issue": 17032, "feedback": "none"}])
+    kept_local(root, path)
+    plan = trials.load_plan(root, path)
+    assert trials.reopen(root, plan, "17032-none-1", "stopped by a rule") is None
+    trials.State(root, plan).add(
+        "trial-start", trial="17032-none-1", run_id="agent-19990101T000001Z"
+    )
+    assert make_runner(root, path).run() == 1
+    assert events(root)[-1]["reason"] == "trial 17032-none-1 was interrupted twice"
+
+
+def test_a_trial_held_by_the_local_shape_list_is_not_reviewed(root, monkeypatch):
+    path = held_run(root, monkeypatch)
+    state = trials.State(root, trials.load_plan(root, path))
+    held = next(e for e in state.events() if e["event"] == "trial-held")
+    state.add(
+        "trial-held",
+        trial="17032-none-1",
+        run_id=held["run_id"],
+        notes=[f"{trials.HELD_NOTE}no_missing_orders failed 1 of 3 runs in the screen set"],
+    )
+    lines = state.events_path.read_text().splitlines()
+    first = next(i for i, x in enumerate(lines) if '"trial-held"' in x)
+    state.events_path.write_text("\n".join(lines[:first] + lines[first + 1 :]) + "\n")
+    runner = make_runner(root, path)
+    runner.oversold = FailsOn("redis-control", ledger_path=score.ledger_path_for(root))
+    assert runner.review_held() == 0
+    assert kinds(root)[-1] == "trial-held"
+
+
+def test_a_review_can_carry_its_own_label(root, monkeypatch):
+    path = held_run(root, monkeypatch)
+    runner = make_runner(root, path)
+    real = runner.review_attempt
+
+    def labelled(spec, final):
+        return dict(real(spec, final), label="covered by two issues together")
+
+    runner.review_attempt = labelled
+    assert runner.review_held() == 0
+    review = json.loads(
+        (root / "runs" / "export" / "17032-none-1" / "review" / "review.json").read_text()
+    )
+    assert review["label"] == "covered by two issues together"

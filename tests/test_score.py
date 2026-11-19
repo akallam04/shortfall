@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from shortfall import ledger, score, sweep
+from shortfall import coverage, ledger, score, sweep, trials
 from shortfall.answers import ACCEPTED, NOT_ACCEPTED, NOT_APPLICABLE
 from shortfall.budget import Budget
 from shortfall.cases import RULES, Control
@@ -441,6 +441,52 @@ def test_an_uncovered_rule_stops_the_sweep(tmp_path, candidates):
     entry, stop, _, _ = attempt(tmp_path, path, q)
     assert stop.startswith("uncovered failure: one_order_per_cart failed 1 of 1 runs")
     assert entry["violation"]["result"] == "violation"
+
+
+def held_list(root: Path, *entries: dict) -> None:
+    path = root / coverage.HELD_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(e) + "\n" for e in entries))
+
+
+def missing_order_entry(path: Path, **over) -> dict:
+    data = yaml.safe_load(path.read_text())
+    entry = {
+        "rule": "no_missing_orders",
+        "shape": {"servers": 2, "carts": 2, "locking": "in-memory", "variant": None},
+        "race": [{"do": step["do"], "server": step["server"]} for step in data["race"]],
+    }
+    entry.update(over)
+    return entry
+
+
+def test_a_shape_on_the_local_held_list_is_held_not_stopped(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    held_list(tmp_path, missing_order_entry(path))
+    q = queues(path, [missing_order()] * 3 + many(("pass", 10)))
+    entry, stop, _, _ = attempt(tmp_path, path, q)
+    assert stop is None
+    assert entry["violation"]["result"] == "violation"
+    assert entry["manual_check"][0] == (
+        "held shape: no_missing_orders failed 3 of 3 runs in the screen set, "
+        "a shape on the local held list"
+    )
+    assert any(n.startswith(trials.HOLDS) for n in entry["manual_check"])
+
+
+@pytest.mark.parametrize(
+    "over",
+    [
+        {"rule": "no_oversell"},
+        {"shape": {"servers": 2, "carts": 2, "locking": "redis"}},
+        {"race": [{"do": "complete", "server": 1}]},
+    ],
+)
+def test_the_held_list_matches_only_its_exact_shape(tmp_path, candidates, over):
+    path = candidates["s2-solo-c2-short-together"]
+    held_list(tmp_path, missing_order_entry(path, **over))
+    _, stop, _, _ = attempt(tmp_path, path, queues(path, [missing_order()] * 3))
+    assert stop.startswith("uncovered failure: no_missing_orders failed 1 of 1 runs")
 
 
 def test_one_server_single_line_oversell_is_uncovered(tmp_path, candidates):

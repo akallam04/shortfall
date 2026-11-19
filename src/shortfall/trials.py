@@ -17,6 +17,7 @@ import yaml
 
 from shortfall import agent, control, freeze, ledger, redact, score
 from shortfall.budget import TOTAL_DOLLAR_CAP
+from shortfall.coverage import HELD_NOTE
 from shortfall.pin import read_pin
 from shortfall.trialscore import score_trial
 
@@ -34,7 +35,7 @@ WORDS_FILE = Path(".git") / "info" / "private-words"
 ALLOW_FILE = Path(".git") / "info" / "private-word-allow"
 MODEL_TEXT = "model text: "
 ENTERPRISE = "enterprise: "
-HOLDS = (MODEL_TEXT, ENTERPRISE)
+HOLDS = (MODEL_TEXT, ENTERPRISE, HELD_NOTE)
 DASHES = re.compile("[\u2013\u2014]")
 QUOTE_WINDOW = 12
 
@@ -273,6 +274,9 @@ class State:
 
     def trial(self, spec: TrialSpec, records: list[dict]) -> dict:
         events = [e for e in self.events() if e.get("trial") == spec.id]
+        reopened = [i for i, e in enumerate(events) if e["event"] == "trial-reopened"]
+        if reopened:
+            events = events[reopened[-1] + 1 :]
         if spec.kind == "baseline":
             ended = {
                 e["run_id"] for e in events if e["event"] == "trial-end" and e.get("exit") == 0
@@ -281,6 +285,7 @@ class State:
             ended = {r["trial_id"] for r in records if r.get("kind") == "agent-end"}
         starts = [e["run_id"] for e in events if e["event"] == "trial-start"]
         return {
+            "reopened": len(reopened),
             "exported": any(e["event"] == "trial-exported" for e in events),
             "held": any(e["event"] == "trial-held" for e in events),
             "kept_local": any(e["event"] == "trial-kept-local" for e in events),
@@ -290,6 +295,23 @@ class State:
                 e["run_id"] for e in events if e["event"] == "trial-interrupted"
             },
         }
+
+
+def reopen(root: Path, plan: Plan, trial: str, reason: str) -> str | None:
+    specs = {s.id: s for s in plan.specs}
+    if trial not in specs:
+        return f"plan {plan.name} has no trial {trial}"
+    state = State(root, plan)
+    st = state.trial(specs[trial], [])
+    if st["exported"]:
+        return f"trial {trial} is exported; only a held or kept-local trial can be reopened"
+    if st["reopened"]:
+        return f"trial {trial} was reopened before"
+    if not (st["held"] or st["kept_local"]):
+        return f"trial {trial} is not held or kept local"
+    runs = [e["run_id"] for e in state.events() if e.get("trial") == trial and "run_id" in e]
+    state.add("trial-reopened", trial=trial, run_id=runs[-1] if runs else None, reason=reason)
+    return None
 
 
 def plan_spend(records: list[dict], run_ids: list[str]) -> dict:
@@ -888,7 +910,7 @@ class Runner:
             for run_id in st["unfinished"]:
                 if run_id not in st["logged_interrupted"]:
                     self.state.add("trial-interrupted", trial=spec.id, run_id=run_id)
-            if len(st["unfinished"]) >= 2:
+            if len(st["unfinished"]) + st["reopened"] >= 2:
                 return self.stop(f"trial {spec.id} was interrupted twice")
             if self.state.pause_path.exists():
                 self.state.add("plan-paused", before=spec.id)
@@ -1076,7 +1098,7 @@ class Runner:
             {
                 "trial": spec.id,
                 "run_id": run_id,
-                "label": "covered by #17032, rare in this scenario",
+                "label": review[0].get("label", "covered by #17032, rare in this scenario"),
                 "note": "These runs were made after the trial, only to decide whether to "
                 "publish it. They do not change the trial's score or its runs to first "
                 "reproduction.",
@@ -1185,12 +1207,21 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--status", action="store_true")
     p.add_argument("--review", action="store_true", help="only review held trials")
     p.add_argument("--raise-dollar-cap", type=float, default=0.0)
+    p.add_argument("--reopen", metavar="TRIAL", help="rerun a held or kept-local trial")
+    p.add_argument("--reason", default="")
     args = p.parse_args(argv)
     root = Path(__file__).resolve().parents[2]
     plan = load_plan(root, Path(args.plan))
     if args.status:
         print(json.dumps(status(root, plan), indent=1))
         return 0
+    if args.reopen:
+        if not args.reason:
+            print("--reopen needs --reason")
+            return 1
+        problem = reopen(root, plan, args.reopen, args.reason)
+        print(problem or f"trial {args.reopen} reopened; it runs from scratch on the next run")
+        return 1 if problem else 0
     state = State(root, plan)
     if state.pid_path.exists():
         text = state.pid_path.read_text().strip()

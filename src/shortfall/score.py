@@ -15,7 +15,7 @@ from shortfall.answers import located
 from shortfall.budget import ATTEMPT, Budget, CapReached, from_flags
 from shortfall.cases import RULES, Control, load_case
 from shortfall.control import one_server, redis_locking, variant
-from shortfall.coverage import MANUAL_CHECK, covering_issues
+from shortfall.coverage import HELD_NOTE, MANUAL_CHECK, covering_issues, held_shape
 from shortfall.pin import read_pin
 from shortfall.scenario_format import unknown_fields
 from shortfall.spend import Meter, now
@@ -360,6 +360,7 @@ class Attempt:
         self.text = self.scenario.read_text(encoding="utf-8")
         data = yaml.safe_load(self.text)
         check_candidate(data)
+        self.data = data
         self.shape = shape(data)
         self.entry = dict(meta)
         self.entry.update(
@@ -417,7 +418,8 @@ class Attempt:
         self.entry["run_folders"].append(result.folder)
         return result.histories
 
-    def _record(self, name: str, histories: list[dict], set_shape: dict, label: str) -> dict:
+    def _record(self, name: str, histories: list[dict], set_data: dict, label: str) -> dict:
+        set_shape = shape(set_data)
         runs = len(histories)
         locks = [lock_error(h) for h in histories if lock_error(h)]
         if locks:
@@ -446,6 +448,12 @@ class Attempt:
         ]
         for rule in failed_rules(c):
             issues = covering_issues(set_shape, rule)
+            if not issues and held_shape(self.root, set_shape, set_data, rule):
+                entry["manual_check"].append(
+                    f"{HELD_NOTE}{rule} failed {c[rule]['fail']} of {runs} runs in the {label} "
+                    "set, a shape on the local held list"
+                )
+                continue
             if not issues:
                 raise UncoveredFailure(
                     f"uncovered failure: {rule} failed {c[rule]['fail']} of {runs} runs in the "
@@ -461,7 +469,7 @@ class Attempt:
     def _candidate_set(self, name: str, runs: int) -> bool:
         new = self._run(name, self.scenario, runs)
         self.histories[name] += new
-        c = self._record(name, self.histories[name], self.shape, name)
+        c = self._record(name, self.histories[name], self.data, name)
         errors = [setup_error(h) for h in new if setup_error(h)]
         if errors:
             self.entry["setup_error"] = clean(errors[0], self.root)
@@ -538,7 +546,7 @@ class Attempt:
                 raise RuntimeError(f"{path.name} exists and differs from the generated control")
             path.write_text(control_text, encoding="utf-8")
             histories = self._run("control", path, CONTROL_RUNS)
-            c = self._record("control", histories, shape(yaml.safe_load(control_text)), suffix)
+            c = self._record("control", histories, yaml.safe_load(control_text), suffix)
             inconclusive = inconclusive_runs(histories)
             self.entry["controls"].append(
                 {
