@@ -2,6 +2,13 @@
 
 Shortfall looks for a kind of bug in online shop software that only shows up when several customers act at the same moment. It uses an AI model to guess where these bugs hide, and it tests every guess on a private copy of the shop running on one computer.
 
+## What we found
+
+- A simple fixed list of tests found all three known bug scenarios in every one of its 10 tries. The AI agent found all three in at most 3 of 10.
+- When the agent found the "last item sold twice" scenario, it was fastest: a median of 33 runs, against 58.5 for the fixed list. On the reserved-count scenario the fixed list tied it at 33.
+- The agent stopped early, after a median of 33 to 43 of its 300 runs. Showing it its test results made it do worse.
+- One agent try cost under 2 US cents and took about 4 minutes. The full results, their limits and how to check them are in [RESULTS.md](RESULTS.md).
+
 ## The problem, in everyday terms
 
 A shop has one item left, and two people press Buy at the same moment. A correct shop sells the item once and tells the second person it is sold out. Some shops sell it twice, because both purchases check the stock before either one has taken the item. The shop then owes someone an item it does not have.
