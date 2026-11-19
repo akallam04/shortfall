@@ -837,3 +837,11 @@ def test_a_review_can_carry_its_own_label(root, monkeypatch):
         (root / "runs" / "export" / "17032-none-1" / "review" / "review.json").read_text()
     )
     assert review["label"] == "covered by two issues together"
+
+
+def test_a_held_trial_published_after_review_counts_once_in_the_status(root, monkeypatch):
+    path = held_run(root, monkeypatch)
+    assert make_runner(root, path).review_held() == 0
+    assert kinds(root).count("trial-held") == kinds(root).count("trial-exported") == 1
+    st = trials.status(root, trials.load_plan(root, path))
+    assert st["done"] == 1 and st["done_trials"] == ["17032-none-1"]

@@ -1165,7 +1165,11 @@ def status(root: Path, plan: Plan) -> dict:
     records = ledger.load(score.ledger_path_for(root))
     run_ids = state.run_ids()
     spent = plan_spend(records, run_ids)
-    done = [e["trial"] for e in events if e["event"] in ("trial-exported", "trial-held")]
+    done = []
+    for spec in plan.specs:
+        st = state.trial(spec, records)
+        if st["exported"] or st["held"]:
+            done.append(spec.id)
     current = None
     for e in events:
         if e["event"] == "trial-start":
