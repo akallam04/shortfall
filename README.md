@@ -5,7 +5,7 @@ Shortfall looks for a kind of bug in online shop software that only shows up whe
 ## What we found
 
 - A simple fixed list of tests found all three known bug scenarios in every one of its 10 tries. The AI agent found all three in at most 3 of 10.
-- When the agent found the "last item sold twice" scenario, it was fastest: a median of 33 runs, against 58.5 for the fixed list. On the reserved-count scenario the fixed list tied it at 33.
+- When the agent found the "last item sold twice" scenario, it had the lowest median: 33 runs, against 58.5 for the fixed list. Once its misses count, this speed gap could be chance. On the reserved-count scenario the fixed list tied it at 33.
 - The agent stopped early, after a median of 33 to 43 of its 300 runs. Showing it its test results made it do worse.
 - One agent try cost under 2 US cents and took about 4 minutes. The full results, their limits and how to check them are in [RESULTS.md](RESULTS.md).
 
@@ -20,6 +20,34 @@ A shop has one item left, and two people press Buy at the same moment. A correct
 3. It writes a small test for that guess: which items are in stock, how many shoppers there are, and when they press Buy.
 4. It runs the test many times on a private copy of the shop on this computer.
 5. It counts a bug only if the test shows the rule breaking, and a copy of the shop with the public fix for that bug passes the same test.
+
+## How it works
+
+```mermaid
+flowchart TD
+    code["Medusa 2.22.0 code<br/>read-only copy"]
+    agent["AI agent<br/>Claude Haiku 5.5"]
+    search["Grid and random searches<br/>no AI"]
+    subgraph can["Agent can change only this"]
+        file["Scenario file"]
+    end
+    subgraph cannot["Agent cannot change this"]
+        checks["Shortfall checks before any run<br/>format check, leak guard,<br/>run and dollar caps"]
+        oversold["Oversold v0.1.1 starts a fresh local shop<br/>1 or 2 Medusa servers, Postgres,<br/>Redis when needed"]
+        race["Purchases sent at the same moment"]
+        rules["Five rules checked on the saved history"]
+        scoring["Scoring: the same test on plain Medusa<br/>and on builds with each public fix"]
+        tables["Results tables,<br/>rebuilt from the saved data by a test"]
+    end
+    code -->|reads| agent
+    agent -->|writes| file
+    file --> checks
+    search -->|writes scenario files| checks
+    checks --> oversold --> race --> rules --> scoring --> tables
+    rules -.->|"results, history mode only"| agent
+```
+
+The AI agent, Claude Haiku 5.5, reads a read-only copy of Medusa 2.22.0's code and writes test scenario files, while the grid and random searches write the same kind of file with no AI. Before any run, Shortfall checks each file's format, holds every trial to its run and dollar caps, and ends an agent trial if the benchmark's case names, answer files or fix names would reach the model. Oversold, pinned to v0.1.1, then starts a fresh local copy of the shop with one or two Medusa servers, Postgres, and Redis when the test needs it, sends the purchases at the same moment, and checks the five rules on the saved history. Scoring runs the same test on plain Medusa and on builds with each public fix, and a test rebuilds every results table from the saved data. The agent can change only its own scenario files, never the checks, Oversold, the scoring or the answers, and only in history mode do the results of its runs go back to it.
 
 ## What has been measured so far
 
@@ -51,9 +79,17 @@ A further 10 trials tested whether the agent's list of likely causes helps, by l
 
 It has also run 18 guided trials, where it is given the public bug report, like an open-book test. Each trial and its full record is on [the agent trials page](benchmark/agent/README.md).
 
-## What is not done yet
+## Limits
 
-The sample is 10 trials per method, with one model, one Medusa version and three test scenarios from two bugs, so no difference between the agent and the simple methods is called significant. In every published trial so far the agent stopped on its own after at most 76 of its 300 runs.
+- 10 trials per method.
+- One AI model (Claude Haiku 5.5).
+- The agent was compared on one Medusa version (2.22.0). The bugs themselves were reproduced on 2.19.0, 2.21.2 and 2.22.0.
+- Three test scenarios from two public bugs, in one shop engine.
+- In every published trial, the agent stopped on its own after at most 76 of its 300 runs.
+- False alarms on fixed builds were not tested.
+- The statistics tests were chosen after seeing the data.
+
+The rest are in [RESULTS.md, section 8](RESULTS.md#8-limits).
 
 ## Why you can trust the numbers
 

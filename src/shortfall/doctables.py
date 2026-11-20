@@ -7,7 +7,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from shortfall import answers, ledger, score
+from shortfall import answers, ledger, score, stats
 from shortfall.cases import load_case
 
 CASES = ("medusa-17032-last-unit", "medusa-17032-counter", "medusa-16502-lines")
@@ -532,6 +532,88 @@ def results_guided(d: Data) -> list[list]:
     return rows
 
 
+STAT_ARMS = (
+    ("unguided-none", "No feedback"),
+    ("unguided-history", "With feedback"),
+    ("nomenu-none", "No cause list"),
+)
+STAT_BASES = (("grid", "Grid"), ("random", "Random"))
+MISS = 301
+
+
+def found(trials: list[dict], case: str | None) -> int:
+    if case is None:
+        return sum(1 for t in trials if all(t[c] is not None for c in CASES))
+    return sum(1 for t in trials if t[case] is not None)
+
+
+def p_text(p: float) -> str:
+    return "under 0.0001" if p < 0.0001 else f"{p:.2g}"
+
+
+def holm_text(p: float) -> str:
+    return f"{p_text(p)}, passes" if p < 0.05 else p_text(p)
+
+
+def fisher_tests(d: Data) -> list[dict]:
+    tests = []
+    for arm, label in STAT_ARMS:
+        agent = d.arm(arm)
+        for base, base_label in STAT_BASES:
+            other = d.arm(base)
+            for case in (*CASES, None):
+                a, b = found(agent, case), found(other, case)
+                tests.append(
+                    {
+                        "arm": arm,
+                        "row": [label, base_label, case or "All three in one trial"],
+                        "a": of(a, len(agent)),
+                        "b": of(b, len(other)),
+                        "p": stats.fisher_exact(a, len(agent) - a, b, len(other) - b),
+                    }
+                )
+    for t, h in zip(tests, stats.holm([t["p"] for t in tests]), strict=True):
+        t["holm_all"] = h
+    own = [t for t in tests if t["arm"] == "unguided-none"]
+    for t, h in zip(own, stats.holm([t["p"] for t in own]), strict=True):
+        t["holm_own"] = h
+    return tests
+
+
+def results_fisher(d: Data) -> list[list]:
+    return [
+        [
+            *t["row"],
+            t["a"],
+            t["b"],
+            p_text(t["p"]),
+            holm_text(t["holm_all"]),
+            holm_text(t["holm_own"]) if "holm_own" in t else "not in this group",
+        ]
+        for t in fisher_tests(d)
+    ]
+
+
+def results_speed(d: Data) -> list[list]:
+    agent = d.arm("unguided-none")
+    rows = []
+    for base, label in STAT_BASES:
+        other = d.arm(base)
+        for c in RACE:
+            x = [t[c] if t[c] is not None else MISS for t in agent]
+            y = [t[c] if t[c] is not None else MISS for t in other]
+            rows.append(
+                [
+                    c,
+                    label,
+                    median_text([t[c] for t in agent]),
+                    median_text([t[c] for t in other]),
+                    p_text(stats.mann_whitney(x, y)),
+                ]
+            )
+    return rows
+
+
 CHECKED = {
     "README.md": {
         "| Test scenario | Public bug | Rule broken on plain Medusa |": readme_cases,
@@ -542,6 +624,8 @@ CHECKED = {
         "| Method | Trials | Trials that called finish |": results_claims,
         "| Method | Test scenario | Trials that reproduced it |": results_located,
         "| Bug report given | Prompt | Feedback |": results_guided,
+        "| Agent version | Compared with | Scenario |": results_fisher,
+        "| Scenario | Compared with | Agent median runs |": results_speed,
     },
     "benchmark/README.md": {
         "| Case | Set | no_oversell 2 |": sets_2004ed5,

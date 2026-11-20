@@ -6,7 +6,7 @@ This page explains what Shortfall found, in plain words. Every table here is reb
 
 - We asked whether a cheap AI agent that reads a shop's code can find real checkout bugs faster than two simple searches that use no AI, with the same budget of 300 test runs.
 - The simple fixed-list search found all three known bug scenarios in every one of its 10 tries. The agent found all three in at most 3 of 10 tries.
-- When the agent found the "last item sold twice" scenario, it found it fast: a median of 33 runs, against 58.5 for the fixed list. On the other two-shoppers scenario, the fixed list tied it at 33.
+- When the agent found the "last item sold twice" scenario, it found it fast: a median of 33 runs, against 58.5 for the fixed list. Once its misses count, this speed gap could be chance. On the other two-shoppers scenario, the fixed list tied it at 33.
 - The agent stopped early, after a median of 33 to 43 of its 300 runs, so it rarely went on to look for the third scenario.
 - Showing the agent its test results made it do worse. Hiding its list of likely causes did not hurt on the two two-shoppers scenarios.
 - One agent try cost under 2 US cents and took about 4 minutes. Ten tries per method is still a small sample.
@@ -105,13 +105,57 @@ A file match alone says little: naming the inventory module file every time woul
 
 ## 5. What it means
 
-- **Fastest on the last-unit race, when it finds it.** The agent's median was 33 runs, against 58.5 for the grid and 110 for random.
+- **Fastest on the last-unit race, when it finds it.** The agent's median was 33 runs, against 58.5 for the grid and 110 for random. Once its misses count, this speed gap could be chance.
 - **Tied by the grid on the counter race.** Both had a median of 33 runs. The grid found it in 10 of 10 trials, the agent in 7 of 10.
 - **Less reliable than the grid.** The grid reproduced every scenario in every trial. The agent missed each race scenario in 3 of 10 trials.
 - **Rarely finds all three scenarios, because it stops early.** It ended its trials after a median of 33 to 43 runs, while 300 were allowed, and seldom tried two cart lines that share stock.
 - **Feedback made it worse.** Seeing its test results, it reproduced each scenario in fewer trials and never all three in one trial.
 - **Hiding the cause list did not hurt** on the two race scenarios: 9 of 10 trials each, at the same median of 33. It never reproduced the two-lines scenario without the list.
-- **What 10 trials can't tell us.** A gap of two or three trials out of 10, like 7 against 9, can easily come from chance. So none of these differences is called significant. The results also say nothing yet about other shops, other bugs or other AI models.
+- **The grid found all three scenarios far more often than any agent version** (10 of 10, against 0 to 3 of 10), and the same holds for the two-lines scenario. These gaps pass a standard statistics test. For the agent with no feedback they pass when its own 8 tests are corrected together, and narrowly miss when all 24 tests are.
+- **The other gaps are small enough that chance could explain them**, including the agent's speed on the race scenarios once its misses count.
+- **We chose these tests after seeing the data**, so treat them as a guide. The results also say nothing yet about other shops, other bugs or other AI models.
+
+### Statistics, run after the fact
+
+A p-value is the chance of seeing a gap at least this large if the two methods were really equally good. A value under 0.05 is the usual bar for "unlikely to be chance".
+
+Running many tests at once makes some small p-values appear by luck, so Holm's correction raises each p-value to allow for that. It is applied twice: across all 24 tests below, and across the 8 tests of the agent with no feedback alone. The tests are Fisher's exact test, two-sided, on how many of 10 trials found each scenario. Data: the same folders as the first table in section 4.
+
+| Agent version | Compared with | Scenario | Agent found it | Other method found it | p-value | After Holm, all 24 | After Holm, the no-feedback agent's 8 |
+|---|---|---|---|---|---|---|---|
+| No feedback | Grid | medusa-17032-last-unit | 7 of 10 | 10 of 10 | 0.21 | 1 | 1 |
+| No feedback | Grid | medusa-17032-counter | 7 of 10 | 10 of 10 | 0.21 | 1 | 1 |
+| No feedback | Grid | medusa-16502-lines | 3 of 10 | 10 of 10 | 0.0031 | 0.062 | 0.025, passes |
+| No feedback | Grid | All three in one trial | 3 of 10 | 10 of 10 | 0.0031 | 0.062 | 0.025, passes |
+| No feedback | Random | medusa-17032-last-unit | 7 of 10 | 9 of 10 | 0.58 | 1 | 1 |
+| No feedback | Random | medusa-17032-counter | 7 of 10 | 10 of 10 | 0.21 | 1 | 1 |
+| No feedback | Random | medusa-16502-lines | 3 of 10 | 7 of 10 | 0.18 | 1 | 1 |
+| No feedback | Random | All three in one trial | 3 of 10 | 6 of 10 | 0.37 | 1 | 1 |
+| With feedback | Grid | medusa-17032-last-unit | 5 of 10 | 10 of 10 | 0.033 | 0.49 | not in this group |
+| With feedback | Grid | medusa-17032-counter | 6 of 10 | 10 of 10 | 0.087 | 1 | not in this group |
+| With feedback | Grid | medusa-16502-lines | 2 of 10 | 10 of 10 | 0.00071 | 0.015, passes | not in this group |
+| With feedback | Grid | All three in one trial | 0 of 10 | 10 of 10 | under 0.0001 | 0.00026, passes | not in this group |
+| With feedback | Random | medusa-17032-last-unit | 5 of 10 | 9 of 10 | 0.14 | 1 | not in this group |
+| With feedback | Random | medusa-17032-counter | 6 of 10 | 10 of 10 | 0.087 | 1 | not in this group |
+| With feedback | Random | medusa-16502-lines | 2 of 10 | 7 of 10 | 0.07 | 0.98 | not in this group |
+| With feedback | Random | All three in one trial | 0 of 10 | 6 of 10 | 0.011 | 0.18 | not in this group |
+| No cause list | Grid | medusa-17032-last-unit | 9 of 10 | 10 of 10 | 1 | 1 | not in this group |
+| No cause list | Grid | medusa-17032-counter | 9 of 10 | 10 of 10 | 1 | 1 | not in this group |
+| No cause list | Grid | medusa-16502-lines | 0 of 10 | 10 of 10 | under 0.0001 | 0.00026, passes | not in this group |
+| No cause list | Grid | All three in one trial | 0 of 10 | 10 of 10 | under 0.0001 | 0.00026, passes | not in this group |
+| No cause list | Random | medusa-17032-last-unit | 9 of 10 | 9 of 10 | 1 | 1 | not in this group |
+| No cause list | Random | medusa-17032-counter | 9 of 10 | 10 of 10 | 1 | 1 | not in this group |
+| No cause list | Random | medusa-16502-lines | 0 of 10 | 7 of 10 | 0.0031 | 0.062 | not in this group |
+| No cause list | Random | All three in one trial | 0 of 10 | 6 of 10 | 0.011 | 0.18 | not in this group |
+
+Speed: a two-sided Mann-Whitney test on runs to first reproduction, for the agent with no feedback, with a miss counted as over 300 runs.
+
+| Scenario | Compared with | Agent median runs | Other method median runs | p-value |
+|---|---|---|---|---|
+| medusa-17032-last-unit | Grid | 33 | 58.5 | 0.84 |
+| medusa-17032-counter | Grid | 33 | 33 | 0.48 |
+| medusa-17032-last-unit | Random | 33 | 110 | 0.11 |
+| medusa-17032-counter | Random | 33 | 46.5 | 0.61 |
 
 ## 6. Guided trials, briefly (open-book)
 
@@ -146,6 +190,7 @@ Given the #17032 report, the agent first tested with one server, while that bug 
 - **An informed baseline.** The grid was designed knowing what these bugs look like.
 - **The prompt was tuned once.** Prompt v2 was written after seeing the v1 results.
 - **The agent sees the check names.** It knows which rules the checker tests, which hints at what to look for.
+- **Tests chosen after the fact.** The statistics tests in section 5 were chosen after seeing the data.
 - **False alarms on fixed copies were not tested.** We never ran the agent on a shop with the bugs fixed, so we don't know how often it would claim a bug that is not there.
 
 ## 9. What went wrong along the way

@@ -64,7 +64,7 @@ What the table shows:
 
 - The grid reproduced all three test scenarios in every one of its 10 trials. The agent did that in at most 3 of 10.
 - On medusa-17032-counter the grid tied the agent with feedback none: a median of 33 runs each. The grid reproduced it in 10 of 10 trials, the agent in 7 of 10.
-- On medusa-17032-last-unit the agent with feedback none had the lower median, 33 runs against the grid's 58.5, but it reproduced the scenario in 7 of 10 trials against the grid's 10 of 10.
+- On medusa-17032-last-unit the agent with feedback none had the lower median, 33 runs against the grid's 58.5, but it reproduced the scenario in 7 of 10 trials against the grid's 10 of 10. Once its misses count, this speed gap could be chance.
 - The agent tested two cart lines that use the same stock in only 3 of 10 trials with feedback none and 4 of 10 with feedback history, so it reproduced medusa-16502-lines in 3 and 2 of 10.
 - When the first attempt fails at once, a #17032 scenario is usually counted at run 33: 3 screen runs, 10 scoring runs and two controls of 10 runs. Many cells sit at 33 for that reason.
 - The grid was designed with knowledge of the bug shapes in the scenarios, so it is an informed baseline, not a blind one.
@@ -92,7 +92,7 @@ Without the list of causes the agent reproduced the two race scenarios in more t
 
 ## What is still small about the sample
 
-- 10 trials per method. A difference of a few trials out of 10 can come from chance, and no difference here is called significant.
+- 10 trials per method. A difference of a few trials out of 10 can come from chance. The [statistics tests](../../RESULTS.md#statistics-run-after-the-fact), chosen after seeing the data, find that only the grid's lead on medusa-16502-lines and on all three in one trial passes a standard test.
 - One model, `claude-haiku-5-5`, one Medusa version, 2.22.0, and three test scenarios from two public bugs.
 - Trials 1 to 3 of the four columns ran earlier, in separate sessions, on the same images, Oversold commit and prompts as trials 4 to 10.
 
