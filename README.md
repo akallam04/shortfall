@@ -6,7 +6,7 @@ Shortfall looks for a kind of bug in online shop software that only shows up whe
 
 - A simple fixed list of tests found all three known bug scenarios in every one of its 10 tries. The AI agent found all three in at most 3 of 10.
 - When the agent found the "last item sold twice" scenario, it had the lowest median: 33 runs, against 58.5 for the fixed list. Once its misses count, this speed gap could be chance. On the reserved-count scenario the fixed list tied it at 33.
-- The agent stopped early, after a median of 33 to 43 of its 300 runs. Showing it its test results made it do worse.
+- The agent stopped early, after a median of 33 to 43 of its 300 runs. With its test results shown, it did worse in these trials, but the gap could be chance.
 - One agent try cost under 2 US cents and took about 4 minutes. The full results, their limits and how to check them are in [RESULTS.md](RESULTS.md).
 
 ## The problem, in everyday terms
@@ -75,7 +75,7 @@ The AI agent has run trials with the model Claude Haiku 5.5. In an unguided tria
 - It reproduced all three scenarios in one trial in 3 of 10 trials with no feedback, and never with feedback. The fixed list of test shapes did that in every trial.
 - On the #17032 counter scenario, the fixed list tied the agent with no feedback: a median of 33 runs each.
 
-A further 10 trials tested whether the agent's list of likely causes helps, by leaving it out. Without it, the agent reproduced both #17032 scenarios in more trials, 9 of 10, and the #16502 scenario in none.
+A further 10 trials tested whether the agent's list of likely causes helps, by leaving it out. Without it, the agent reproduced both #17032 scenarios in more trials, 9 of 10, and the #16502 scenario in none. No gap between the two versions was clear either way.
 
 It has also run 18 guided trials, where it is given the public bug report, like an open-book test. Each trial and its full record is on [the agent trials page](benchmark/agent/README.md).
 

@@ -594,6 +594,26 @@ def results_fisher(d: Data) -> list[list]:
     ]
 
 
+def results_versions(d: Data) -> list[list]:
+    base = d.arm("unguided-none")
+    rows = []
+    for arm, label in STAT_ARMS[1:]:
+        other = d.arm(arm)
+        for case in (*CASES, None):
+            a, b = found(base, case), found(other, case)
+            p = stats.fisher_exact(a, len(base) - a, b, len(other) - b)
+            rows.append(
+                [
+                    label,
+                    case or "All three in one trial",
+                    of(a, len(base)),
+                    of(b, len(other)),
+                    p_text(p),
+                ]
+            )
+    return rows
+
+
 def results_speed(d: Data) -> list[list]:
     agent = d.arm("unguided-none")
     rows = []
@@ -626,6 +646,7 @@ CHECKED = {
         "| Bug report given | Prompt | Feedback |": results_guided,
         "| Agent version | Compared with | Scenario |": results_fisher,
         "| Scenario | Compared with | Agent median runs |": results_speed,
+        "| No-feedback agent against | Scenario |": results_versions,
     },
     "benchmark/README.md": {
         "| Case | Set | no_oversell 2 |": sets_2004ed5,

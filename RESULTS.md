@@ -8,7 +8,7 @@ This page explains what Shortfall found, in plain words. Every table here is reb
 - The simple fixed-list search found all three known bug scenarios in every one of its 10 tries. The agent found all three in at most 3 of 10 tries.
 - When the agent found the "last item sold twice" scenario, it found it fast: a median of 33 runs, against 58.5 for the fixed list. Once its misses count, this speed gap could be chance. On the other two-shoppers scenario, the fixed list tied it at 33.
 - The agent stopped early, after a median of 33 to 43 of its 300 runs, so it rarely went on to look for the third scenario.
-- Showing the agent its test results made it do worse. Hiding its list of likely causes did not hurt on the two two-shoppers scenarios.
+- With its test results shown, the agent did worse in these trials, but the gap could be chance. Hiding its list of likely causes did not hurt on the two two-shoppers scenarios, and no gap was clear either way.
 - One agent try cost under 2 US cents and took about 4 minutes. Ten tries per method is still a small sample.
 
 ## 2. The question
@@ -109,8 +109,8 @@ A file match alone says little: naming the inventory module file every time woul
 - **Tied by the grid on the counter race.** Both had a median of 33 runs. The grid found it in 10 of 10 trials, the agent in 7 of 10.
 - **Less reliable than the grid.** The grid reproduced every scenario in every trial. The agent missed each race scenario in 3 of 10 trials.
 - **Rarely finds all three scenarios, because it stops early.** It ended its trials after a median of 33 to 43 runs, while 300 were allowed, and seldom tried two cart lines that share stock.
-- **Feedback made it worse.** Seeing its test results, it reproduced each scenario in fewer trials and never all three in one trial.
-- **Hiding the cause list did not hurt** on the two race scenarios: 9 of 10 trials each, at the same median of 33. It never reproduced the two-lines scenario without the list.
+- **With feedback it did worse in these trials, but the gap could be chance.** Seeing its test results, it reproduced each scenario in fewer trials and never all three in one trial.
+- **Hiding the cause list did not hurt** on the two race scenarios: 9 of 10 trials each, at the same median of 33. It never reproduced the two-lines scenario without the list. No gap between the two versions was clear either way.
 - **The grid found all three scenarios far more often than any agent version** (10 of 10, against 0 to 3 of 10), and the same holds for the two-lines scenario. These gaps pass a standard statistics test. For the agent with no feedback they pass when its own 8 tests are corrected together, and narrowly miss when all 24 tests are.
 - **The other gaps are small enough that chance could explain them**, including the agent's speed on the race scenarios once its misses count.
 - **We chose these tests after seeing the data**, so treat them as a guide. The results also say nothing yet about other shops, other bugs or other AI models.
@@ -156,6 +156,19 @@ Speed: a two-sided Mann-Whitney test on runs to first reproduction, for the agen
 | medusa-17032-counter | Grid | 33 | 33 | 0.48 |
 | medusa-17032-last-unit | Random | 33 | 110 | 0.11 |
 | medusa-17032-counter | Random | 33 | 46.5 | 0.61 |
+
+Agent against agent, also chosen after seeing the data: Fisher's exact test, two-sided, for the agent with no feedback against the other two agent versions.
+
+| No-feedback agent against | Scenario | No-feedback agent found it | Other version found it | p-value |
+|---|---|---|---|---|
+| With feedback | medusa-17032-last-unit | 7 of 10 | 5 of 10 | 0.65 |
+| With feedback | medusa-17032-counter | 7 of 10 | 6 of 10 | 1 |
+| With feedback | medusa-16502-lines | 3 of 10 | 2 of 10 | 1 |
+| With feedback | All three in one trial | 3 of 10 | 0 of 10 | 0.21 |
+| No cause list | medusa-17032-last-unit | 7 of 10 | 9 of 10 | 0.58 |
+| No cause list | medusa-17032-counter | 7 of 10 | 9 of 10 | 0.58 |
+| No cause list | medusa-16502-lines | 3 of 10 | 0 of 10 | 0.21 |
+| No cause list | All three in one trial | 3 of 10 | 0 of 10 | 0.21 |
 
 ## 6. Guided trials, briefly (open-book)
 
