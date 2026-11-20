@@ -1,0 +1,68 @@
+{
+ "trial": "sonnet-none-3",
+ "plan": "followups-1",
+ "run_id": "agent-20261120T072353Z",
+ "attempt_id": "agent-20261120T072353Z-02",
+ "label": "documented limit of in-memory locking",
+ "note": "These runs were made after the trial was stopped by the safety rule, only to decide whether the one_order_per_cart failure is covered. They do not change any trial's score. The pr-17420 set is for information only. The trial is rerun from scratch, and the rerun is the counted sonnet-none-3.",
+ "sets": {
+  "as-is": {
+   "folder": "20261120T174955Z-attempt-02-agent-20261120t072353z-2.22.0",
+   "runs": 100,
+   "fails": {
+    "no_oversell": 0,
+    "reserved_matches_reservations": 84,
+    "one_order_per_cart": 4,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0,
+   "failed_completions": {
+    "http 400 invalid_data: Cannot create multiple links between 'order' and 'payment'": 489,
+    "http 400 invalid_data: Payment with payment_session_id: payses_..., already exists.": 6
+   }
+  },
+  "redis": {
+   "folder": "20261120T180106Z-attempt-02-agent-20261120t072353z-redis-control-2.22.0",
+   "runs": 100,
+   "fails": {
+    "no_oversell": 0,
+    "reserved_matches_reservations": 0,
+    "one_order_per_cart": 0,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0,
+   "failed_completions": {}
+  },
+  "server-1": {
+   "folder": "20261120T181345Z-attempt-02-agent-20261120t072353z-server-1-2.22.0",
+   "runs": 100,
+   "fails": {
+    "no_oversell": 0,
+    "reserved_matches_reservations": 0,
+    "one_order_per_cart": 0,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0,
+   "failed_completions": {}
+  },
+  "pr-17420": {
+   "folder": "20261120T182439Z-attempt-02-agent-20261120t072353z-pr-17420-2.22.0-pr-17420",
+   "runs": 100,
+   "fails": {
+    "no_oversell": 0,
+    "reserved_matches_reservations": 0,
+    "one_order_per_cart": 8,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0,
+   "failed_completions": {
+    "http 400 invalid_data: Cannot create multiple links between 'order' and 'payment'": 488,
+    "http 400 invalid_data: Payment with payment_session_id: payses_..., already exists.": 4
+   }
+  }
+ }
+}

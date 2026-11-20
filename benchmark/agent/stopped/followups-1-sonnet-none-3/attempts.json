@@ -1,0 +1,90 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+  "cause": "process-local-lock",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 10,
+    "reserved_matches_reservations": 10
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 10,
+   "reserved_matches_reservations": 10
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "not reproduced",
+   "medusa-17032-counter": "reproduced",
+   "medusa-17032-last-unit": "reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "process-local-lock",
+   "cases": {
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "The default locking provider is in-memory, so with two servers the inventory lock in reserveInventoryStep does not serialize across processes. Two carts each hold the single SOLO unit and are completed together on different servers. Both read available=1 and both create reservations, so reservations exceed stock (and the reserved counter is overwritten from a stale read).",
+  "scenario_sha256": "3de26f2833a1c9222e81ccfee3656d48b964f3e7aed6e3416db896e829703cb6",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: cross-server-solo\ndescription: Many carts each hold the single SOLO unit and are completed together across two servers.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 1\ncarts:\n  a:\n    server: 1\n    count: 4\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  b:\n    server: 2\n    count: 4\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: ca\n  server: 1\n  do: complete\n  cart: a\n- id: cb\n  server: 2\n  do: complete\n  cart: b\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 10\nseed: 1\n"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+  "cause": "duplicate-completion",
+  "expected_check": "one_order_per_cart",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "reserved_matches_reservations": 11,
+    "one_order_per_cart": 1
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "reserved_matches_reservations": 11,
+   "one_order_per_cart": 1
+  },
+  "expected_check_failed": true,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+   "cause": "duplicate-completion",
+   "cases": {}
+  },
+  "manual_check": [
+   "reserved_matches_reservations failed 11 of 13 runs on plain Medusa 2.22.0: violation, cause not isolated, no case's scoring control clears it",
+   "one_order_per_cart failed 1 of 13 runs on plain Medusa 2.22.0: violation, cause not isolated, no case's scoring control clears it"
+  ],
+  "stop_reason": "uncovered failure: one_order_per_cart failed 1 of 10 runs in the score set, and no issue in the coverage map covers this shape",
+  "oversold_runs": 13,
+  "hypothesis": "The cart lock (acquireLockStep) is in-memory, so two servers completing the same cart both see no order_cart link and both create an order. Expect two orders for one cart.",
+  "scenario_sha256": "e8a0adba215c8c84809a11b7e4a5abc66959d1a43bf632f9081f19ba4e778e1d",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: same-cart-two-servers\ndescription: The same cart is completed at the same time on two servers.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  WIDGET: 10\ncarts:\n  c:\n    server: 1\n    count: 5\n    lines:\n    - sku: OVS-PIECE\n      qty: 1\nrace:\n- id: x1\n  server: 1\n  do: complete\n  cart: c\n- id: x2\n  server: 2\n  do: complete\n  cart: c\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 2\nfaults: []\nruns: 10\nseed: 2\n"
+ }
+]

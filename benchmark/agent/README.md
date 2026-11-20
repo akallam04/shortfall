@@ -76,7 +76,7 @@ Located, for the agent: with feedback none, the file and the cause matched the a
 
 The v2-nomenu arm ran the same unguided task with feedback none, but the agent was not shown the list of causes and named only a file. It is compared with the v2 arm with feedback none on the two race scenarios, with the same two numbers per scenario.
 
-One trial was stopped by our safety rule after a single run showed a failure outside the three cases that we could not repeat; its record is held for now, and the trial was rerun.
+One trial, nomenu-none-8, was stopped by our safety rule after one cart became two orders in a single run, a failure outside the three scenarios. The trial was rerun from scratch. Later runs showed that this happens only with two servers and Medusa's default in-memory lock, which Medusa documents as meant for development only. [RESULTS.md](../../RESULTS.md#one-cart-two-orders) has the numbers, and the stopped record is published in [stopped/scale-10-nomenu-none-8](stopped/scale-10-nomenu-none-8/).
 
 The comparison is counted both ways: with the rerun trial, and with the stopped trial counted as a miss.
 

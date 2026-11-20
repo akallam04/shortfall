@@ -7,6 +7,13 @@ HELD_NOTE = "held shape: "
 ISSUE_17032 = "https://github.com/medusajs/medusa/issues/17032"
 ISSUE_16502 = "https://github.com/medusajs/medusa/issues/16502"
 ISSUE_16825 = "https://github.com/medusajs/medusa/issues/16825"
+LIMIT_IN_MEMORY = "documented limit of in-memory locking"
+LIMIT_SOURCES = (
+    "https://docs.medusajs.com/resources/infrastructure-modules/locking/redis",
+    "https://medusajs.com/kb/tickets-and-bookings/bookings-and-reservations",
+    "https://docs.medusajs.com/learn/fundamentals/workflows/store-executions",
+    "https://appcrates.pl/en/blog/medusa-js-na-produkcji-architektura-sklepu",
+)
 
 MANUAL_CHECK = frozenset({ISSUE_16825})
 FIXES_16502 = frozenset({"pr-16961"})
@@ -28,6 +35,8 @@ def covering_issues(shape: dict, rule: str) -> tuple[str, ...]:
             issues.append(ISSUE_17032)
     if rule == "no_orphaned_orders" and shape["carts"] > 1 and shape["release"] == "together":
         issues.append(ISSUE_16825)
+    if rule == "one_order_per_cart" and in_memory and shape["servers"] == 2:
+        issues.append(LIMIT_IN_MEMORY)
     return tuple(issues)
 
 

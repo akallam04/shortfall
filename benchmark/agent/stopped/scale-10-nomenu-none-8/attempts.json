@@ -1,0 +1,43 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+  "cause": null,
+  "expected_check": "one_order_per_cart",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 1,
+    "reserved_matches_reservations": 1,
+    "one_order_per_cart": 1
+   },
+   "runs": 10
+  },
+  "plain_failed_rules": {
+   "no_oversell": 1,
+   "reserved_matches_reservations": 1,
+   "one_order_per_cart": 1
+  },
+  "expected_check_failed": true,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+   "cause": null,
+   "cases": {}
+  },
+  "manual_check": [
+   "no_oversell failed 1 of 10 runs on plain Medusa 2.22.0: violation, cause not isolated, no case's scoring control clears it",
+   "reserved_matches_reservations failed 1 of 10 runs on plain Medusa 2.22.0: violation, cause not isolated, no case's scoring control clears it",
+   "one_order_per_cart failed 1 of 10 runs on plain Medusa 2.22.0: violation, cause not isolated, no case's scoring control clears it"
+  ],
+  "stop_reason": "uncovered failure: one_order_per_cart failed 1 of 7 runs in the retry set, and no issue in the coverage map covers this shape",
+  "oversold_runs": 10,
+  "hypothesis": "completeCartWorkflow guards against double completion with acquireLockStep keyed on the cart id, but the default locking provider is the in-memory one, which is per process. When the same cart is completed concurrently through two Medusa servers sharing one database, each server holds its own lock, both see no existing order_cart link, and both create an order for the same cart. This should break one_order_per_cart (a cart linked to two orders, or two ok calls returning different order ids), and may also break no_oversell/reserved_matches_reservations if both orders reserve stock.",
+  "scenario_sha256": "cfdafc98d3f2b9e00d7af025294f863b74581530b33342d86b1fcfb2f94baf80",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: same-cart-two-servers\ndescription: One cart with one SOLO unit is completed simultaneously through both servers sharing one database.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-complete-s1\n  server: 1\n  do: complete\n  cart: alice\n- id: alice-complete-s2\n  server: 2\n  do: complete\n  cart: alice\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nfaults: []\nruns: 20\nseed: 7\n"
+ }
+]

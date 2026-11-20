@@ -3,7 +3,14 @@ from pathlib import Path
 import pytest
 import yaml
 
-from shortfall.coverage import ISSUE_16502, ISSUE_16825, ISSUE_17032, covering_issues
+from shortfall.coverage import (
+    ISSUE_16502,
+    ISSUE_16825,
+    ISSUE_17032,
+    LIMIT_IN_MEMORY,
+    LIMIT_SOURCES,
+    covering_issues,
+)
 from shortfall.score import shape
 
 CASES = Path(__file__).resolve().parent.parent / "benchmark" / "cases"
@@ -67,3 +74,16 @@ def test_no_issue_covers_a_stock_failure_in_the_16502_variant_control():
 def test_no_issue_covers_a_missing_order():
     for s in (BASE, MULTI, {**BASE, "servers": 1}, {**MULTI, "carts": 10}):
         assert covering_issues(s, "no_missing_orders") == ()
+
+
+@pytest.mark.parametrize("carts", [1, 5, 19])
+def test_one_order_per_cart_on_two_in_memory_servers_is_a_documented_limit(carts):
+    s = {**BASE, "carts": carts}
+    assert covering_issues(s, "one_order_per_cart") == (LIMIT_IN_MEMORY,)
+    assert covering_issues({**s, "locking": "in-memory"}, "one_order_per_cart") == (
+        LIMIT_IN_MEMORY,
+    )
+    assert covering_issues({**s, "locking": "redis"}, "one_order_per_cart") == ()
+    assert covering_issues({**s, "servers": 1}, "one_order_per_cart") == ()
+    assert covering_issues({**s, "variant": "pr-17420"}, "one_order_per_cart") == (LIMIT_IN_MEMORY,)
+    assert len(LIMIT_SOURCES) == 4 and all(x.startswith("https://") for x in LIMIT_SOURCES)

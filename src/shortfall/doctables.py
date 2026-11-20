@@ -634,6 +634,47 @@ def results_speed(d: Data) -> list[list]:
     return rows
 
 
+STOPPED = AGENT / "stopped"
+STOPPED_RECORDS = (
+    ("scale-10-nomenu-none-8", "nomenu-none-8, 10-trial plan"),
+    ("followups-1-sonnet-none-3", "sonnet-none-3, follow-up plan"),
+)
+STOPPED_SETS = {
+    "as-is": "Run again as is",
+    "as-is-600": "Run again as is",
+    "redis": "Redis locking",
+    "one-server": "Both completions on one server",
+    "server-1": "All completions sent to server 1",
+    "stock-5": "Stock raised from 1 to 5",
+    "pr-17420": "With the #17032 fix, pull request #17420",
+}
+
+
+def stopped_rows(d: Data) -> list[list]:
+    rows = []
+    for folder, label in STOPPED_RECORDS:
+        base = d.root / STOPPED / folder
+        review = json.loads((base / "review" / "review.json").read_text(encoding="utf-8"))
+        records = [json.loads(x) for x in (base / "ledger.jsonl").read_text().splitlines()]
+        final = next(
+            r
+            for r in records
+            if r.get("kind") == "final" and r.get("attempt_id") == review["attempt_id"]
+        )
+        runs = fails = 0
+        for name, counts in final["candidate_fails"].items():
+            if counts is None:
+                continue
+            runs += final.get(f"{name}_runs") or 0
+            fails += counts["one_order_per_cart"]
+        rows.append([label, "The trial's own runs", runs, fails])
+        for name, data in review["sets"].items():
+            rows.append(
+                [label, STOPPED_SETS[name], data["runs"], data["fails"]["one_order_per_cart"]]
+            )
+    return rows
+
+
 CHECKED = {
     "README.md": {
         "| Test scenario | Public bug | Rule broken on plain Medusa |": readme_cases,
@@ -647,6 +688,7 @@ CHECKED = {
         "| Agent version | Compared with | Scenario |": results_fisher,
         "| Scenario | Compared with | Agent median runs |": results_speed,
         "| No-feedback agent against | Scenario |": results_versions,
+        "| Stopped trial | Test | Runs |": stopped_rows,
     },
     "benchmark/README.md": {
         "| Case | Set | no_oversell 2 |": sets_2004ed5,

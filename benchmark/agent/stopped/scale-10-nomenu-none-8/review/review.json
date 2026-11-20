@@ -1,0 +1,83 @@
+{
+ "trial": "nomenu-none-8",
+ "plan": "scale-10",
+ "run_id": "agent-20261118T115859Z",
+ "attempt_id": "agent-20261118T115859Z-01",
+ "label": "documented limit of in-memory locking",
+ "note": "These runs were made after the trial was stopped by the safety rule, only to decide whether the one_order_per_cart failure is covered. They do not change any trial's score. The trial was rerun from scratch, and the rerun is the counted nomenu-none-8.",
+ "sets": {
+  "as-is": {
+   "folder": "20261118T234455Z-attempt-01-agent-20261118t115859z-2.22.0",
+   "runs": 60,
+   "fails": {
+    "no_oversell": 0,
+    "reserved_matches_reservations": 0,
+    "one_order_per_cart": 0,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0,
+   "failed_completions": {
+    "http 400 invalid_data: Cannot create multiple links between 'order' and 'payment'": 58,
+    "http 400 not_allowed: Not enough stock available for item iitem_... at location sloc_...": 2
+   }
+  },
+  "redis": {
+   "folder": "20261118T235000Z-attempt-01-agent-20261118t115859z-redis-control-2.22.0",
+   "runs": 60,
+   "fails": {
+    "no_oversell": 0,
+    "reserved_matches_reservations": 0,
+    "one_order_per_cart": 0,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0,
+   "failed_completions": {}
+  },
+  "one-server": {
+   "folder": "20261118T235606Z-attempt-01-agent-20261118t115859z-one-server-2.22.0",
+   "runs": 60,
+   "fails": {
+    "no_oversell": 0,
+    "reserved_matches_reservations": 0,
+    "one_order_per_cart": 0,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0,
+   "failed_completions": {}
+  },
+  "stock-5": {
+   "folder": "20261119T000053Z-attempt-01-agent-20261118t115859z-stock-5-2.22.0",
+   "runs": 60,
+   "fails": {
+    "no_oversell": 0,
+    "reserved_matches_reservations": 0,
+    "one_order_per_cart": 0,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0,
+   "failed_completions": {
+    "http 400 invalid_data: Cannot create multiple links between 'order' and 'payment'": 60
+   }
+  },
+  "as-is-600": {
+   "folder": "20261119T012728Z-attempt-01-agent-20261118t115859z-2.22.0",
+   "runs": 600,
+   "fails": {
+    "no_oversell": 0,
+    "reserved_matches_reservations": 1,
+    "one_order_per_cart": 0,
+    "no_orphaned_orders": 0,
+    "no_missing_orders": 0
+   },
+   "inconclusive": 0,
+   "failed_completions": {
+    "http 400 invalid_data: Cannot create multiple links between 'order' and 'payment'": 599,
+    "http 400 not_allowed: Not enough stock available for item iitem_... at location sloc_...": 1
+   }
+  }
+ }
+}

@@ -436,11 +436,23 @@ def test_a_partly_inconclusive_clean_candidate_is_not_reproduced(tmp_path, candi
 
 
 def test_an_uncovered_rule_stops_the_sweep(tmp_path, candidates):
-    path = candidates["s2-solo-c2-short-together"]
+    path = candidates["s1-solo-c2-short-together"]
     q = queues(path, many(("constructed-fail-one-order", 3)))
     entry, stop, _, _ = attempt(tmp_path, path, q)
     assert stop.startswith("uncovered failure: one_order_per_cart failed 1 of 1 runs")
     assert entry["violation"]["result"] == "violation"
+
+
+def test_one_order_per_cart_on_two_in_memory_servers_does_not_stop_the_sweep(tmp_path, candidates):
+    path = candidates["s2-solo-c2-short-together"]
+    q = queues(path, many(("constructed-fail-one-order", 13)))
+    entry, stop, _, _ = attempt(tmp_path, path, q)
+    assert stop is None
+    assert entry["violation"]["result"] == "violation"
+    assert entry["manual_check"] == [
+        "one_order_per_cart failed 13 of 13 runs on plain Medusa 2.22.0: violation, cause "
+        "not isolated, no case's scoring control clears it",
+    ]
 
 
 def held_list(root: Path, *entries: dict) -> None:

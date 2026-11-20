@@ -190,9 +190,33 @@ Given the #17032 report, the agent first tested with one server, while that bug 
 - **Local copies only.** Every run used a private copy of the shop on one computer, never a live shop or anyone's server.
 - **The stop rule.** If any run breaks a rule that no public bug report covers, everything stops, the result stays on that computer, and nothing about it is published. A new bug would be reported privately to the Medusa team first.
 - **Held results.** When a failure could not be pinned on one known bug, the trial was held and its test was run again many times before it was published.
-- **The two stops in the 10-trial plan:**
-  - One trial was stopped by our safety rule after a single run showed a failure outside the three cases that we could not repeat; its record is held for now, and the trial was rerun.
-  - After the plan, an automatic re-check stopped it at random seed 10. That test had both bugs at once, and the re-check tried one fix at a time, so the failure stayed. With the #16502 fix and Redis locking applied together, the failure was gone in all 60 runs, for seed 10 and for seed 4, which had the same kind of test. Redis locking is Medusa's shared lock for several servers, which avoids the #17032 bug. Both trials are published with these extra runs.
+- **The stop at random seed 10.** After the plan, an automatic re-check stopped it at random seed 10. That test had both bugs at once, and the re-check tried one fix at a time, so the failure stayed. With the #16502 fix and Redis locking applied together, the failure was gone in all 60 runs, for seed 10 and for seed 4, which had the same kind of test. Redis locking is Medusa's shared lock for several servers, which avoids the #17032 bug. Both trials are published with these extra runs.
+- **Two trials stopped by the safety rule.** In both, one cart became two orders in a single run. Both trials were rerun from scratch, and the reruns are the ones counted. The next part explains what the extra runs showed.
+
+### One cart, two orders
+
+Two agent trials were stopped by the safety rule: nomenu-none-8 in the 10-trial plan and sonnet-none-3 in the follow-up plan. In both, the agent wrote a test that sends the same cart to checkout at the same moment through both servers. In one run of each, one cart became two orders. That breaks the rule that one cart becomes at most one order, and none of the three scenarios covers it. We then ran both tests again many times on plain Medusa 2.22.0:
+
+| Stopped trial | Test | Runs | Runs where one cart became two orders |
+|---|---|---|---|
+| nomenu-none-8, 10-trial plan | The trial's own runs | 10 | 1 |
+| nomenu-none-8, 10-trial plan | Run again as is | 60 | 0 |
+| nomenu-none-8, 10-trial plan | Redis locking | 60 | 0 |
+| nomenu-none-8, 10-trial plan | Both completions on one server | 60 | 0 |
+| nomenu-none-8, 10-trial plan | Stock raised from 1 to 5 | 60 | 0 |
+| nomenu-none-8, 10-trial plan | Run again as is | 600 | 0 |
+| sonnet-none-3, follow-up plan | The trial's own runs | 13 | 1 |
+| sonnet-none-3, follow-up plan | Run again as is | 100 | 4 |
+| sonnet-none-3, follow-up plan | Redis locking | 100 | 0 |
+| sonnet-none-3, follow-up plan | All completions sent to server 1 | 100 | 0 |
+| sonnet-none-3, follow-up plan | With the #17032 fix, pull request #17420 | 100 | 8 |
+
+- One cart became two orders only with two servers and Medusa's default in-memory lock. It never happened with Redis locking, or when every checkout went to one server.
+- It was rare in the first test, which has one cart: 1 of its 10 trial runs, then 0 of 660 more runs as is. The second test completes five carts at once, and it happened in 4 of 100 runs.
+- The fix for #17032 did not stop it: one cart still became two orders in 8 of 100 runs. That fix targets the stock reservation bug, not the lock on a cart, and this set is shown for information only.
+- In the runs as is, the checkout that lost the race was usually refused with an HTTP 400 error, "Cannot create multiple links between 'order' and 'payment'". With Redis locking, or with one server, no checkout was refused, and both checkouts of a cart returned the same order.
+
+Medusa's in-memory lock only works inside one server. Medusa's knowledge base says the in-memory locking provider is meant for development only. The sources are Medusa's [Redis locking docs](https://docs.medusajs.com/resources/infrastructure-modules/locking/redis), the [knowledge base page](https://medusajs.com/kb/tickets-and-bookings/bookings-and-reservations), Medusa's docs on [storing workflow executions](https://docs.medusajs.com/learn/fundamentals/workflows/store-executions), and an [AppCrates article](https://appcrates.pl/en/blog/medusa-js-na-produkcji-architektura-sklepu) on running Medusa in production, which names the same risk: "One payment, two servers, potentially two orders." So we count this failure as a documented limit of in-memory locking, not as a new bug. Shortfall's list of covered failures now includes it for two servers with in-memory locking. Both stopped records are published with these extra runs in [benchmark/agent/stopped](benchmark/agent/stopped/).
 
 ## 8. Limits
 
