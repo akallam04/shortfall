@@ -20,6 +20,14 @@ arms:
   feedback: none
   prompts: v2-budget
   prompt_hash: 8e0e2879064530e109c586c4bcbf86470d10dba34dc43d8e7d45122d7df19936
+  trials: [1, 2, 3]
+  closed: 'closed after 3 trials: design flaw. Each gate answer used up one of the 100 turns, and in 2 of the 3 trials the agent kept replying without a tool call while it waited for run results, which this mode never shows. Those two trials reached the 100-turn cap after 119 and 129 runs, so the arm cannot tell whether stopping early is what held the agent back. The 3 trials are kept and published as they are, and budget2-none replaces the arm.'
+- name: budget2-none
+  kind: agent
+  mode: unguided
+  feedback: none
+  prompts: v2-budget2
+  prompt_hash: 1b66944b76435b6d45039b04165a0ac4e21b4842f50141db4d29d91b2b0ca242
   trials: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 - name: sonnet-none
   kind: agent
@@ -36,42 +44,47 @@ order:
 - sonnet-none-2
 - budget-none-3
 - sonnet-none-3
-- budget-none-4
+- budget2-none-1
 - sonnet-none-4
-- budget-none-5
+- budget2-none-2
 - sonnet-none-5
-- budget-none-6
+- budget2-none-3
 - sonnet-none-6
-- budget-none-7
+- budget2-none-4
 - sonnet-none-7
-- budget-none-8
+- budget2-none-5
 - sonnet-none-8
-- budget-none-9
+- budget2-none-6
 - sonnet-none-9
-- budget-none-10
+- budget2-none-7
 - sonnet-none-10
+- budget2-none-8
+- budget2-none-9
+- budget2-none-10
 questions:
-  budget-none: Did the agent fall behind the grid on finding all three scenarios only because it stopped early?
+  budget-none: Did the agent fall behind the grid on finding all three scenarios only because it stopped early? Closed after 3 trials without an answer, see the arm's closed note.
+  budget2-none: Did the agent fall behind the grid on finding all three scenarios only because it stopped early?
   sonnet-none: Does a bigger model stop early less often, or find more?
 comparison:
   haiku-v2: the unguided no-feedback arm with claude-haiku-5-5 on prompt version v2, trials 1 to 3 in benchmark/agent/unguided-haiku-1 and 4 to 10 in benchmark/agent/scale-10, which reproduced all three cases in 3 of 10 trials
   grid: the grid baseline, seeds 1 to 10 in benchmark/baselines/2004ed5
 tests:
   primary:
-    for each arm: trials out of 10 that reproduced all three cases, against haiku-v2, Fisher's exact test, two-sided
+    for budget2-none and for sonnet-none: trials out of 10 that reproduced all three cases, against haiku-v2, Fisher's exact test, two-sided
   secondary:
-    for each arm: medusa-17032-last-unit, medusa-17032-counter and medusa-16502-lines against haiku-v2, and those three plus all three cases in one trial against the grid, Fisher's exact test, two-sided
+    for budget2-none and for sonnet-none: medusa-17032-last-unit, medusa-17032-counter and medusa-16502-lines against haiku-v2, and those three plus all three cases in one trial against the grid, Fisher's exact test, two-sided
   correction: Holm's correction over each arm's 8 tests, the primary test and the 7 secondary tests, applied per arm
+  closed_arm: budget-none's 3 trials are reported without tests.
   reading:
-  - These tests are chosen and pushed before the first trial of this plan runs.
+  - These tests are chosen and pushed before the first trial of this plan runs. The budget2-none tests are the same tests, pushed with the plan change and before its first trial.
   - A test passes when its Holm-adjusted p-value is under 0.05.
   - The primary test answers the arm's question. If it passes, the arm reproduced all three cases at a different rate than haiku-v2. If it does not pass, the gap could be chance, whatever its direction.
   - The secondary tests are read only as a guide.
   - A held trial that stays held after its review is not counted, and the tests then use the trials that are counted.
 report:
-- 'Arms: budget-none is claude-haiku-5-5 on prompt version v2-budget with feedback none, where finish is not available while more than 60 runs are left. sonnet-none is claude-sonnet-5-5 on prompt version v2 with feedback none. Both are unguided, with 300 runs, 30 attempts, 100 turns and $1 per trial.'
+- 'Arms: budget-none is claude-haiku-5-5 on prompt version v2-budget with feedback none, where finish is not available while more than 60 runs are left; it was closed after 3 trials. budget2-none is the same on prompt version v2-budget2, where the gate line says run results never come in this mode, gate answers do not count toward the turn cap, and the trial ends after 15 gate answers. sonnet-none is claude-sonnet-5-5 on prompt version v2 with feedback none. Both are unguided, with 300 runs, 30 attempts, 100 turns and $1 per trial.'
 - 'For each arm and each case: trials out of 10 that reproduced it, and the median runs to first reproduction over all 10 trials, counting a miss as over 300. If half or more missed, the median is reported as over 300.'
-- 'For each arm: trials out of 10 that reproduced all three cases.'
+- 'For each arm: trials out of 10 that reproduced all three cases. For budget-none, out of its 3 trials.'
 - 'The tests above, with each p-value and its Holm-adjusted value.'
-- 'Also reported, without tests: runs used per trial, attempts, claims backed and unbacked, cost and wall time per trial, and for budget-none how many times the finish gate answered.'
+- 'Also reported, without tests: runs used per trial, attempts, claims backed and unbacked, cost and wall time per trial, and for budget-none and budget2-none how many times the finish gate answered.'
 - 'Held trials are reviewed after the plan with the rule used for scale-10, including the review that tries the #16502 fix and Redis locking together for a scenario that no single fix clears. A trial that stays held is reported as held and is not counted.'

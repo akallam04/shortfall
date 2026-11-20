@@ -1,0 +1,34 @@
+schema: oversold.scenario/v1
+name: attempt-12-agent-20261120t055627z
+description: Two WIDGET carts with small quantities completed together on one server,
+  as a control for the reserved counter race.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+timing:
+  release: together
+runs: 10
+seed: 41

@@ -1,0 +1,40 @@
+schema: oversold.scenario/v1
+name: attempt-06-agent-20261120t070716z
+description: Six single-unit WIDGET carts split across two servers are completed together
+  to race reserved counter writes on the shared level.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    count: 3
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  bob:
+    server: 2
+    count: 3
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 5
+faults: []
+runs: 20
+seed: 19

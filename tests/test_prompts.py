@@ -143,6 +143,33 @@ def test_the_budget_variant_differs_from_v2_only_by_its_gate(tmp_path):
     assert freeze.prompt_hash(root, "v2-budget") != freeze.prompt_hash(root)
 
 
+def test_the_budget2_variant_differs_from_v2_budget_only_by_its_gate(tmp_path):
+    from test_agent import make_root
+
+    root = make_root(tmp_path)
+    budget, budget2 = freeze.manifest(root, "v2-budget"), freeze.manifest(root, "v2-budget2")
+    gate = budget2["settings"].pop("finish_gate")
+    assert gate == {
+        "runs_left_above": agent.GATE_RUNS,
+        "text": agent.GATE_TEXT2,
+        "counts_toward_turn_cap": False,
+        "stop_after_answers": agent.GATE_STOP,
+    }
+    budget["settings"].pop("finish_gate")
+    assert budget2.pop("variant") == "v2-budget2" and budget.pop("variant") == "v2-budget"
+    assert budget2 == budget
+    assert freeze.prompt_hash(root, "v2-budget2") != freeze.prompt_hash(root, "v2-budget")
+
+
+@pytest.mark.skipif(not (CHECKS_DOC.exists() and ISSUES.exists()), reason="no local snapshots")
+def test_the_recorded_budget2_hash_is_current_and_v2_budget_did_not_move():
+    assert freeze.recorded_hash(ROOT, "v2-budget2") == freeze.prompt_hash(ROOT, "v2-budget2")
+    assert "Prompt version v2-budget2." in (ROOT / freeze.HASH_FILES["v2-budget2"]).read_text()
+    assert freeze.recorded_hash(ROOT, "v2-budget") == (
+        "8e0e2879064530e109c586c4bcbf86470d10dba34dc43d8e7d45122d7df19936"
+    )
+
+
 @pytest.mark.skipif(not (CHECKS_DOC.exists() and ISSUES.exists()), reason="no local snapshots")
 def test_the_recorded_budget_hash_is_current_and_the_older_ones_did_not_move():
     assert freeze.recorded_hash(ROOT, "v2-budget") == freeze.prompt_hash(ROOT, "v2-budget")

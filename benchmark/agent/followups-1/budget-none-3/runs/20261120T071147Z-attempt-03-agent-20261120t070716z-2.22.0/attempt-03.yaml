@@ -1,0 +1,42 @@
+schema: oversold.scenario/v1
+name: attempt-03-agent-20261120t070716z
+description: Two carts each hold a PIECE and a TWOPACK of the shared WIDGET item,
+  needing 3 units each, against stock 4, completed together on one server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 4
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+    - sku: OVS-TWOPACK
+      qty: 1
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+    - sku: OVS-TWOPACK
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 5
+faults: []
+runs: 20
+seed: 11

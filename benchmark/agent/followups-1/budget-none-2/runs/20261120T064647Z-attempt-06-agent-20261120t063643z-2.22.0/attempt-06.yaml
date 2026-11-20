@@ -1,0 +1,37 @@
+schema: oversold.scenario/v1
+name: attempt-06-agent-20261120t063643z
+description: WIDGET lowered to 2 units; four one-piece carts completed together from
+  two servers to test whether the in-memory lock excludes across processes.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 2
+carts:
+  alice:
+    server: 1
+    count: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  bob:
+    server: 2
+    count: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 51

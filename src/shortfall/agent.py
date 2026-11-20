@@ -40,11 +40,19 @@ SNAPSHOT_NOTE = (
 )
 EXPECTED_CHECKS = (*CHECK_NAMES, "none")
 MAX_CLAIMS = 5
-VARIANTS = ("v2", "v2-nomenu", "v2-budget")
+VARIANTS = ("v2", "v2-nomenu", "v2-budget", "v2-budget2")
 NOMENU = "v2-nomenu"
 BUDGET = "v2-budget"
+BUDGET2 = "v2-budget2"
+GATED = (BUDGET, BUDGET2)
 GATE_RUNS = 60
 GATE_TEXT = "Finish is not available yet. Keep testing until the run budget is nearly used."
+GATE_TEXT2 = (
+    "Finish is not available yet. In this mode you never see run results, so don't wait for "
+    "them. Submit another attempt until the run budget is nearly used."
+)
+GATE_TEXTS = {BUDGET: GATE_TEXT, BUDGET2: GATE_TEXT2}
+GATE_STOP = 15
 
 TOOLS = [
     {
@@ -466,6 +474,7 @@ class Trial:
         self.notes: dict[str, tuple[int, str]] = {}
         self.claims: list[dict] | None = None
         self.gate_answers = 0
+        self.gate_turns: set[int] = set()
         self.folders = ", ".join(
             sorted(f"{p.name}/" for p in self.snapshot.root.iterdir() if p.is_dir())
         )
@@ -538,7 +547,7 @@ class Trial:
         )
         self.log({"event": "opening", "messages": self.messages})
         while self.end is None:
-            if self.turns >= self.caps.turns:
+            if self.counted_turns() >= self.caps.turns:
                 self.end = f"turn cap: {self.caps.turns} turns"
                 break
             self.shorten()
@@ -585,7 +594,7 @@ class Trial:
             if not reply.tool_calls and self.gated():
                 if not reply.text:
                     self.messages.pop()
-                self.messages.append({"role": "user", "content": GATE_TEXT})
+                self.messages.append({"role": "user", "content": GATE_TEXTS[self.variant]})
                 self.gate("no tool call")
                 continue
             if not reply.tool_calls:
@@ -617,7 +626,7 @@ class Trial:
             "claims": self.claims,
             "timestamp": now(),
         }
-        if self.variant == BUDGET:
+        if self.variant in GATED:
             summary["gate_answers"] = self.gate_answers
         ledger.append(self.ledger_path, summary)
         self.log({"event": "end", **summary})
@@ -649,24 +658,33 @@ class Trial:
                 self.sleep(err.wait)
         raise AssertionError("unreachable")
 
+    def counted_turns(self) -> int:
+        if self.variant == BUDGET2:
+            return self.turns - len(self.gate_turns)
+        return self.turns
+
     def gated(self) -> bool:
         return (
-            self.variant == BUDGET
+            self.variant in GATED
             and self.budget.session_left() > GATE_RUNS
             and self.attempts < self.caps.attempts
-            and self.turns < self.caps.turns
+            and self.counted_turns() < self.caps.turns
         )
 
     def gate(self, kind: str) -> None:
         self.gate_answers += 1
-        self.log({"event": "gate", "turn": self.turns, "kind": kind, "content": GATE_TEXT})
+        self.gate_turns.add(self.turns)
+        text = GATE_TEXTS[self.variant]
+        self.log({"event": "gate", "turn": self.turns, "kind": kind, "content": text})
+        if self.variant == BUDGET2 and self.gate_answers >= GATE_STOP:
+            self.end = f"stopped after {GATE_STOP} gate answers"
 
     def left(self) -> str:
         key = "left_none" if self.feedback == "none" else "left"
         return FEEDBACK[key].format(
             runs=self.budget.session_left(),
             attempts=max(self.caps.attempts - self.attempts, 0),
-            turns=max(self.caps.turns - self.turns, 0),
+            turns=max(self.caps.turns - self.counted_turns(), 0),
         )
 
     def check_claims(self, value) -> tuple[list[dict], str | None]:
@@ -719,7 +737,7 @@ class Trial:
                 if self.end is None and self.attempts >= self.caps.attempts:
                     self.end = f"attempt cap: {self.caps.attempts} attempts"
             elif call.name == "finish" and self.gated():
-                self.tool_result(call, GATE_TEXT, "finish not available")
+                self.tool_result(call, GATE_TEXTS[self.variant], "finish not available")
                 self.gate("finish")
             elif call.name == "finish":
                 claims, reason = self.check_claims(args.get("claims"))

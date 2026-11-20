@@ -1,0 +1,23 @@
+schema: oversold.scenario/v1
+name: attempt-07-agent-20261120t055627z
+description: One cart with a normal line is completed once on one server, checking
+  the order is linked to its cart and payment.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 2
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: together
+runs: 5
+seed: 19

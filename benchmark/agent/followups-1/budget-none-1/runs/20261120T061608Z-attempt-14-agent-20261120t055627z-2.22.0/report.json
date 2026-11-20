@@ -1,0 +1,153 @@
+{
+  "schema": "oversold.report/v1",
+  "scenario": {
+    "name": "attempt-14-agent-20261120t055627z",
+    "file": "attempt-14.yaml",
+    "sha256": "98ef45d224e04103d076842f2c68de52e2d70ff0a4908b27809a92ecdd57f8f1",
+    "version": "2.22.0"
+  },
+  "oversold": [
+    {
+      "commit": "2004ed534b765a3b3341efaadb3f352ffdecef90",
+      "dirty": false
+    }
+  ],
+  "checked_by": {
+    "commit": "2004ed534b765a3b3341efaadb3f352ffdecef90",
+    "dirty": false
+  },
+  "versions_used": [
+    "2.22.0"
+  ],
+  "servers": [
+    {
+      "service": "medusa",
+      "medusa_version": "2.22.0",
+      "image_id": "sha256:c48358f78c193ccba70f4a7bf5e1e0048decb55bf4019cec48cc631658da0527",
+      "image_inputs": "d701e53cf957c292585cdcafdd628b75a330047e838f35c985b7534153b72be5"
+    }
+  ],
+  "postgres_version": "15.19",
+  "runs_planned": 2,
+  "runs_recorded": 2,
+  "checks": [
+    {
+      "check": "no_oversell",
+      "version": 2,
+      "runs": 2,
+      "fail": 0,
+      "pass": 2,
+      "inconclusive": 0
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 2,
+      "runs": 2,
+      "fail": 0,
+      "pass": 2,
+      "inconclusive": 0
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 2,
+      "runs": 2,
+      "fail": 0,
+      "pass": 2,
+      "inconclusive": 0
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 2,
+      "runs": 2,
+      "fail": 0,
+      "pass": 2,
+      "inconclusive": 0
+    },
+    {
+      "check": "no_missing_orders",
+      "version": 1,
+      "runs": 2,
+      "fail": 0,
+      "pass": 2,
+      "inconclusive": 0
+    }
+  ],
+  "runs": [
+    {
+      "index": 1,
+      "file": "run-001.json.gz",
+      "result": "pass",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 8 of 10 stocked; WIDGET orders need 8 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart alice: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (1 checked)"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "file": "run-002.json.gz",
+      "result": "pass",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 8 of 10 stocked; WIDGET orders need 8 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 8 = live 8"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart alice: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "1 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (1 checked)"
+        }
+      ]
+    }
+  ],
+  "exit_code": 0,
+  "generated": "2026-11-20T06:16:17.625283000Z"
+}

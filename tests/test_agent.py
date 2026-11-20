@@ -689,3 +689,84 @@ def test_v2_budget_requests_match_v2_until_the_gate_first_answers(root):
     for a, b in zip(plain_model.seen, gated_model.seen[:4], strict=True):
         assert json.dumps(api.request(a, plain.tools)) == json.dumps(api.request(b, gated.tools))
     assert gated_model.seen[4][-1]["content"] == agent.GATE_TEXT
+
+
+def test_budget2_gate_answers_do_not_use_turns_and_stop_the_trial_at_15(root):
+    replies = [reply(call("list_files", path="packages"))]
+    replies += [reply(text="Waiting for results.") for _ in range(agent.GATE_STOP)]
+    t, model, _ = trial(
+        root, replies, feedback="none", caps=Caps(runs=100, turns=3), variant="v2-budget2"
+    )
+    end = t.run()
+    assert end["reason"] == "stopped after 15 gate answers"
+    assert end["turns"] == 1 + agent.GATE_STOP and end["gate_answers"] == agent.GATE_STOP
+    assert len(model.seen) == 1 + agent.GATE_STOP
+    assert (model.seen[2][-1]["role"], model.seen[2][-1]["content"]) == ("user", agent.GATE_TEXT2)
+    assert not any(ch.isdigit() for ch in agent.GATE_TEXT2)
+    records = ledger.load(score.ledger_path_for(root))
+    assert records[-1]["kind"] == "agent-end" and records[-1]["gate_answers"] == agent.GATE_STOP
+
+
+def test_budget2_turn_cap_counts_only_turns_the_gate_did_not_answer(root):
+    replies = [
+        reply(call("list_files", path="packages")),
+        reply(call("finish", summary="done", claims=[])),
+        reply(text="Still waiting."),
+        reply(submit()),
+        reply(call("list_files", path="packages")),
+    ]
+    t, model, _ = trial(
+        root, replies, feedback="none", caps=Caps(runs=100, turns=3), variant="v2-budget2"
+    )
+    end = t.run()
+    assert end["reason"] == "turn cap: 3 turns"
+    assert end["turns"] == 5 and end["gate_answers"] == 2
+    assert model.seen[2][-1]["content"] == agent.GATE_TEXT2
+    assert (model.seen[3][-1]["role"], model.seen[3][-1]["content"]) == ("user", agent.GATE_TEXT2)
+    left = next(m for m in model.seen[4] if m["role"] == "tool" and "Left:" in m["content"])
+    assert left["content"].endswith("Left: 29 attempts, 1 turns.")
+
+
+def test_budget2_lets_the_last_counted_turn_finish(root):
+    replies = [
+        reply(text="Nothing more."),
+        reply(call("list_files", path="packages")),
+        reply(call("finish", summary="x", claims=[])),
+    ]
+    t, _, _ = trial(
+        root, replies, feedback="none", caps=Caps(runs=100, turns=2), variant="v2-budget2"
+    )
+    end = t.run()
+    assert end["reason"] == "finished by the model" and end["gate_answers"] == 1
+    assert end["turns"] == 3
+
+
+def test_v2_budget2_requests_match_v2_budget_until_the_gate_first_answers(root):
+    from shortfall.models import AnthropicModel
+
+    def script():
+        return [
+            reply(call("list_files", path="packages")),
+            reply(call("read_file", path="packages/core/src/cart.ts")),
+            reply(submit()),
+            reply(call("finish", summary="done", claims=[])),
+            reply(call("finish", summary="done", claims=[])),
+        ]
+
+    call.n = 0
+    first, first_model, _ = trial(
+        root, script(), feedback="none", trial_id="agent-budget", variant="v2-budget"
+    )
+    first.run()
+    call.n = 0
+    second, second_model, _ = trial(
+        root, script(), feedback="none", trial_id="agent-budget2", variant="v2-budget2"
+    )
+    second.run()
+    assert second.tools == first.tools
+    assert len(first_model.seen) >= 5 and len(second_model.seen) >= 5
+    api = AnthropicModel("claude-haiku-5-5", client=object())
+    for a, b in zip(first_model.seen[:4], second_model.seen[:4], strict=True):
+        assert json.dumps(api.request(a, first.tools)) == json.dumps(api.request(b, second.tools))
+    assert first_model.seen[4][-1]["content"] == agent.GATE_TEXT
+    assert second_model.seen[4][-1]["content"] == agent.GATE_TEXT2
