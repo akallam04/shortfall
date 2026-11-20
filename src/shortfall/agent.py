@@ -40,8 +40,11 @@ SNAPSHOT_NOTE = (
 )
 EXPECTED_CHECKS = (*CHECK_NAMES, "none")
 MAX_CLAIMS = 5
-VARIANTS = ("v2", "v2-nomenu")
+VARIANTS = ("v2", "v2-nomenu", "v2-budget")
 NOMENU = "v2-nomenu"
+BUDGET = "v2-budget"
+GATE_RUNS = 60
+GATE_TEXT = "Finish is not available yet. Keep testing until the run budget is nearly used."
 
 TOOLS = [
     {
@@ -462,6 +465,7 @@ class Trial:
         self.end: str | None = None
         self.notes: dict[str, tuple[int, str]] = {}
         self.claims: list[dict] | None = None
+        self.gate_answers = 0
         self.folders = ", ".join(
             sorted(f"{p.name}/" for p in self.snapshot.root.iterdir() if p.is_dir())
         )
@@ -578,6 +582,12 @@ class Trial:
                     "dollars": reply.dollars,
                 }
             )
+            if not reply.tool_calls and self.gated():
+                if not reply.text:
+                    self.messages.pop()
+                self.messages.append({"role": "user", "content": GATE_TEXT})
+                self.gate("no tool call")
+                continue
             if not reply.tool_calls:
                 self.end = "the model stopped without calling finish"
                 if reply.stop_reason not in (None, "end_turn", "tool_use"):
@@ -607,6 +617,8 @@ class Trial:
             "claims": self.claims,
             "timestamp": now(),
         }
+        if self.variant == BUDGET:
+            summary["gate_answers"] = self.gate_answers
         ledger.append(self.ledger_path, summary)
         self.log({"event": "end", **summary})
         return summary
@@ -636,6 +648,18 @@ class Trial:
                 self.log({"event": "retry", "turn": self.turns + 1, "error": str(err)})
                 self.sleep(err.wait)
         raise AssertionError("unreachable")
+
+    def gated(self) -> bool:
+        return (
+            self.variant == BUDGET
+            and self.budget.session_left() > GATE_RUNS
+            and self.attempts < self.caps.attempts
+            and self.turns < self.caps.turns
+        )
+
+    def gate(self, kind: str) -> None:
+        self.gate_answers += 1
+        self.log({"event": "gate", "turn": self.turns, "kind": kind, "content": GATE_TEXT})
 
     def left(self) -> str:
         key = "left_none" if self.feedback == "none" else "left"
@@ -694,6 +718,9 @@ class Trial:
                 self.tool_result(call, text, f"submit_attempt {self.attempts}")
                 if self.end is None and self.attempts >= self.caps.attempts:
                     self.end = f"attempt cap: {self.caps.attempts} attempts"
+            elif call.name == "finish" and self.gated():
+                self.tool_result(call, GATE_TEXT, "finish not available")
+                self.gate("finish")
             elif call.name == "finish":
                 claims, reason = self.check_claims(args.get("claims"))
                 if reason:

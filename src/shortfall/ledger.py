@@ -199,9 +199,12 @@ AGENT_END_FIELDS = (
     "cache_read_tokens",
     "output_tokens",
     "claims",
+    "gate_answers",
     "timestamp",
 )
-AGENT_END_REQUIRED = tuple(f for f in AGENT_END_FIELDS if f not in (*CACHE_TOKEN_FIELDS, "claims"))
+AGENT_END_REQUIRED = tuple(
+    f for f in AGENT_END_FIELDS if f not in (*CACHE_TOKEN_FIELDS, "claims", "gate_answers")
+)
 
 FIELDS = {
     "started": STARTED_FIELDS,

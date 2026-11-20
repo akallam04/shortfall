@@ -1,0 +1,23 @@
+8e0e2879064530e109c586c4bcbf86470d10dba34dc43d8e7d45122d7df19936
+
+Prompt version v2-budget.
+
+This sha256 covers everything the agent is shown and the loop settings,
+taken from these files:
+
+- src/shortfall/prompts/system.md: system prompt
+- src/shortfall/prompts/setup.md: description of the test setup
+- src/shortfall/prompts/guided.md: guided task text
+- src/shortfall/prompts/unguided.md: unguided task text
+- benchmark/causes.yaml: causes list
+- src/shortfall/scenario_format.py: scenario format text and check rules filter
+- .oversold/docs/checks.md: check rules, from the pinned Oversold commit
+- src/shortfall/agent.py: tool definitions, feedback templates, opening layout, history shortening, read and result limits
+- src/shortfall/models.py: max_tokens and thinking settings
+- benchmark/snapshots/enterprise-2.22.0.json: Enterprise Edition paths the tools refuse to show
+
+and the bug reports shown in guided mode, kept outside the repo:
+
+- snapshots/issues/medusa-16502-lines.md: sha256 3e5003d600596f490a334b15a56d5f143547330c768824e6e452480a7069e15b
+- snapshots/issues/medusa-17032-counter.md: sha256 89799ce7b555dc4a326e9858b5d2c224c820d6e81662e2c2ffec447c3f56a67e
+- snapshots/issues/medusa-17032-last-unit.md: sha256 89799ce7b555dc4a326e9858b5d2c224c820d6e81662e2c2ffec447c3f56a67e

@@ -442,3 +442,41 @@ def test_the_client_ignores_base_url_and_token_settings(tmp_path, monkeypatch):
     assert str(model.client.base_url).rstrip("/") == "https://api.anthropic.com"
     assert model.client.api_key == FAKE_KEY
     assert model.client.max_retries == 0
+
+
+def thinking(n: int):
+    return SimpleNamespace(type="thinking", thinking=f"plan {n}", signature=f"sig-{n}")
+
+
+def test_sonnet_thinking_blocks_survive_history_shortening(root):
+    replies = [
+        response(thinking(n), tool_use(n, "list_files", path="packages")) for n in range(1, 15)
+    ]
+    replies.append(response(thinking(15), tool_use(15, "finish", summary="done", claims=[])))
+    t, client, _ = model_trial(root, replies, model_id="claude-sonnet-5-5")
+    end = t.run()
+    assert end["reason"] == "finished by the model" and end["turns"] == 15
+    created = client.messages.created
+    assert len(created) == 15 and len(client.messages.counted) == 15
+    for k, req in enumerate(created):
+        assert req["thinking"] == {"type": "between_tools"}
+        assistants = [m for m in req["messages"] if m["role"] == "assistant"]
+        assert len(assistants) == k
+        for n, m in enumerate(assistants, start=1):
+            blocks = strip_cache(m["content"])
+            assert blocks[0] == {
+                "type": "thinking",
+                "thinking": f"plan {n}",
+                "signature": f"sig-{n}",
+            }
+            assert blocks[1]["type"] == "tool_use" and blocks[1]["id"] == f"toolu_{n:03d}"
+        results = [
+            b["content"]
+            for m in req["messages"]
+            if m["role"] == "user"
+            for b in m["content"]
+            if b["type"] == "tool_result"
+        ]
+        shortened = [r for r in results if r.startswith("[list_files packages")]
+        assert len(shortened) == (6 if k >= 12 else 0)
+    assert created[13]["messages"] == client.messages.counted[13]["messages"]

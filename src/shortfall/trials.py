@@ -64,6 +64,7 @@ class TrialSpec:
     prompt_hash: str | None = None
     method: str | None = None
     mode: str = "unguided"
+    model: str | None = None
 
 
 @dataclass
@@ -139,7 +140,7 @@ def load_plan(root: Path, path: Path) -> Plan:
         raise PlanError("trials_per_cell must be at least 1")
     if plan.dollar_cap > TOTAL_DOLLAR_CAP:
         raise PlanError(f"dollar_cap cannot be above {TOTAL_DOLLAR_CAP:.2f}")
-    if plan.model == "scripted" and plan.script is None:
+    if plan.script is None and any(model_of(plan, x) == "scripted" for x in [None, *plan.specs]):
         raise PlanError("a scripted plan needs a script")
     if not plan.images:
         raise PlanError("a plan lists the image ids it expects")
@@ -169,6 +170,9 @@ def load_plan_v2(root: Path, path: Path, data: dict) -> Plan:
             if (issue is None) != (arm["mode"] == "unguided"):
                 raise PlanError("guided arms need an issue and unguided arms none")
             cell = Cell(issue, arm["feedback"])
+            model = arm.get("model")
+            if model is not None and model not in known_models():
+                raise PlanError(f"an arm's model is one of {', '.join(known_models())}")
             for n in arm.get("trials") or []:
                 spec = TrialSpec(
                     f"{arm['name']}-{n}",
@@ -179,6 +183,7 @@ def load_plan_v2(root: Path, path: Path, data: dict) -> Plan:
                     str(arm.get("prompt_hash")),
                     None,
                     arm["mode"],
+                    model,
                 )
                 specs[spec.id] = spec
         elif kind == "baseline":
@@ -223,7 +228,7 @@ def load_plan_v2(root: Path, path: Path, data: dict) -> Plan:
     )
     if plan.dollar_cap > TOTAL_DOLLAR_CAP:
         raise PlanError(f"dollar_cap cannot be above {TOTAL_DOLLAR_CAP:.2f}")
-    if plan.model == "scripted" and plan.script is None:
+    if plan.script is None and any(model_of(plan, x) == "scripted" for x in [None, *plan.specs]):
         raise PlanError("a scripted plan needs a script")
     if not plan.images:
         raise PlanError("a plan lists the image ids it expects")
@@ -312,6 +317,16 @@ def reopen(root: Path, plan: Plan, trial: str, reason: str) -> str | None:
     runs = [e["run_id"] for e in state.events() if e.get("trial") == trial and "run_id" in e]
     state.add("trial-reopened", trial=trial, run_id=runs[-1] if runs else None, reason=reason)
     return None
+
+
+def known_models() -> tuple[str, ...]:
+    from shortfall.models import MODELS
+
+    return ("scripted", *sorted(MODELS))
+
+
+def model_of(plan: "Plan", spec: TrialSpec | None) -> str:
+    return (spec.model if spec is not None else None) or plan.model
 
 
 def plan_spend(records: list[dict], run_ids: list[str]) -> dict:
@@ -405,7 +420,7 @@ def preflight(
     if free < MIN_FREE_BYTES:
         problems.append(f"the Mac has {fmt_bytes(free)} free, 5 GB needed")
     records = ledger.load(score.ledger_path_for(root))
-    paid = plan.model != "scripted" and (spec is None or spec.kind == "agent")
+    paid = (spec is None or spec.kind == "agent") and model_of(plan, spec) != "scripted"
     need = MIN_ROOM if paid else 0.0
     room = rooms(records, State(root, plan).run_ids(), cap)
     if room["plan"] < need:
@@ -815,7 +830,7 @@ class Runner:
         self.cap = min(cap, plan.dollar_cap)
         self.state = State(root, plan)
         self.oversold = runner or score.OversoldRunner(self.root)
-        self.make_model = make_model or self.default_model
+        self.make_model = (lambda spec: make_model()) if make_model else self.default_model
         self.checks = checks or Checks(image_id=self.image_id)
         if self.checks.image_id is None:
             self.checks.image_id = self.image_id
@@ -825,7 +840,7 @@ class Runner:
         self.validate = validate
         self.key = None
         env = self.root / ".env"
-        if env.exists() and plan.model != "scripted":
+        if env.exists() and any(model_of(plan, s) != "scripted" for s in [None, *plan.specs]):
             from shortfall.models import load_key
 
             self.key = load_key(env)
@@ -847,13 +862,14 @@ class Runner:
             self.last_allowed,
         )
 
-    def default_model(self) -> agent.Model:
-        if self.plan.model == "scripted":
+    def default_model(self, spec: TrialSpec | None = None) -> agent.Model:
+        name = model_of(self.plan, spec)
+        if name == "scripted":
             items = json.loads(self.plan.script.read_text(encoding="utf-8"))
             return agent.ScriptedModel.from_json(items)
         from shortfall.models import AnthropicModel
 
-        return AnthropicModel(self.plan.model, env_path=self.root / ".env")
+        return AnthropicModel(name, env_path=self.root / ".env")
 
     def image_id(self, version: str, variant: str | None) -> str:
         try:
@@ -945,7 +961,7 @@ class Runner:
         )
         trial = agent.Trial(
             self.root,
-            self.make_model(),
+            self.make_model(spec),
             self.oversold,
             trial_id=run_id,
             task_mode=spec.mode,

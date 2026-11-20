@@ -157,6 +157,11 @@ def score_trial(root: Path, records: list[dict]) -> dict:
         },
         "model_calls": len(calls),
         "largest_prompt_tokens": max(prompts) if prompts else 0,
+        **(
+            {"gate_answers": end["gate_answers"]}
+            if (end or {}).get("gate_answers") is not None
+            else {}
+        ),
         "dollars": (end or {}).get("dollars"),
         "wall_seconds": wall,
         "attempt_list": attempts,

@@ -40,6 +40,7 @@ Everything the agent is shown, and the settings of its loop, are fixed by one ha
 - **v1** ([hash](guided-haiku-1/prompts.sha256)) was used by guided-haiku-1.
 - **v2** ([hash](prompts.sha256)) is used by unguided-haiku-1, guided-haiku-2 and the v2 arms of scale-10.
 - **v2-nomenu** ([hash](prompts-v2-nomenu.sha256)) is v2 without the list of causes. The agent names only a file for each attempt and each claim. It was used only by the v2-nomenu arm of scale-10, to test whether the list of causes helps.
+- **v2-budget** ([hash](prompts-v2-budget.sha256)) is v2 with one change to the loop: while more than 60 runs are left, the agent cannot end the trial. If it calls finish, or replies without a tool call, it gets one fixed line: "Finish is not available yet. Keep testing until the run budget is nearly used." It is used by plan [followups-1](plans/followups-1.yaml).
 
 v2 was written after the guided v1 results were known. The unguided trials ran only on v2 and v2-nomenu. What changed from v1 to v2, and why:
 

@@ -536,7 +536,7 @@ def test_a_v2_plan_runs_agent_arms_with_their_prompts(root, monkeypatch):
         ),
     ]
     scripts = iter([nomenu_script, script(), script()])
-    runner.make_model = lambda: ScriptedModel(replies=next(scripts))
+    runner.make_model = lambda spec=None: ScriptedModel(replies=next(scripts))
     assert runner.run() == 0
     assert seen == ["grid-seed-4"]
     exported = [
@@ -845,3 +845,54 @@ def test_a_held_trial_published_after_review_counts_once_in_the_status(root, mon
     assert kinds(root).count("trial-held") == kinds(root).count("trial-exported") == 1
     st = trials.status(root, trials.load_plan(root, path))
     assert st["done"] == 1 and st["done_trials"] == ["17032-none-1"]
+
+
+def budget_arm(root, trials_=(1,), model=None):
+    arm = {
+        "name": "budget-none",
+        "kind": "agent",
+        "mode": "unguided",
+        "feedback": "none",
+        "prompts": "v2-budget",
+        "prompt_hash": freeze.prompt_hash(root, "v2-budget"),
+        "trials": list(trials_),
+    }
+    if model:
+        arm["model"] = model
+    return arm
+
+
+def test_an_arm_can_name_its_own_model(root):
+    sonnet = dict(budget_arm(root), name="sonnet-none", prompts="v2", model="claude-sonnet-5-5")
+    sonnet["prompt_hash"] = freeze.prompt_hash(root)
+    path = write_v2_plan(
+        root, arms=[budget_arm(root), sonnet], order=["budget-none-1", "sonnet-none-1"]
+    )
+    plan = trials.load_plan(root, path)
+    first, second = trials.trial_order(plan)
+    assert first.model is None and trials.model_of(plan, first) == "scripted"
+    assert second.model == "claude-sonnet-5-5"
+    assert trials.model_of(plan, second) == "claude-sonnet-5-5"
+    bad = dict(sonnet, model="claude-unknown")
+    with pytest.raises(trials.PlanError):
+        trials.load_plan(root, write_v2_plan(root, arms=[bad], order=["sonnet-none-1"]))
+
+
+def test_a_budget_arm_runs_through_the_plan_and_records_its_gate(root):
+    (root / freeze.HASH_FILES["v2-budget"]).write_text(freeze.hash_file_text(root, "v2-budget"))
+    path = write_v2_plan(
+        root,
+        arms=[budget_arm(root)],
+        order=["budget-none-1"],
+        agent_caps={"runs": 300, "attempts": 30, "turns": 3, "dollars": 1},
+    )
+    gated = [
+        reply(call("finish", summary="x", claims=[])),
+        Reply(text="I am done."),
+        reply(call("finish", summary="x", claims=[])),
+    ]
+    runner = make_runner(root, path, model=lambda: ScriptedModel(replies=list(gated)))
+    assert runner.run() == 0
+    s = json.loads((root / "runs" / "export" / "budget-none-1" / "score.json").read_text())
+    assert s["end_reason"] == "finished by the model" and s["gate_answers"] == 2
+    assert (root / "runs" / "export" / "prompts-v2-budget.sha256").exists()

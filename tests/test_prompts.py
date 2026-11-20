@@ -129,3 +129,27 @@ def test_the_recorded_nomenu_hash_is_current():
     assert freeze.recorded_hash(ROOT, "v2-nomenu") == freeze.prompt_hash(ROOT, "v2-nomenu")
     text = (ROOT / freeze.HASH_FILES["v2-nomenu"]).read_text()
     assert "Prompt version v2-nomenu." in text and "causes.yaml" not in text
+
+
+def test_the_budget_variant_differs_from_v2_only_by_its_gate(tmp_path):
+    from test_agent import make_root
+
+    root = make_root(tmp_path)
+    v2, budget = freeze.manifest(root), freeze.manifest(root, "v2-budget")
+    gate = budget["settings"].pop("finish_gate")
+    assert gate == {"runs_left_above": agent.GATE_RUNS, "text": agent.GATE_TEXT}
+    assert budget.pop("variant") == "v2-budget"
+    assert budget == v2
+    assert freeze.prompt_hash(root, "v2-budget") != freeze.prompt_hash(root)
+
+
+@pytest.mark.skipif(not (CHECKS_DOC.exists() and ISSUES.exists()), reason="no local snapshots")
+def test_the_recorded_budget_hash_is_current_and_the_older_ones_did_not_move():
+    assert freeze.recorded_hash(ROOT, "v2-budget") == freeze.prompt_hash(ROOT, "v2-budget")
+    assert "Prompt version v2-budget." in (ROOT / freeze.HASH_FILES["v2-budget"]).read_text()
+    assert freeze.recorded_hash(ROOT) == (
+        "14a82a957b7b5b002037f7bde9978b692b1ba3bde93ac54ecc318a00f2b684cb"
+    )
+    assert freeze.recorded_hash(ROOT, "v2-nomenu") == (
+        "47934e6f6c6df629d1e162b2025e896234719b3f05df49182a7d6dbf94050d64"
+    )

@@ -11,6 +11,7 @@ PROMPT_VERSION = "v2"
 HASH_FILES = {
     "v2": HASH_FILE,
     "v2-nomenu": Path("benchmark") / "agent" / "prompts-v2-nomenu.sha256",
+    "v2-budget": Path("benchmark") / "agent" / "prompts-v2-budget.sha256",
 }
 COVERS = (
     ("src/shortfall/prompts/system.md", "system prompt"),
@@ -62,6 +63,11 @@ def manifest(root: Path, variant: str = "v2") -> dict:
     }
     if variant != "v2":
         out["variant"] = variant
+    if variant == agent.BUDGET:
+        out["settings"]["finish_gate"] = {
+            "runs_left_above": agent.GATE_RUNS,
+            "text": agent.GATE_TEXT,
+        }
     return out
 
 
@@ -73,7 +79,7 @@ def prompt_hash(root: Path, variant: str = "v2") -> str:
 
 
 def covers(variant: str) -> tuple[tuple[str, str], ...]:
-    if variant == "v2":
+    if variant in ("v2", agent.BUDGET):
         return COVERS
     out = []
     for path, what in COVERS:

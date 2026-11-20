@@ -601,3 +601,91 @@ def test_a_nomenu_trial_runs_without_causes(root):
     graded = final["located"]["cases"]["medusa-17032-last-unit"]
     assert graded["cause"] == "not named"
     assert all("cause" not in json.dumps(t) for t in model.seen[0][:0])
+
+
+def test_the_budget_gate_answers_finish_and_silence_until_60_runs_are_left(root):
+    replies = [
+        reply(call("finish", summary="done", claims=[])),
+        reply(text="I have nothing more to test."),
+        reply(submit()),
+        reply(call("finish", summary="done", claims=[])),
+        reply(submit()),
+        reply(call("finish", summary="done", claims=[])),
+    ]
+    t, model, _ = trial(root, replies, feedback="none", caps=Caps(runs=100), variant="v2-budget")
+    end = t.run()
+    assert end["reason"] == "finished by the model"
+    assert end["turns"] == 6 and end["gate_answers"] == 3
+    assert 100 - end["oversold_runs"] <= agent.GATE_RUNS
+    second = model.seen[1]
+    assert second[-1]["role"] == "tool" and second[-1]["content"] == agent.GATE_TEXT
+    third = model.seen[2]
+    assert (
+        third[-2]["role"] == "assistant" and third[-2]["content"] == "I have nothing more to test."
+    )
+    assert (third[-1]["role"], third[-1]["content"]) == ("user", agent.GATE_TEXT)
+    assert not any(ch.isdigit() for ch in agent.GATE_TEXT)
+    records = ledger.load(score.ledger_path_for(root))
+    assert records[-1]["kind"] == "agent-end" and records[-1]["gate_answers"] == 3
+    events = [json.loads(x) for x in t.transcript.read_text().splitlines()]
+    assert [e["kind"] for e in events if e["event"] == "gate"] == [
+        "finish",
+        "no tool call",
+        "finish",
+    ]
+
+
+def test_the_gate_drops_an_empty_reply_before_answering(root):
+    replies = [reply(), reply(call("list_files", path="packages"))]
+    t, model, _ = trial(root, replies, feedback="none", caps=Caps(turns=2), variant="v2-budget")
+    end = t.run()
+    assert end["reason"] == "turn cap: 2 turns" and end["gate_answers"] == 1
+    second = model.seen[1]
+    assert (second[-1]["role"], second[-1]["content"]) == ("user", agent.GATE_TEXT)
+    assert all(m["role"] != "assistant" for m in second)
+
+
+def test_the_gate_lets_the_last_turn_finish(root):
+    replies = [
+        reply(call("list_files", path="packages")),
+        reply(call("finish", summary="x", claims=[])),
+    ]
+    t, _, _ = trial(root, replies, feedback="none", caps=Caps(turns=2), variant="v2-budget")
+    end = t.run()
+    assert end["reason"] == "finished by the model" and end["gate_answers"] == 0
+
+
+def test_v2_is_never_gated_and_keeps_its_end_line(root):
+    t, _, _ = trial(root, [reply(call("finish", summary="x", claims=[]))], feedback="none")
+    end = t.run()
+    assert end["reason"] == "finished by the model" and "gate_answers" not in end
+    last = score.ledger_path_for(root).read_text().splitlines()[-1]
+    assert json.loads(last)["gate_answers"] is None
+
+
+def test_v2_budget_requests_match_v2_until_the_gate_first_answers(root):
+    from shortfall.models import AnthropicModel
+
+    def script():
+        return [
+            reply(call("list_files", path="packages")),
+            reply(call("read_file", path="packages/core/src/cart.ts")),
+            reply(submit()),
+            reply(call("finish", summary="done", claims=[])),
+            reply(call("finish", summary="done", claims=[])),
+        ]
+
+    call.n = 0
+    plain, plain_model, _ = trial(root, script(), feedback="none", trial_id="agent-v2")
+    plain.run()
+    call.n = 0
+    gated, gated_model, _ = trial(
+        root, script(), feedback="none", trial_id="agent-budget", variant="v2-budget"
+    )
+    gated.run()
+    assert gated.tools == plain.tools
+    assert len(plain_model.seen) == 4 and len(gated_model.seen) >= 5
+    api = AnthropicModel("claude-haiku-5-5", client=object())
+    for a, b in zip(plain_model.seen, gated_model.seen[:4], strict=True):
+        assert json.dumps(api.request(a, plain.tools)) == json.dumps(api.request(b, gated.tools))
+    assert gated_model.seen[4][-1]["content"] == agent.GATE_TEXT
