@@ -351,6 +351,7 @@ Medusa's in-memory lock only works inside one server. Medusa's knowledge base sa
 - The first whole-budget arm counted every gate answer as a turn, so in 2 of its 3 trials the agent used up its 100 turns while it waited for run results. It was closed after 3 trials and replaced.
 - In one Sonnet trial, sonnet-none-4, the model put its scenario inside the text of its hypothesis in all 7 submissions, so each was refused for having no scenario and the trial ran no tests. It counts as a miss.
 - The follow-up plan was interrupted once, when the terminal session that started it closed and took the engine with it. The trial that was running, sonnet-none-4, was rerun from scratch. After the engine restarted, Oversold's database was not running, and the next try of that trial stopped with a misleading error about image inputs. It was rerun from scratch again. Plans now start through a launcher that brings the database up first, and every trial first checks that the database answers.
+- The plan put each arm's primary test in the same correction as its seven secondary tests, which raised the bar for the primary test from 0.05 to 0.00625. Tested alone, Sonnet's primary test (p = 0.02) would have passed. We report the result as planned.
 
 ## 11. How to check or rerun it
 
