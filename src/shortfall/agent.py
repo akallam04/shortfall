@@ -391,6 +391,11 @@ def history_feedback(number: int, histories: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def claim_record(item: dict) -> dict:
+    diagnosis = {k: item[k] for k in ("file", "cause") if k in item}
+    return {"attempt": item["attempt"], "diagnosis_after_results": diagnosis}
+
+
 def validate_with_oversold(root: Path, path: Path) -> tuple[bool, str]:
     proc = subprocess.run(
         ["sh", "scripts/oversold.sh", "validate", str(path)],
@@ -746,10 +751,12 @@ class Trial:
                     self.tool_result(call, text, "finish refused")
                     self.log({"event": "finish-refused", "reason": reason})
                 else:
-                    self.claims = claims
+                    self.claims = [claim_record(c) for c in claims]
                     self.tool_result(call, FEEDBACK["finished"], "finish")
                     self.end = "finished by the model"
-                    self.log({"event": "finish", "summary": args.get("summary"), "claims": claims})
+                    self.log(
+                        {"event": "finish", "summary": args.get("summary"), "claims": self.claims}
+                    )
             else:
                 self.tool_result(call, FEEDBACK["no_tool"].format(name=call.name), call.name)
         except ToolError as err:

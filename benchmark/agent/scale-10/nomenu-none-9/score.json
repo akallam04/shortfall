@@ -45,27 +45,35 @@
  "claims": [
   {
    "attempt": 1,
-   "file": "packages/modules/locking/src/providers/in-memory.ts",
    "backed": true,
    "why": "violation on plain Medusa",
-   "grades": {
-    "medusa-16502-lines": {
-     "file": "not accepted",
-     "cause": "not named"
-    },
-    "medusa-17032-counter": {
-     "file": "accepted",
-     "cause": "not named"
-    },
-    "medusa-17032-last-unit": {
-     "file": "accepted",
-     "cause": "not named"
+   "prediction": {
+    "file": "packages/modules/locking/src/providers/in-memory.ts",
+    "cause": null
+   },
+   "diagnosis_after_results": {
+    "file": "packages/modules/locking/src/providers/in-memory.ts",
+    "same_as_prediction": true,
+    "grades": {
+     "medusa-16502-lines": {
+      "file": "not accepted",
+      "cause": "not named"
+     },
+     "medusa-17032-counter": {
+      "file": "accepted",
+      "cause": "not named"
+     },
+     "medusa-17032-last-unit": {
+      "file": "accepted",
+      "cause": "not named"
+     }
     }
    }
   }
  ],
  "claims_backed": 1,
  "claims_unbacked": 0,
+ "claim_diagnoses_changed": 0,
  "expected_check": {
   "hits": 1,
   "of": 2

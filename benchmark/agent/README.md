@@ -25,13 +25,15 @@ Every attempt that runs gets three results:
 
 - **Violation**: a check failed in at least one run on plain Medusa 2.22.0.
 - **Reproduced**: the failure matches one of the benchmark's three test scenarios, and the same test passes on a copy of Medusa with the public fix for that bug.
-- **Located**: the file and the cause the agent named match the answer key for that test scenario.
+- **Named the right place**: the file and the cause the agent gave with the attempt, before its runs, both match the answer key for that test scenario. The ledger and `score.json` call this result `located`.
 
 ## Claims
 
-At the end, the agent lists claims: the attempts it believes found a real problem, each with a file and a cause. A claim is **backed** when that attempt had a violation on plain Medusa. It is **unbacked** when that attempt had no violation, was refused or never ran.
+At the end, the agent lists claims: the attempts it believes found a real problem, each with a file and a cause. A claim is **backed by a violation** when that attempt had a violation on plain Medusa. It is **not backed by a violation** when that attempt had no violation, was refused or never ran.
 
-In the none mode the agent never sees any results, so an unbacked claim there is a false alarm. In the history mode it sees the results, so its claims should be backed.
+In the none mode the agent never sees any results, so a claim not backed by a violation there is a false alarm. In the history mode it sees the results, so its claims should be backed by a violation.
+
+The file and the cause in a claim are recorded as the agent's diagnosis after results. They are graded on their own, in `claims.json`, and never replace the file and the cause saved with the attempt before its runs. Those saved values are the only prediction, and named the right place uses only them.
 
 ## Prompt versions
 
@@ -71,7 +73,7 @@ What the table shows:
 - When the first attempt fails at once, a #17032 scenario is usually counted at run 33: 3 screen runs, 10 scoring runs and two controls of 10 runs. Many cells sit at 33 for that reason.
 - The grid was designed with knowledge of the bug shapes in the scenarios, so it is an informed baseline, not a blind one.
 
-Located, for the agent: with feedback none, the file and the cause matched the answer key in 6 of the 7 trials that reproduced each #17032 scenario, and in the 7th only the cause matched. For medusa-16502-lines the cause matched and the file did not, in all 3. With feedback history, both matched in 4 of 5 reproductions of medusa-17032-last-unit and 5 of 6 of medusa-17032-counter, and only the cause matched in the rest. For medusa-16502-lines both matched in 1 of 2, and only the cause in the other.
+Named the right place, for the agent: with feedback none, the file and the cause matched the answer key in 6 of the 7 trials that reproduced each #17032 scenario, and in the 7th only the cause matched. For medusa-16502-lines the cause matched and the file did not, in all 3. With feedback history, both matched in 4 of 5 reproductions of medusa-17032-last-unit and 5 of 6 of medusa-17032-counter, and only the cause matched in the rest. For medusa-16502-lines both matched in 1 of 2, and only the cause in the other.
 
 ## Ablation: the list of causes
 
@@ -106,9 +108,9 @@ The [plan file](plans/followups-1.yaml) ran 23 unguided trials with feedback non
 - **budget2-none** ran `claude-haiku-5-5` on prompt version v2-budget2, which replaced v2-budget.
 - **sonnet-none** ran `claude-sonnet-5-5` on prompt version v2.
 
-The 23 trials used 3,691 runs and cost $4.8807. Only the Sonnet trials all ended with the agent calling finish. Of the budget2-none trials, 1 called finish, 5 ended after 15 gate answers and 4 ended when the model stopped replying with a tool call once 60 or fewer runs were left. The 3 budget-none trials all ended without finish. Claims: 3 backed and none unbacked for budget2-none, 8 backed and 1 unbacked for sonnet-none. Three trials, sonnet-none-3, sonnet-none-5 and budget2-none-6, were held for one cart becoming two orders on two servers with in-memory locking, reviewed by hand and published with their review runs. sonnet-none-3 and sonnet-none-4 were each run again from scratch, as [followups-1/](followups-1/) explains.
+The 23 trials used 3,691 runs and cost $4.8807. Only the Sonnet trials all ended with the agent calling finish. Of the budget2-none trials, 1 called finish, 5 ended after 15 gate answers and 4 ended when the model stopped replying with a tool call once 60 or fewer runs were left. The 3 budget-none trials all ended without finish. Claims: 3 backed by a violation and none not backed for budget2-none, 8 backed and 1 not backed for sonnet-none. Three trials, sonnet-none-3, sonnet-none-5 and budget2-none-6, were held for one cart becoming two orders on two servers with in-memory locking, reviewed by hand and published with their review runs. sonnet-none-3 and sonnet-none-4 were each run again from scratch, as [followups-1/](followups-1/) explains.
 
-| Trial | Model | Prompts | Ended | Gate answers | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed / unbacked | Expected check failed | Dollars |
+| Trial | Model | Prompts | Ended | Gate answers | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed by a violation / not | Expected check failed | Dollars |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | [budget-none-1](followups-1/budget-none-1/) | claude-haiku-5-5 | v2-budget | the model stopped without calling finish | 17 | 68 | 16 (0) | 265 | medusa-16502-lines (run 23), medusa-17032-counter (run 66), medusa-17032-last-unit (run 66) | no finish | 8 of 16 | 0.0632 |
 | [budget-none-2](followups-1/budget-none-2/) | claude-haiku-5-5 | v2-budget | the model stopped without calling finish | 72 | 100 | 6 (0) | 119 | medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | no finish | 3 of 6 | 0.0579 |
@@ -138,9 +140,9 @@ The 23 trials used 3,691 runs and cost $4.8807. Only the Sonnet trials all ended
 
 The [plan file](plans/scale-10.yaml) ran 38 unguided trials in a fixed order with `claude-haiku-5-5`, each with a budget of 300 runs and $1: trials 4 to 10 of the grid, random and the two v2 arms, and trials 1 to 10 of the v2-nomenu arm. The plan file and the prompts were committed before its first trial ran.
 
-The 24 agent trials below used 844 runs and cost $0.1694. 21 ended with the agent calling finish, and 3, all on v2-nomenu, with the model stopping without calling finish. Their claims: 9 backed and 1 unbacked. The 14 baseline trials are listed in [../README.md](../README.md#baselines).
+The 24 agent trials below used 844 runs and cost $0.1694. 21 ended with the agent calling finish, and 3, all on v2-nomenu, with the model stopping without calling finish. Their claims: 9 backed by a violation and 1 not backed. The 14 baseline trials are listed in [../README.md](../README.md#baselines).
 
-| Trial | Prompts | Feedback | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed / unbacked | Expected check failed | Dollars |
+| Trial | Prompts | Feedback | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed by a violation / not | Expected check failed | Dollars |
 |---|---|---|---|---|---|---|---|---|---|
 | [unguided-none-4](scale-10/unguided-none-4/) | v2 | none | 11 | 1 (0) | 10 | none | 0 / 0 | 0 of 1 | 0.0044 |
 | [unguided-none-5](scale-10/unguided-none-5/) | v2 | none | 11 | 2 (0) | 43 | medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | 0 / 0 | 1 of 2 | 0.0058 |
@@ -171,7 +173,7 @@ The 24 agent trials below used 844 runs and cost $0.1694. 21 ended with the agen
 
 The [plan file](plans/unguided-haiku-1.yaml) asked for 6 unguided trials with `claude-haiku-5-5`, 3 with feedback none and 3 with feedback history, on prompt version v2. All 6 ended with the agent calling finish. Together they used 314 runs and cost $0.0479. They are trials 1 to 3 of the two v2 arms in the headline above.
 
-| Trial | Feedback | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed / unbacked | Expected check failed | Dollars |
+| Trial | Feedback | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed by a violation / not | Expected check failed | Dollars |
 |---|---|---|---|---|---|---|---|---|
 | [unguided-none-1](unguided-haiku-1/unguided-none-1/) | none | 10 | 2 (0) | 66 | medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | 0 / 0 | 2 of 2 | 0.0068 |
 | [unguided-none-2](unguided-haiku-1/unguided-none-2/) | none | 10 | 2 (0) | 66 | medusa-16502-lines (run 56), medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | 1 / 0 | 2 of 2 | 0.0039 |
@@ -193,7 +195,7 @@ No other check failed on the fix or with Redis locking in these runs. Both failu
 
 The [plan file](plans/guided-haiku-2.yaml) reran the #17032 guided cells on prompt version v2: 3 trials with feedback none and 3 with feedback history. The #16502 cells were not rerun, because every v1 trial there already reproduced the bug at run 23. All 6 trials ended with the agent calling finish, used 281 runs and cost $0.0216.
 
-| Trial | Feedback | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed / unbacked | Expected check failed | Dollars |
+| Trial | Feedback | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed by a violation / not | Expected check failed | Dollars |
 |---|---|---|---|---|---|---|---|---|
 | [17032-none-1](guided-haiku-2/17032-none-1/) | none | 6 | 1 (0) | 33 | medusa-16502-lines (run 23) | 0 / 0 | 1 of 1 | 0.0035 |
 | [17032-none-2](guided-haiku-2/17032-none-2/) | none | 7 | 2 (1) | 33 | medusa-16502-lines (run 23) | 1 / 0 | 1 of 1 | 0.0031 |
@@ -216,7 +218,7 @@ The [plan file](plans/guided-haiku-1.yaml) asked for 12 guided trials with the m
 
 All 12 trials ended with the agent calling finish. Together they used 387 runs and cost $0.0366.
 
-| Trial | Bug report | Feedback | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed / unbacked | Expected check failed | Dollars |
+| Trial | Bug report | Feedback | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed by a violation / not | Expected check failed | Dollars |
 |---|---|---|---|---|---|---|---|---|---|
 | [16502-none-1](guided-haiku-1/16502-none-1/) | #16502 | none | 4 | 1 (0) | 33 | medusa-16502-lines (run 23) | 1 / 0 | 1 of 1 | 0.0028 |
 | [16502-none-2](guided-haiku-1/16502-none-2/) | #16502 | none | 4 | 1 (0) | 33 | medusa-16502-lines (run 23) | 1 / 0 | 1 of 1 | 0.0027 |
@@ -237,7 +239,7 @@ What the table shows:
 
 - **#16502 report**: all 6 trials reproduced medusa-16502-lines with their first attempt. Each test used one cart whose two lines together need more of one item than is in stock.
 - **#17032 report**: 5 of 6 trials reproduced medusa-16502-lines, the other bug, and no trial reproduced either #17032 scenario. Every one of these tests used a single server, while the #17032 scenarios need two servers sharing one database. In all 6 trials the agent named the inventory module file and the per-line cause, which the #17032 report itself mentions when it refers to #16502.
-- **Claims**: 11 claims were backed and none was unbacked, in both feedback modes. One trial made no claim.
+- **Claims**: 11 claims were backed by a violation and none was not, in both feedback modes. One trial made no claim.
 - **Expected check**: in 11 of 12 attempts that ran, the check the agent expected to fail did fail.
 
 ## Guided results are not a fair comparison
@@ -248,7 +250,7 @@ The guided results are not a fair comparison with the two simple methods, becaus
 
 - `score.json`: the trial's summary.
 - `attempts.json` and `attempts/`: each attempt as submitted and as run, with its guess and results.
-- `claims.json`: the agent's final summary and its claims, each marked backed or unbacked.
+- `claims.json`: the agent's final summary and its claims. Each claim is marked backed by a violation or not, and holds the attempt's saved prediction next to the claim's own diagnosis after results, graded on its own.
 - `ledger.jsonl`: the trial's ledger lines, including each model call's tokens and cost.
 - `transcript.jsonl.gz`: everything the model was shown and wrote, with anything that looks like a key masked. The transcripts quote Medusa source code from files under the [MIT license](https://github.com/medusajs/medusa/blob/v2.22.0/LICENSE). None of them quotes Medusa's Enterprise Edition files, which are under a different license.
 - `runs/`: every Oversold run with its full history. CI rechecks each one with `oversold check --verify`.

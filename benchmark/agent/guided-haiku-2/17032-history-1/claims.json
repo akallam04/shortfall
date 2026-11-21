@@ -3,43 +3,57 @@
  "claims": [
   {
    "attempt": 2,
-   "file": "packages/modules/inventory/src/services/inventory-module.ts",
-   "cause": "per-line-check",
    "backed": true,
    "why": "violation on plain Medusa",
-   "grades": {
-    "medusa-16502-lines": {
-     "file": "accepted",
-     "cause": "accepted"
-    },
-    "medusa-17032-counter": {
-     "file": "accepted",
-     "cause": "not accepted"
-    },
-    "medusa-17032-last-unit": {
-     "file": "accepted",
-     "cause": "not accepted"
+   "prediction": {
+    "file": "packages/modules/inventory/src/services/inventory-module.ts",
+    "cause": "per-line-check"
+   },
+   "diagnosis_after_results": {
+    "file": "packages/modules/inventory/src/services/inventory-module.ts",
+    "cause": "per-line-check",
+    "same_as_prediction": true,
+    "grades": {
+     "medusa-16502-lines": {
+      "file": "accepted",
+      "cause": "accepted"
+     },
+     "medusa-17032-counter": {
+      "file": "accepted",
+      "cause": "not accepted"
+     },
+     "medusa-17032-last-unit": {
+      "file": "accepted",
+      "cause": "not accepted"
+     }
     }
    }
   },
   {
    "attempt": 4,
-   "file": "packages/modules/inventory/src/services/inventory-module.ts",
-   "cause": "stale-counter-write",
    "backed": true,
    "why": "violation on plain Medusa",
-   "grades": {
-    "medusa-16502-lines": {
-     "file": "accepted",
-     "cause": "not accepted"
-    },
-    "medusa-17032-counter": {
-     "file": "accepted",
-     "cause": "accepted"
-    },
-    "medusa-17032-last-unit": {
-     "file": "accepted",
-     "cause": "accepted"
+   "prediction": {
+    "file": "packages/modules/inventory/src/services/inventory-module.ts",
+    "cause": "stale-counter-write"
+   },
+   "diagnosis_after_results": {
+    "file": "packages/modules/inventory/src/services/inventory-module.ts",
+    "cause": "stale-counter-write",
+    "same_as_prediction": true,
+    "grades": {
+     "medusa-16502-lines": {
+      "file": "accepted",
+      "cause": "not accepted"
+     },
+     "medusa-17032-counter": {
+      "file": "accepted",
+      "cause": "accepted"
+     },
+     "medusa-17032-last-unit": {
+      "file": "accepted",
+      "cause": "accepted"
+     }
     }
    }
   }

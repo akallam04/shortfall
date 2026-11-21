@@ -33,27 +33,35 @@
  "claims": [
   {
    "attempt": 1,
-   "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
    "backed": false,
    "why": "no violation",
-   "grades": {
-    "medusa-16502-lines": {
-     "file": "not accepted",
-     "cause": "not named"
-    },
-    "medusa-17032-counter": {
-     "file": "not accepted",
-     "cause": "not named"
-    },
-    "medusa-17032-last-unit": {
-     "file": "not accepted",
-     "cause": "not named"
+   "prediction": {
+    "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+    "cause": null
+   },
+   "diagnosis_after_results": {
+    "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+    "same_as_prediction": true,
+    "grades": {
+     "medusa-16502-lines": {
+      "file": "not accepted",
+      "cause": "not named"
+     },
+     "medusa-17032-counter": {
+      "file": "not accepted",
+      "cause": "not named"
+     },
+     "medusa-17032-last-unit": {
+      "file": "not accepted",
+      "cause": "not named"
+     }
     }
    }
   }
  ],
  "claims_backed": 0,
  "claims_unbacked": 1,
+ "claim_diagnoses_changed": 0,
  "expected_check": {
   "hits": 1,
   "of": 2

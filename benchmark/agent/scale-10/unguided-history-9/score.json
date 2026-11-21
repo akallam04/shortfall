@@ -45,28 +45,36 @@
  "claims": [
   {
    "attempt": 2,
-   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
-   "cause": "process-local-lock",
    "backed": true,
    "why": "violation on plain Medusa",
-   "grades": {
-    "medusa-16502-lines": {
-     "file": "not accepted",
-     "cause": "not accepted"
-    },
-    "medusa-17032-counter": {
-     "file": "accepted",
-     "cause": "accepted"
-    },
-    "medusa-17032-last-unit": {
-     "file": "accepted",
-     "cause": "accepted"
+   "prediction": {
+    "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+    "cause": "process-local-lock"
+   },
+   "diagnosis_after_results": {
+    "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+    "cause": "process-local-lock",
+    "same_as_prediction": true,
+    "grades": {
+     "medusa-16502-lines": {
+      "file": "not accepted",
+      "cause": "not accepted"
+     },
+     "medusa-17032-counter": {
+      "file": "accepted",
+      "cause": "accepted"
+     },
+     "medusa-17032-last-unit": {
+      "file": "accepted",
+      "cause": "accepted"
+     }
     }
    }
   }
  ],
  "claims_backed": 1,
  "claims_unbacked": 0,
+ "claim_diagnoses_changed": 0,
  "expected_check": {
   "hits": 1,
   "of": 2

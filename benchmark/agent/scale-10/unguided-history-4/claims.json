@@ -3,22 +3,29 @@
  "claims": [
   {
    "attempt": 1,
-   "file": "packages/core/core-flows/src/cart/utils/prepare-confirm-inventory-input.ts",
-   "cause": "per-line-check",
    "backed": true,
    "why": "violation on plain Medusa",
-   "grades": {
-    "medusa-16502-lines": {
-     "file": "not accepted",
-     "cause": "accepted"
-    },
-    "medusa-17032-counter": {
-     "file": "not accepted",
-     "cause": "not accepted"
-    },
-    "medusa-17032-last-unit": {
-     "file": "not accepted",
-     "cause": "not accepted"
+   "prediction": {
+    "file": "packages/core/core-flows/src/cart/utils/prepare-confirm-inventory-input.ts",
+    "cause": "per-line-check"
+   },
+   "diagnosis_after_results": {
+    "file": "packages/core/core-flows/src/cart/utils/prepare-confirm-inventory-input.ts",
+    "cause": "per-line-check",
+    "same_as_prediction": true,
+    "grades": {
+     "medusa-16502-lines": {
+      "file": "not accepted",
+      "cause": "accepted"
+     },
+     "medusa-17032-counter": {
+      "file": "not accepted",
+      "cause": "not accepted"
+     },
+     "medusa-17032-last-unit": {
+      "file": "not accepted",
+      "cause": "not accepted"
+     }
     }
    }
   }

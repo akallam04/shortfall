@@ -253,7 +253,7 @@ Each attempt gets three results:
 
 - **violation**: `violation` when at least one check failed in the candidate's runs on plain Medusa, with each failed rule and its count. Otherwise `not reproduced within N runs`, `unpreparable`, or `inconclusive` when every run was inconclusive.
 - **reproduced**, per case: `reproduced` when the case's rule failed in at least 1 of the 10 scoring runs and in 0 of the 10 runs on that case's scoring control, with no inconclusive control run. Otherwise `not reproduced`, or `inconclusive` when the control's rule held but a control run was inconclusive. A failed rule that no case's control clears is `violation, cause not isolated`, and it is not credited to any case. It always goes into the attempt's `manual_check` field and the list at the end of the sweep. A failed rule whose scoring controls did not all run because the attempt reached a run cap is `cut off by the run cap` instead.
-- **located**: an attempt may name one source file and one cause from the cause list. For each case it reproduced, the file is graded by exact path against the case's `answer.yaml`, the cause by id, and located needs both. The three results are kept apart. Grid and random candidates name neither, so their located result is `not applicable`.
+- **located**: an attempt may name one source file and one cause from the cause list. For each case it reproduced, the file is graded by exact path against the case's `answer.yaml`, the cause by id, and located needs both. The results pages call located "named the right place". The three results are kept apart. Grid and random candidates name neither, so their located result is `not applicable`.
 
 The causes are fixed in [causes.yaml](causes.yaml):
 
@@ -273,7 +273,7 @@ The causes are fixed in [causes.yaml](causes.yaml):
 
 Every accepted path exists in the 2.22.0 source snapshot. All three cases accept `inventory-module.ts`, so a file alone says little. `fixed_guess` in `src/shortfall/answers.py` scores one fixed guess over all three cases, and any located number Shortfall reports belongs next to these:
 
-| Fixed guess | File accepted | Cause accepted | Located |
+| Fixed guess | File accepted | Cause accepted | Named the right place |
 |---|---|---|---|
 | always `inventory-module.ts`, no cause | 3 of 3 | 0 of 3 | 0 of 3 |
 | always the most common cause, `process-local-lock`, no file | 0 of 3 | 2 of 3 | 0 of 3 |
@@ -346,7 +346,7 @@ The median below is taken over all 10 trials, and a trial that missed a case cou
 - Grid, across its 10 trials: each case was reproduced in 10 of 10 trials, with a median of 58.5 runs to first reproduction for medusa-17032-last-unit, 33 for medusa-17032-counter and 54 for medusa-16502-lines. Every grid trial reproduced all three cases.
 - Random, across its 10 trials: medusa-17032-counter was reproduced in 10 of 10 trials, with a median of 46.5 runs, medusa-17032-last-unit in 9 of 10, with a median of 110, and medusa-16502-lines in 7 of 10, with a median of 135.5. Six trials reproduced all three cases.
 
-Located is `not applicable` for both baselines, since they name no file and no cause. Ten trials per method is still a small sample, and no difference in this table is called significant.
+Located, or named the right place, is `not applicable` for both baselines, since they name no file and no cause. Ten trials per method is still a small sample, and no difference in this table is called significant.
 
 What else the trials show:
 

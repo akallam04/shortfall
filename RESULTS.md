@@ -4,7 +4,7 @@ This page explains what Shortfall found, in plain words. Every table here is reb
 
 ## 1. In one minute
 
-- We asked whether a cheap AI agent that reads a shop's code can find real checkout bugs faster than two simple searches that use no AI, with the same budget of 300 test runs.
+- We asked whether a cheap AI agent that reads a shop's code can find real race-condition and inventory-consistency bugs in its checkout faster than two simple searches that use no AI, with the same budget of 300 test runs.
 - The simple fixed-list search found all three known bug scenarios in every one of its 10 tries. The agent found all three in at most 3 of 10 tries.
 - When the agent found the "last item sold twice" scenario, it found it fast: a median of 33 runs, against 58.5 for the fixed list. Once its misses count, this speed gap could be chance. On the other two-shoppers scenario, the fixed list tied it at 33.
 - The agent stopped early, after a median of 33 to 43 of its 300 runs, so it rarely went on to look for the third scenario.
@@ -14,9 +14,9 @@ This page explains what Shortfall found, in plain words. Every table here is reb
 
 ## 2. The question
 
-Can a cheap AI agent that reads the code find real checkout race bugs faster than simple searches, with the same run budget and a checker it can't change?
+Can a cheap AI agent that reads the code find real race-condition and inventory-consistency bugs in a shop's checkout faster than simple searches, with the same run budget and a checker it can't change?
 
-A race bug is a bug that only shows up when two or more shoppers act at the same moment.
+A race condition is a bug that only shows up when two or more shoppers act at the same moment. An inventory-consistency bug is one where the shop sells stock it does not have, or its count of reserved stock stops matching its reservations. The two #17032 scenarios are race conditions that break inventory consistency. The two-lines scenario (#16502) breaks it with no concurrency at all: a single checkout of one cart is enough.
 
 ## 3. How the test works
 
@@ -31,6 +31,8 @@ A race bug is a bug that only shows up when two or more shoppers act at the same
 A scenario is a small test file: which items are in stock, which shoppers there are, and when they press Buy. In the tables below the three scenarios are called `medusa-17032-last-unit`, `medusa-17032-counter` and `medusa-16502-lines`.
 
 **What "reproduced" means.** A run is one go of a test on a fresh copy of the shop. A scenario counts as reproduced when a test breaks the shop's rule on plain Medusa, and the same test passes on a copy of Medusa with the public fix for that bug: pull request [#17420](https://github.com/medusajs/medusa/pull/17420) for #17032 and pull request [#16961](https://github.com/medusajs/medusa/pull/16961) for #16502.
+
+**Two more terms.** A claim is **backed by a violation** when a check failed on plain Medusa in the attempt it names. A claim not backed by a violation is a false alarm. A test **named the right place** when the source file and the cause the agent gave with it, before its runs, both match the answer key for the scenario it reproduced.
 
 **The checker.** Every run goes through [Oversold](https://github.com/akallam04/oversold), a separate tool pinned to one public version. It starts the shop, sends the purchases, and checks five rules, such as "never sell more than you have". The agent can only write test files. It cannot change the checker, the rules or the answers.
 
@@ -77,9 +79,9 @@ The simple methods always used their whole budget. The agent stopped on its own 
 
 ### Claims
 
-At the end of a trial the agent lists its claims: the tests it believes found a real problem. A claim is **backed** when that test really broke a rule on plain Medusa, and **unbacked** when it did not. An unbacked claim is a false alarm. Data: [agent trials 1 to 3](benchmark/agent/unguided-haiku-1/), [agent trials 4 to 10](benchmark/agent/scale-10/).
+At the end of a trial the agent lists its claims: the tests it believes found a real problem. A claim is **backed by a violation** when that test broke a rule on plain Medusa, and **not backed by a violation** when it did not. A claim not backed by a violation is a false alarm. Data: [agent trials 1 to 3](benchmark/agent/unguided-haiku-1/), [agent trials 4 to 10](benchmark/agent/scale-10/).
 
-| Method | Trials | Trials that called finish | Claims backed | Claims unbacked |
+| Method | Trials | Trials that called finish | Claims backed by a violation | Claims not backed by a violation |
 |---|---|---|---|---|
 | Agent, no feedback | 10 | 10 | 2 | 0 |
 | Agent, with feedback | 10 | 10 | 9 | 0 |
@@ -89,20 +91,45 @@ At the end of a trial the agent lists its claims: the tests it believes found a 
 
 ### Did it name the right place?
 
-With every test the agent names the source file it suspects and, except without the cause list, one cause from a fixed list. For each trial that reproduced a scenario, this table counts how often the file and the cause matched the answer key. Data: the agent folders above and the [answer keys](benchmark/cases/).
+With every test the agent names the source file it suspects and, except without the cause list, one cause from a fixed list. Both are saved before the test runs. For each trial that reproduced a scenario, this table counts how often that file and that cause matched the answer key, and how often both did, which is what named the right place means. Data: the agent folders above and the [answer keys](benchmark/cases/).
 
-| Method | Test scenario | Trials that reproduced it | File matched | Cause matched |
-|---|---|---|---|---|
-| Agent, no feedback | medusa-17032-last-unit | 7 | 6 of 7 | 7 of 7 |
-| Agent, no feedback | medusa-17032-counter | 7 | 6 of 7 | 7 of 7 |
-| Agent, no feedback | medusa-16502-lines | 3 | 0 of 3 | 3 of 3 |
-| Agent, with feedback | medusa-17032-last-unit | 5 | 4 of 5 | 5 of 5 |
-| Agent, with feedback | medusa-17032-counter | 6 | 5 of 6 | 6 of 6 |
-| Agent, with feedback | medusa-16502-lines | 2 | 1 of 2 | 2 of 2 |
-| Agent, no cause list | medusa-17032-last-unit | 9 | 8 of 9 | not asked |
-| Agent, no cause list | medusa-17032-counter | 9 | 8 of 9 | not asked |
+| Method | Test scenario | Trials that reproduced it | File matched | Cause matched | Named the right place |
+|---|---|---|---|---|---|
+| Agent, no feedback | medusa-17032-last-unit | 7 | 6 of 7 | 7 of 7 | 6 of 7 |
+| Agent, no feedback | medusa-17032-counter | 7 | 6 of 7 | 7 of 7 | 6 of 7 |
+| Agent, no feedback | medusa-16502-lines | 3 | 0 of 3 | 3 of 3 | 0 of 3 |
+| Agent, with feedback | medusa-17032-last-unit | 5 | 4 of 5 | 5 of 5 | 4 of 5 |
+| Agent, with feedback | medusa-17032-counter | 6 | 5 of 6 | 6 of 6 | 5 of 6 |
+| Agent, with feedback | medusa-16502-lines | 2 | 1 of 2 | 2 of 2 | 1 of 2 |
+| Agent, no cause list | medusa-17032-last-unit | 9 | 8 of 9 | not asked | not asked |
+| Agent, no cause list | medusa-17032-counter | 9 | 8 of 9 | not asked | not asked |
 
-A file match alone says little: naming the inventory module file every time would match the answer key for all three scenarios. The [benchmark page](benchmark/README.md#scoring) scores such fixed guesses.
+The file and the cause in the agent's final claims are recorded as its diagnosis after results: they are given after the tests ran, and in the history mode after the agent saw how they did. They are graded on their own, in each trial's `claims.json`, and never replace what was saved before the runs. This table does not use them. In 2 of the 43 claims in all published trials, the diagnosis differs from the attempt's saved file and cause.
+
+Fixed guesses that use no AI, scored from the answer keys on the three scenarios, show what each column is worth on its own:
+
+| Fixed guess, no AI | File matched | Cause matched | Named the right place |
+|---|---|---|---|
+| Always `inventory-module.ts`, no cause | 3 of 3 | 0 of 3 | 0 of 3 |
+| Always the most common cause, `process-local-lock`, no file | 0 of 3 | 2 of 3 | 0 of 3 |
+| Always `inventory-module.ts` and `process-local-lock` | 3 of 3 | 2 of 3 | 2 of 3 |
+
+Naming the inventory module file every time matches the file for all three scenarios, and naming the most common cause every time matches 2 of 3. So a file match alone says little, and the agent's cause and named-the-right-place counts should be read next to these.
+
+### Negative controls
+
+A fix build, or Redis locking for #17032, should clear the failure that its bug causes. This table counts every committed run on a fix build or with Redis locking, of a test whose failure on plain Medusa is credited to the bug that the build fixes, and how many of those runs still broke that rule. Data: the [case results](benchmark/cases/), every published trial's ledger and every `review/` folder.
+
+| Fix build or Redis run | Runs | Runs where the covered rule failed |
+|---|---|---|
+| The three reference scenarios on their fix build | 90 | 0 |
+| The two #17032 reference scenarios with Redis locking | 240 | 0 |
+| Fix-build controls of tests credited as reproduced | 2980 | 0 |
+| Review runs with the fix or locking the review found covers the failure | 1020 | 0 |
+| All of the above | 4330 | 0 |
+| For contrast: fix-build controls of tests not credited to that fix | 1860 | 1572 |
+
+For the controls of tests credited as reproduced, 0 is partly by design, because a test is credited only when its fix control passes. The other rows are checks made apart from that. In the last row the fix control failed in most runs, because those tests broke the rule through the other bug, and that is how the scoring tells the two bugs apart. Across all 53 unguided agent trials, the agent made 26 claims, and 2 of them were not backed by a violation. The agent was never run against patched code, so we don't know how often it would claim a bug in a shop where the bugs are fixed.
 
 ## 5. What it means
 
@@ -197,7 +224,7 @@ Each cell says in how many trials the scenario was reproduced, and the median ru
 
 "Called finish" means the agent ended the trial itself and listed its claims. A gate answer is the fixed line sent when the agent tried to stop with more than 60 runs left.
 
-| Arm | Trials | Median runs used | Median turns | Median attempts | Called finish | Claims backed | Claims unbacked | Median dollars | Total dollars | Median minutes | Median gate answers |
+| Arm | Trials | Median runs used | Median turns | Median attempts | Called finish | Claims backed by a violation | Claims not backed by a violation | Median dollars | Total dollars | Median minutes | Median gate answers |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Haiku 5.5, whole budget | 10 | 238 | 44.5 | 12 | 1 | 3 | 0 | 0.0388 | 0.3796 | 23.4 | 14 |
 | Sonnet 5.5 | 10 | 119 | 22.5 | 5 | 10 | 8 | 1 | 0.3937 | 4.3275 | 16 | none |
@@ -319,7 +346,17 @@ Two agent trials were stopped by the safety rule: nomenu-none-8 in the 10-trial 
 - The fix for #17032 did not stop it: one cart still became two orders in 8 of 100 runs. That fix targets the stock reservation bug, not the lock on a cart, and this set is shown for information only.
 - In the runs as is, the checkout that lost the race was usually refused with an HTTP 400 error, "Cannot create multiple links between 'order' and 'payment'". With Redis locking, or with one server, no checkout was refused, and both checkouts of a cart returned the same order.
 
-Medusa's in-memory lock only works inside one server. Medusa's knowledge base says the in-memory locking provider is meant for development only. The sources are Medusa's [Redis locking docs](https://docs.medusajs.com/resources/infrastructure-modules/locking/redis), the [knowledge base page](https://medusajs.com/kb/tickets-and-bookings/bookings-and-reservations), Medusa's docs on [storing workflow executions](https://docs.medusajs.com/learn/fundamentals/workflows/store-executions), and an [AppCrates article](https://appcrates.pl/en/blog/medusa-js-na-produkcji-architektura-sklepu) on running Medusa in production, which names the same risk: "One payment, two servers, potentially two orders." So we count this failure as a documented limit of in-memory locking, not as a new bug. Shortfall's list of covered failures now includes it for two servers with in-memory locking. Both stopped records are published with these extra runs in [benchmark/agent/stopped](benchmark/agent/stopped/).
+Pooled over every review of this failure, the two stopped trials above and the three held trials in [section 6](#held-trials-reviewed-by-hand):
+
+| Setting, pooled over every review | Runs | Runs where one cart became two orders | Upper bound at 95% confidence |
+|---|---|---|---|
+| Two servers, in-memory lock, run again as is | 1260 | 24 | does not apply |
+| Redis locking | 660 | 0 | 0.45% |
+| Every checkout on one server | 660 | 0 | 0.45% |
+
+With two servers and the in-memory lock it happened in 24 of 1,260 runs. 0 of 660 runs with Redis locking and 0 of 660 with every checkout on one server means the rate in those settings is at most about 0.5%, at 95% confidence.
+
+Medusa's in-memory lock only works inside one server. Medusa's knowledge base says the in-memory locking provider is meant for development only. The sources are Medusa's [Redis locking docs](https://docs.medusajs.com/resources/infrastructure-modules/locking/redis), the [knowledge base page](https://medusajs.com/kb/tickets-and-bookings/bookings-and-reservations), Medusa's docs on [storing workflow executions](https://docs.medusajs.com/learn/fundamentals/workflows/store-executions), and an [AppCrates article](https://appcrates.pl/en/blog/medusa-js-na-produkcji-architektura-sklepu) on running Medusa in production, which names the same risk: "One payment, two servers, potentially two orders." These results are consistent with that documented limit, so we count this failure as a documented limit of in-memory locking, not as a new bug. Shortfall's list of covered failures now includes it for two servers with in-memory locking. Both stopped records are published with these extra runs in [benchmark/agent/stopped](benchmark/agent/stopped/).
 
 ## 9. Limits
 
@@ -334,6 +371,7 @@ Medusa's in-memory lock only works inside one server. Medusa's knowledge base sa
 - **The agent sees the check names.** It knows which rules the checker tests, which hints at what to look for.
 - **Tests chosen after the fact, then ahead.** The statistics tests in section 5 were chosen after seeing the data. The tests of the follow-up experiments in section 6 were chosen before their trials ran.
 - **The whole-budget arm forces, it does not ask.** It tests what happens when the agent cannot stop early, not a prompt that asks it to keep going.
+- **One Oversold check can say pass when it should not.** In Oversold v0.1.1, `no_missing_orders` skips a cart when any checkout of that cart has an unknown outcome, and can still say pass. Shortfall counts every run with such a checkout as inconclusive for every check, never as a pass.
 - **False alarms on fixed copies were not tested.** We never ran the agent on a shop with the bugs fixed, so we don't know how often it would claim a bug that is not there.
 
 ## 10. What went wrong along the way

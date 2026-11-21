@@ -18,14 +18,29 @@ def backed(final: dict | None) -> bool:
     return bool(final) and (final.get("violation") or {}).get("result") == VIOLATION
 
 
+def first_predictions(records: list[dict]) -> list[dict]:
+    seen: set[int] = set()
+    out = []
+    for r in records:
+        if r.get("kind") == "prediction" and r["attempt"] not in seen:
+            seen.add(r["attempt"])
+            out.append(r)
+    return sorted(out, key=lambda r: r["attempt"])
+
+
+def claim_diagnosis(claim: dict) -> dict:
+    found = claim.get("diagnosis_after_results")
+    if isinstance(found, dict):
+        return {k: found[k] for k in ("file", "cause") if k in found}
+    return {k: claim[k] for k in ("file", "cause") if k in claim}
+
+
 def score_trial(root: Path, records: list[dict]) -> dict:
     cases = load_cases(Path(root) / "benchmark" / "cases")
     trial = next(r for r in records if r.get("kind") == "agent-trial")
     end = next((r for r in records if r.get("kind") == "agent-end"), None)
     run_id = trial["trial_id"]
-    preds = sorted(
-        (r for r in records if r.get("kind") == "prediction"), key=lambda r: r["attempt"]
-    )
+    preds = first_predictions(records)
     finals = {r["attempt_id"]: r for r in records if r.get("kind") == "final"}
     attempts = []
     expected_hits = expected_total = 0
@@ -90,18 +105,29 @@ def score_trial(root: Path, records: list[dict]) -> dict:
             why = "violation on plain Medusa"
         else:
             why = "no violation"
+        diagnosis = claim_diagnosis(c)
+        prediction = None if p is None else {"file": p.get("file"), "cause": p.get("cause")}
         claims.append(
             {
-                **c,
+                "attempt": c["attempt"],
                 "backed": why == "violation on plain Medusa",
                 "why": why,
-                "grades": {
-                    case_id: {
-                        k: v
-                        for k, v in grade(info.folder, c["file"], c.get("cause")).items()
-                        if k in ("file", "cause")
-                    }
-                    for case_id, info in sorted(cases.items())
+                "prediction": prediction,
+                "diagnosis_after_results": {
+                    **diagnosis,
+                    "same_as_prediction": prediction is not None
+                    and diagnosis.get("file") == prediction["file"]
+                    and diagnosis.get("cause") == prediction["cause"],
+                    "grades": {
+                        case_id: {
+                            k: v
+                            for k, v in grade(
+                                info.folder, diagnosis.get("file"), diagnosis.get("cause")
+                            ).items()
+                            if k in ("file", "cause")
+                        }
+                        for case_id, info in sorted(cases.items())
+                    },
                 },
             }
         )
@@ -147,6 +173,9 @@ def score_trial(root: Path, records: list[dict]) -> dict:
         "claims": claims if end and end.get("claims") is not None else None,
         "claims_backed": sum(1 for c in claims if c["backed"]),
         "claims_unbacked": sum(1 for c in claims if not c["backed"]),
+        "claim_diagnoses_changed": sum(
+            1 for c in claims if not c["diagnosis_after_results"]["same_as_prediction"]
+        ),
         "expected_check": {"hits": expected_hits, "of": expected_total},
         "manual_check": [n for a in attempts for n in a["manual_check"]],
         "tokens": {

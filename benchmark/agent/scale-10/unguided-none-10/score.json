@@ -33,6 +33,7 @@
  "claims": [],
  "claims_backed": 0,
  "claims_unbacked": 0,
+ "claim_diagnoses_changed": 0,
  "expected_check": {
   "hits": 0,
   "of": 1

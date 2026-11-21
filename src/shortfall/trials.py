@@ -11,6 +11,7 @@ import sys
 import tempfile
 import time
 from collections.abc import Callable
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -46,11 +47,101 @@ MODEL_TEXT = "model text: "
 ENTERPRISE = "enterprise: "
 HOLDS = (MODEL_TEXT, ENTERPRISE, HELD_NOTE)
 DASHES = re.compile("[\u2013\u2014]")
+NAME = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
+EXPORT_BASE = "benchmark"
+STAGE_SUFFIX = ".partial"
 QUOTE_WINDOW = 12
 
 
 class PlanError(ValueError):
     pass
+
+
+class ExportError(RuntimeError):
+    pass
+
+
+class Rejected(Exception):
+    def __init__(self, problems: list[str]):
+        super().__init__(problems[0] if problems else "rejected")
+        self.problems = problems
+
+
+def inside_benchmark(root: Path, path: Path) -> Path:
+    base = (Path(root) / EXPORT_BASE).resolve()
+    resolved = Path(path).resolve()
+    if resolved == base or base not in resolved.parents:
+        raise ExportError(f"{Path(path).name} is not inside the repo's {EXPORT_BASE}/ folder")
+    return Path(path)
+
+
+def plan_folder(root: Path, value, default: str) -> Path:
+    text = default if value is None else value
+    if not (isinstance(text, str) and text.strip()):
+        raise PlanError(f"an export folder must be a relative path inside {EXPORT_BASE}/")
+    rel = Path(text)
+    if rel.is_absolute() or ".." in rel.parts:
+        raise PlanError(f"an export folder must be a relative path inside {EXPORT_BASE}/: {text}")
+    try:
+        return inside_benchmark(root, Path(root) / rel)
+    except ExportError:
+        raise PlanError(f"an export folder must resolve inside {EXPORT_BASE}/: {text}") from None
+
+
+def stage_path(dest: Path) -> Path:
+    return dest.parent / f".{dest.name}{STAGE_SUFFIX}"
+
+
+def final_place(folder: Path) -> Path:
+    name = Path(folder).name
+    if name.startswith(".") and name.endswith(STAGE_SUFFIX) and len(name) > len(STAGE_SUFFIX) + 1:
+        return Path(folder).parent / name[1 : -len(STAGE_SUFFIX)]
+    return Path(folder)
+
+
+def remove_stage(root: Path, stage: Path) -> None:
+    if not (stage.exists() or stage.is_symlink()):
+        return
+    if stage.is_symlink() or not stage.is_dir() or final_place(stage) == stage:
+        raise ExportError(f"{stage.name} is not a staging folder, so it was left as it is")
+    inside_benchmark(root, stage)
+    shutil.rmtree(stage)
+
+
+@contextmanager
+def staged(root: Path, dest: Path):
+    root = Path(root)
+    dest = Path(dest)
+    if not NAME.fullmatch(dest.name):
+        raise ExportError(f"{dest.name} is not a plain trial name")
+    inside_benchmark(root, dest)
+    if dest.exists() or dest.is_symlink():
+        raise ExportError(f"{score.relative(root, dest)} already exists, nothing was replaced")
+    stage = stage_path(dest)
+    inside_benchmark(root, stage)
+    remove_stage(root, stage)
+    stage.mkdir(parents=True)
+    try:
+        yield stage
+    except BaseException:
+        remove_stage(root, stage)
+        raise
+    if dest.exists() or dest.is_symlink():
+        remove_stage(root, stage)
+        raise ExportError(f"{score.relative(root, dest)} already exists, nothing was replaced")
+    stage.rename(dest)
+
+
+def check_names(specs) -> None:
+    for spec in specs:
+        if not NAME.fullmatch(spec.id):
+            raise PlanError(f"trial {spec.id!r} must use lowercase letters, digits and dashes")
+
+
+def trial_number(value) -> int:
+    if type(value) is not int or value < 1:
+        raise PlanError(f"trial numbers and seeds must be whole numbers from 1, not {value!r}")
+    return value
 
 
 @dataclass(frozen=True)
@@ -105,7 +196,7 @@ def load_plan(root: Path, path: Path) -> Plan:
     if not isinstance(data, dict) or data.get("schema") != PLAN_SCHEMA:
         raise PlanError(f"a plan needs schema {PLAN_SCHEMA} or {PLAN_SCHEMA_V2}")
     name = data.get("name")
-    if not (isinstance(name, str) and re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name)):
+    if not (isinstance(name, str) and NAME.fullmatch(name)):
         raise PlanError("name must be kebab-case")
     if data.get("mode") not in ledger.TASK_MODES:
         raise PlanError(f"mode must be one of {', '.join(ledger.TASK_MODES)}")
@@ -142,7 +233,7 @@ def load_plan(root: Path, path: Path) -> Plan:
         oversold_pin=str(data.get("oversold_pin")),
         images={str(k): str(v) for k, v in (data.get("images") or {}).items()},
         order=order,
-        export_root=Path(root) / data.get("export_root", f"benchmark/agent/{name}"),
+        export_root=plan_folder(root, data.get("export_root"), f"benchmark/agent/{name}"),
         script=None if script is None else Path(root) / script,
     )
     if plan.trials_per_cell < 1:
@@ -158,16 +249,20 @@ def load_plan(root: Path, path: Path) -> Plan:
         for k in range(1, plan.trials_per_cell + 1)
         for cell in plan.cells
     ]
+    check_names(plan.specs)
     return plan
 
 
 def load_plan_v2(root: Path, path: Path, data: dict) -> Plan:
     name = data.get("name")
-    if not (isinstance(name, str) and re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name)):
+    if not (isinstance(name, str) and NAME.fullmatch(name)):
         raise PlanError("name must be kebab-case")
     specs: dict[str, TrialSpec] = {}
     for arm in data.get("arms") or []:
         kind = arm.get("kind")
+        named = kind == "agent" or "name" in arm
+        if named and not (isinstance(arm.get("name"), str) and NAME.fullmatch(arm["name"])):
+            raise PlanError("an arm's name must use lowercase letters, digits and dashes")
         if kind == "agent":
             if arm.get("prompts") not in agent.VARIANTS:
                 raise PlanError(f"prompts must be one of {', '.join(agent.VARIANTS)}")
@@ -183,10 +278,11 @@ def load_plan_v2(root: Path, path: Path, data: dict) -> Plan:
             if model is not None and model not in known_models():
                 raise PlanError(f"an arm's model is one of {', '.join(known_models())}")
             for n in arm.get("trials") or []:
+                n = trial_number(n)
                 spec = TrialSpec(
                     f"{arm['name']}-{n}",
                     cell,
-                    int(n),
+                    n,
                     "agent",
                     arm["prompts"],
                     str(arm.get("prompt_hash")),
@@ -199,9 +295,10 @@ def load_plan_v2(root: Path, path: Path, data: dict) -> Plan:
             if arm.get("method") not in ("grid", "random"):
                 raise PlanError("a baseline arm's method is grid or random")
             for n in arm.get("seeds") or []:
+                n = trial_number(n)
                 spec_id = f"{arm['method']}-seed-{n}"
                 specs[spec_id] = TrialSpec(
-                    spec_id, None, int(n), "baseline", "", None, arm["method"], "unguided"
+                    spec_id, None, n, "baseline", "", None, arm["method"], "unguided"
                 )
         else:
             raise PlanError("an arm's kind is agent or baseline")
@@ -228,11 +325,11 @@ def load_plan_v2(root: Path, path: Path, data: dict) -> Plan:
         oversold_pin=str(data.get("oversold_pin")),
         images={str(k): str(v) for k, v in (data.get("images") or {}).items()},
         order="explicit",
-        export_root=Path(root) / data.get("export_root", f"benchmark/agent/{name}"),
+        export_root=plan_folder(root, data.get("export_root"), f"benchmark/agent/{name}"),
         script=None if script is None else Path(root) / script,
         specs=[specs[i] for i in order],
         baseline_runs=int(data.get("baseline_runs", 300)),
-        baseline_root=Path(root) / data.get("baseline_root", "benchmark/baselines/2004ed5"),
+        baseline_root=plan_folder(root, data.get("baseline_root"), "benchmark/baselines/2004ed5"),
         report=[str(x) for x in data.get("report") or []],
     )
     if plan.dollar_cap > TOTAL_DOLLAR_CAP:
@@ -241,6 +338,7 @@ def load_plan_v2(root: Path, path: Path, data: dict) -> Plan:
         raise PlanError("a scripted plan needs a script")
     if not plan.images:
         raise PlanError("a plan lists the image ids it expects")
+    check_names(plan.specs)
     return plan
 
 
@@ -651,6 +749,7 @@ def scan_export(
     allow: list[dict] | None = None,
     file_rules: list[dict] | None = None,
     allowed_out: list[dict] | None = None,
+    place: Path | None = None,
 ) -> list[str]:
     problems = []
     if words is None:
@@ -671,7 +770,7 @@ def scan_export(
             problems.append(f"{rel}: holds a raw dash character")
         flat = decoded(text)
         low = flat.lower()
-        where = score.relative(root, path)
+        where = score.relative(root, (place / rel) if place else path)
         for word in words or []:
             for m in re.finditer(re.escape(word), low):
                 if quotes.quoted(flat, m.start(), m.end(), word):
@@ -758,9 +857,18 @@ def export_trial(
     records: list[dict],
     exporter: Callable[[str, Path], None],
 ) -> dict:
+    with staged(root, dest) as stage:
+        return build_trial(root, run_id, stage, records, exporter)
+
+
+def build_trial(
+    root: Path,
+    run_id: str,
+    dest: Path,
+    records: list[dict],
+    exporter: Callable[[str, Path], None],
+) -> dict:
     root = Path(root)
-    if dest.exists():
-        shutil.rmtree(dest)
     (dest / "runs").mkdir(parents=True)
     folders = []
     for r in records:
@@ -817,9 +925,14 @@ def export_trial(
 def export_baseline(
     root: Path, run_id: str, dest: Path, records: list[dict], exporter: Callable[[str, Path], None]
 ) -> dict:
+    with staged(root, dest) as stage:
+        return build_baseline(root, run_id, stage, records, exporter)
+
+
+def build_baseline(
+    root: Path, run_id: str, dest: Path, records: list[dict], exporter: Callable[[str, Path], None]
+) -> dict:
     root = Path(root)
-    if dest.exists():
-        shutil.rmtree(dest)
     (dest / "runs").mkdir(parents=True)
     folders = []
     for r in records:
@@ -895,6 +1008,7 @@ class Runner:
             allow_entries(self.root),
             word_file_rules(self.root),
             self.last_allowed,
+            final_place(folder),
         )
 
     def default_model(self, spec: TrialSpec | None = None) -> agent.Model:
@@ -1079,23 +1193,27 @@ class Runner:
         review: list[dict] | None = None,
     ) -> int:
         dest = self.dest(spec)
+        bad: list[str] = []
         try:
-            if spec.kind == "baseline":
-                export_baseline(self.root, run_id, dest, mine, self.exporter)
-            else:
-                export_trial(self.root, run_id, dest, mine, self.exporter)
-            if review:
-                self.write_review(spec, dest, run_id, review)
-            bad = self.check_export(dest)
+            with staged(self.root, dest) as stage:
+                if spec.kind == "baseline":
+                    build_baseline(self.root, run_id, stage, mine, self.exporter)
+                else:
+                    build_trial(self.root, run_id, stage, mine, self.exporter)
+                if review:
+                    self.write_review(spec, stage, run_id, review)
+                found = self.check_export(stage)
+                if found:
+                    raise Rejected(found)
+        except Rejected as err:
+            bad = err.problems
         except (RuntimeError, OSError) as err:
-            bad = [f"export: {err}"]
+            bad = [f"export: {score.clean(str(err), self.root)}"]
         held = [b for b in bad if b.startswith(HOLDS)]
         if bad and len(held) == len(bad):
-            shutil.rmtree(dest, ignore_errors=True)
             self.state.add("trial-held", trial=spec.id, run_id=run_id, notes=held)
             return self.stop(stop) if stop else 0
         if bad:
-            shutil.rmtree(dest, ignore_errors=True)
             self.state.add("trial-export-failed", trial=spec.id, run_id=run_id, problems=bad)
             return self.stop(f"trial {spec.id} failed its export checks: {bad[0]}")
         if spec.kind == "agent":

@@ -1197,3 +1197,27 @@ def test_baseline_summaries_from_the_committed_ledgers():
         "random-seed-9": (298, 54, 2, 7, 0, 0),
         "random-seed-10": (300, 52, 3, 6, 1, 0),
     }
+
+
+def missing_orders_pass_with_unknown_completion() -> dict:
+    h = hist("pass")
+    h["verdicts"] = [
+        *(v for v in h["verdicts"] if v["check"] != "no_missing_orders"),
+        {"check": "no_missing_orders", "version": 1, "result": "pass", "reason": "cart skipped"},
+    ]
+    h["operations"] = unknown_call("pass")["operations"]
+    return h
+
+
+def test_an_unknown_completion_never_counts_as_a_no_missing_orders_pass(tmp_path, candidates):
+    h = missing_orders_pass_with_unknown_completion()
+    assert all(v["result"] == "pass" for v in h["verdicts"])
+    c = score.counts([h])
+    assert c["no_missing_orders"] == {"fail": 0, "pass": 0, "inconclusive": 1}
+    assert all(row["pass"] == 0 for row in c.values())
+    assert score.inconclusive_runs([h]) == 1
+    path = candidates["s2-solo-c2-short-together"]
+    q = queues(path, [missing_orders_pass_with_unknown_completion() for _ in range(10)])
+    entry, stop, _, _ = attempt(tmp_path, path, q)
+    assert entry["violation"]["result"] == "inconclusive"
+    assert sum(entry["inconclusive"].values()) == entry["violation"]["runs"] == 10

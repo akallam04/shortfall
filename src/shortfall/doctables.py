@@ -499,10 +499,38 @@ def results_located(d: Data) -> list[list]:
                 continue
             files = sum(1 for h in hits if h["file_grade"] == answers.ACCEPTED)
             if arm.startswith("nomenu"):
-                causes = "not asked"
+                causes = named = "not asked"
             else:
                 causes = of(sum(1 for h in hits if h["cause_grade"] == answers.ACCEPTED), len(hits))
-            rows.append([None, c, len(hits), of(files, len(hits)), causes])
+                both = sum(
+                    1
+                    for h in hits
+                    if h["file_grade"] == answers.ACCEPTED and h["cause_grade"] == answers.ACCEPTED
+                )
+                named = of(both, len(hits))
+            rows.append([None, c, len(hits), of(files, len(hits)), causes, named])
+    return rows
+
+
+def results_fixed(d: Data) -> list[list]:
+    folders = [d.cases[c].folder for c in CASES]
+    file, _ = answers.most_common(folders, "files")
+    cause, _ = answers.most_common(folders, "causes")
+    rows = []
+    for label, guess in (
+        (f"Always `{Path(file).name}`, no cause", (file, None)),
+        (f"Always the most common cause, `{cause}`, no file", (None, cause)),
+        (f"Always `{Path(file).name}` and `{cause}`", (file, cause)),
+    ):
+        g = answers.fixed_guess(folders, *guess)
+        rows.append(
+            [
+                label,
+                of(g["file"], g["cases"]),
+                of(g["cause"], g["cases"]),
+                of(g["located"], g["cases"]),
+            ]
+        )
     return rows
 
 
@@ -826,6 +854,127 @@ def follow_hand_rows(d: Data) -> list[list]:
     return rows
 
 
+CASE_FIX = {
+    "medusa-17032-last-unit": "pr-17420",
+    "medusa-17032-counter": "pr-17420",
+    "medusa-16502-lines": "pr-16961",
+}
+REVIEW_COVER = {
+    "covered by #17032, rare in this scenario": ("pr-17420", "redis"),
+    "covered by #16502 and #17032 together": ("pr-16961-redis",),
+    "documented limit of in-memory locking": ("redis",),
+}
+
+
+def published_ledgers(d: Data) -> list[Path]:
+    roots = [d.root / AGENT, d.root / BASELINES]
+    return sorted({p.parent for r in roots for p in r.rglob("ledger.jsonl")})
+
+
+def reference_controls(d: Data) -> tuple[list[int], list[int]]:
+    fix, redis = [0, 0], [0, 0]
+    for c in CASES:
+        rule = d.rules[c]
+        for folder in sorted((d.root / CASE_ROOT / c / "results").glob("*/*")):
+            hs = histories(folder)
+            if not hs:
+                continue
+            target = hs[0].get("target") or {}
+            variant = (target.get("variant") or {}).get("name")
+            f, n, _ = fails(folder)
+            if variant == CASE_FIX[c]:
+                fix[0] += n
+                fix[1] += f[rule]
+            elif target.get("locking") == "redis" and CASE_FIX[c] == "pr-17420":
+                redis[0] += n
+                redis[1] += f[rule]
+    return fix, redis
+
+
+def scoring_controls(d: Data) -> tuple[list[int], list[int]]:
+    credited, other = [0, 0], [0, 0]
+    for folder in published_ledgers(d):
+        for r in ledger.load(folder / "ledger.jsonl"):
+            if r.get("kind") != "final":
+                continue
+            cases = (r.get("reproduced") or {}).get("cases") or {}
+            for control in r.get("controls") or []:
+                names = control.get("cases") or []
+                fl = control.get("fails") or {}
+                won = [c for c in names if cases.get(c) == score.REPRODUCED]
+                bucket = credited if won else other
+                bucket[0] += control.get("runs") or 0
+                bucket[1] += max((fl.get(d.rules[c], 0) for c in won or names), default=0)
+    return credited, other
+
+
+def review_files(d: Data) -> list[Path]:
+    roots = [d.root / AGENT, d.root / BASELINES]
+    return sorted(p for r in roots for p in r.rglob("review/review.json"))
+
+
+def review_items(path: Path) -> list[tuple[str, list[str], dict]]:
+    review = json.loads(path.read_text(encoding="utf-8"))
+    if review.get("attempts"):
+        return [(a["label"], a["rules"], a["sets"]) for a in review["attempts"]]
+    rule = review.get("check") or HAND_RULE
+    return [(review["label"], [rule], review["sets"])]
+
+
+def review_controls(d: Data) -> list[int]:
+    out = [0, 0]
+    for path in review_files(d):
+        for label, rules, sets in review_items(path):
+            for name in REVIEW_COVER[label]:
+                if name not in sets:
+                    continue
+                f, n, _ = fails(path.parent / sets[name]["folder"])
+                out[0] += n
+                out[1] += max(f.get(rule, 0) for rule in rules)
+    return out
+
+
+def negative_rows(d: Data) -> list[list]:
+    fix, redis = reference_controls(d)
+    credited, other = scoring_controls(d)
+    reviewed = review_controls(d)
+    covered = [fix, redis, credited, reviewed]
+    rows = [
+        ["The three reference scenarios on their fix build", *fix],
+        ["The two #17032 reference scenarios with Redis locking", *redis],
+        ["Fix-build controls of tests credited as reproduced", *credited],
+        ["Review runs with the fix or locking the review found covers the failure", *reviewed],
+        ["All of the above", sum(x[0] for x in covered), sum(x[1] for x in covered)],
+        ["For contrast: fix-build controls of tests not credited to that fix", *other],
+    ]
+    return rows
+
+
+HAND_RULE = "one_order_per_cart"
+
+
+def pooled_rows(d: Data) -> list[list]:
+    rows = []
+    for label, names in (
+        ("Two servers, in-memory lock, run again as is", ("as-is", "as-is-600")),
+        ("Redis locking", ("redis",)),
+        ("Every checkout on one server", ("one-server", "server-1")),
+    ):
+        runs = failed = 0
+        for path in review_files(d):
+            for item_label, _rules, sets in review_items(path):
+                if item_label != "documented limit of in-memory locking":
+                    continue
+                for name in names:
+                    if name in sets:
+                        f, n, _ = fails(path.parent / sets[name]["folder"])
+                        runs += n
+                        failed += f[HAND_RULE]
+        bound = f"{1 - 0.05 ** (1 / runs):.2%}" if runs and not failed else "does not apply"
+        rows.append([label, runs, failed, bound])
+    return rows
+
+
 CHECKED = {
     "README.md": {
         "| Test scenario | Public bug | Rule broken on plain Medusa |": readme_cases,
@@ -845,6 +994,9 @@ CHECKED = {
         "| Arm | Trials | Median runs used |": follow_costs,
         "| Arm | Test | Compared with |": follow_test_rows,
         "| Held trial | Test | Runs |": follow_hand_rows,
+        "| Fixed guess, no AI |": results_fixed,
+        "| Fix build or Redis run |": negative_rows,
+        "| Setting, pooled over every review |": pooled_rows,
     },
     "benchmark/README.md": {
         "| Case | Set | no_oversell 2 |": sets_2004ed5,
@@ -852,7 +1004,7 @@ CHECKED = {
         "| Case | Version | Set | Locking |": sets_a35d162,
         "| Case | 2.21.2 | 2.19.0 | 2.22.0 |": reproduced_a35d162,
         "| Case | Version | Oversold | Set |": sets_earlier,
-        "| Fixed guess | File accepted | Cause accepted | Located |": fixed_guesses,
+        "| Fixed guess | File accepted | Cause accepted |": fixed_guesses,
         "| Trial | Candidates reached | Runs used |": baseline_rows,
         "| Trial | Check | Plain Medusa | pr-16961 with Redis locking |": seed_reviews,
     },

@@ -521,9 +521,10 @@ def test_claims_are_checked_before_finish_takes_effect(root):
     assert "at most 5 claims" in out[8]
     assert all(o.endswith("Call finish again with valid claims.") for o in out[5:9])
     records = ledger.load(score.ledger_path_for(root))
+    diagnosis = {"file": "packages/core/src/cart.ts", "cause": "per-line-check"}
     assert records[-1]["claims"] == [
-        {"attempt": 2, "file": "packages/core/src/cart.ts", "cause": "per-line-check"},
-        {"attempt": 1, "file": "packages/core/src/cart.ts", "cause": "per-line-check"},
+        {"attempt": 2, "diagnosis_after_results": diagnosis},
+        {"attempt": 1, "diagnosis_after_results": diagnosis},
     ]
 
 
@@ -596,7 +597,9 @@ def test_a_nomenu_trial_runs_without_causes(root):
     assert records[0]["prompts"] == "v2-nomenu"
     pred = next(r for r in records if r["kind"] == "prediction")
     assert pred["cause"] is None and pred["refused"] is None
-    assert records[-1]["claims"] == [{"attempt": 1, "file": "packages/core/src/cart.ts"}]
+    assert records[-1]["claims"] == [
+        {"attempt": 1, "diagnosis_after_results": {"file": "packages/core/src/cart.ts"}}
+    ]
     final = next(r for r in records if r["kind"] == "final")
     graded = final["located"]["cases"]["medusa-17032-last-unit"]
     assert graded["cause"] == "not named"

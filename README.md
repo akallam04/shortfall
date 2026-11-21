@@ -1,6 +1,6 @@
 # Shortfall
 
-Shortfall looks for a kind of bug in online shop software that only shows up when several customers act at the same moment. It uses an AI model to guess where these bugs hide, and it tests every guess on a private copy of the shop running on one computer.
+Shortfall looks for race-condition and inventory-consistency bugs in online shop software: bugs where the shop sells stock it does not have, or its stock counts stop adding up, often only when several customers act at the same moment. It uses an AI model to guess where these bugs hide, and it tests every guess on a private copy of the shop running on one computer. Two of its three test scenarios are races between shoppers. The third, two cart lines that use the same stock ([#16502](https://github.com/medusajs/medusa/issues/16502)), needs no concurrency: one checkout is enough.
 
 ## What we found
 
@@ -117,6 +117,9 @@ The rest are in [RESULTS.md, section 9](RESULTS.md#9-limits).
 - **Control**: the same scenario run on a fix build, to show that a failure comes from that bug and not from something else.
 - **Fix build**: a copy of Medusa with the public fix for one bug applied.
 - **Baseline**: a simple method that uses no AI, measured the same way as the agent so its results can be compared.
+- **Reproduced**: a test broke a rule on plain Medusa, and the same test passed on the fix build for that bug.
+- **Backed by a violation**: a claim whose test broke a rule on plain Medusa. A claim not backed by a violation is a false alarm.
+- **Named the right place**: the source file and the cause the agent gave with a test, before it ran, both match the answer key.
 
 ## How it uses Oversold
 

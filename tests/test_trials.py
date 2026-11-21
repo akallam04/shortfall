@@ -78,7 +78,7 @@ def write_plan(root: Path, **over) -> Path:
         "oversold_pin": pin,
         "images": {"2.22.0": IMAGE, "2.22.0-pr-17420": IMAGE},
         "order": "round-robin",
-        "export_root": "runs/export",
+        "export_root": "benchmark/export",
         **over,
     }
     path = root / "plan.yaml"
@@ -140,7 +140,7 @@ def test_a_plan_runs_exports_and_skips_finished_trials(root):
     path = write_plan(root)
     assert make_runner(root, path).run() == 0
     for trial_id in ("17032-none-1", "17032-history-1"):
-        dest = root / "runs" / "export" / trial_id
+        dest = root / "benchmark" / "export" / trial_id
         names = {p.name for p in dest.iterdir()}
         assert {"runs", "attempts", "ledger.jsonl", "transcript.jsonl.gz"} <= names
         assert {"attempts.json", "claims.json", "score.json"} <= names
@@ -301,7 +301,7 @@ def test_a_billing_error_stops_the_plan_and_keeps_the_trial_local(root):
     assert make_runner(root, path, model=lambda: Broke(replies=[])).run() == 1
     assert kinds(root)[-2:] == ["trial-kept-local", "plan-stop"]
     assert "billing error" in events(root)[-1]["reason"]
-    assert not (root / "runs" / "export").exists()
+    assert not (root / "benchmark" / "export").exists()
 
 
 def test_a_failed_scan_removes_the_export_and_stops(root):
@@ -309,7 +309,7 @@ def test_a_failed_scan_removes_the_export_and_stops(root):
     runner = make_runner(root, path, scanner=lambda folder: ["score.json: holds a local path"])
     assert runner.run() == 1
     assert kinds(root)[-2:] == ["trial-export-failed", "plan-stop"]
-    assert not (root / "runs" / "export" / "17032-none-1").exists()
+    assert not (root / "benchmark" / "export" / "17032-none-1").exists()
 
 
 def test_a_manual_check_trial_is_held_and_the_plan_goes_on(root, monkeypatch):
@@ -328,7 +328,7 @@ def test_a_manual_check_trial_is_held_and_the_plan_goes_on(root, monkeypatch):
     monkeypatch.setattr(trials, "score_trial", held_first)
     assert make_runner(root, write_plan(root)).run() == 0
     assert kinds(root).count("trial-held") == 1 and kinds(root).count("trial-exported") == 1
-    assert not (root / "runs" / "export" / "17032-none-1").exists()
+    assert not (root / "benchmark" / "export" / "17032-none-1").exists()
 
 
 def test_claims_and_expected_checks_are_scored(root):
@@ -353,7 +353,20 @@ def test_claims_and_expected_checks_are_scored(root):
     s = score_trial(root, ledger.load(score.ledger_path_for(root)))
     assert (s["claims_backed"], s["claims_unbacked"]) == (1, 1)
     assert [c["why"] for c in s["claims"]] == ["violation on plain Medusa", "refused"]
-    assert s["claims"][0]["grades"]["medusa-17032-last-unit"]["cause"] == "accepted"
+    first = s["claims"][0]
+    assert (
+        first["diagnosis_after_results"]["grades"]["medusa-17032-last-unit"]["cause"] == "accepted"
+    )
+    assert first["prediction"] == {
+        "file": "packages/core/src/cart.ts",
+        "cause": "process-local-lock",
+    }
+    assert first["diagnosis_after_results"]["same_as_prediction"] is True
+    assert s["claim_diagnoses_changed"] == sum(
+        1
+        for c in s["claims"]
+        if c["prediction"] != {k: c["diagnosis_after_results"][k] for k in ("file", "cause")}
+    )
     assert s["expected_check"] == {"hits": 1, "of": 1}
     assert s["cases"]["medusa-17032-last-unit"]["reproduced"] is True
     assert s["cases"]["medusa-17032-last-unit"]["runs_to_first"] == 33
@@ -484,7 +497,7 @@ def test_a_trial_with_only_model_text_matches_is_held_and_the_plan_goes_on(root)
     held = [e for e in events(root) if e["event"] == "trial-held"]
     assert held[0]["notes"] == ["model text: claims.json: 'zebrafish' in: my zebrafish idea."]
     assert kinds(root).count("trial-exported") == 1 and kinds(root)[-1] == "plan-done"
-    assert not (root / "runs" / "export" / "17032-none-1").exists()
+    assert not (root / "benchmark" / "export" / "17032-none-1").exists()
 
 
 def test_a_path_match_still_stops_the_plan(root):
@@ -538,7 +551,7 @@ def test_an_enterprise_hold_keeps_the_plan_going(root):
 
     assert make_runner(root, write_plan(root), scanner=scanner).run() == 0
     assert kinds(root).count("trial-held") == 1 and kinds(root)[-1] == "plan-done"
-    assert (root / "runs" / "export" / "prompts.sha256").exists()
+    assert (root / "benchmark" / "export" / "prompts.sha256").exists()
 
 
 def write_v2_plan(root: Path, **over) -> Path:
@@ -552,8 +565,8 @@ def write_v2_plan(root: Path, **over) -> Path:
         "dollar_cap": 3,
         "oversold_pin": pin,
         "images": {"2.22.0": IMAGE},
-        "export_root": "runs/export",
-        "baseline_root": "runs/baselines",
+        "export_root": "benchmark/export",
+        "baseline_root": "benchmark/baselines",
         "arms": [
             {
                 "name": "unguided-none",
@@ -633,9 +646,9 @@ def test_a_v2_plan_runs_agent_arms_with_their_prompts(root, monkeypatch):
         if e["event"] == "trial-exported"
     ]
     assert exported == ["nomenu-none-1", "unguided-none-4", "unguided-none-5"]
-    assert (root / "runs" / "export" / "prompts.sha256").exists()
-    assert (root / "runs" / "export" / "prompts-v2-nomenu.sha256").exists()
-    first = json.loads((root / "runs" / "export" / "nomenu-none-1" / "score.json").read_text())
+    assert (root / "benchmark" / "export" / "prompts.sha256").exists()
+    assert (root / "benchmark" / "export" / "prompts-v2-nomenu.sha256").exists()
+    first = json.loads((root / "benchmark" / "export" / "nomenu-none-1" / "score.json").read_text())
     assert first["claims_backed"] == 1
 
 
@@ -678,7 +691,7 @@ def test_a_baseline_trial_exports_in_the_baseline_layout(root):
     def exporter(folder, dest):
         dest.mkdir(parents=True)
 
-    dest = root / "runs" / "baselines" / "grid-seed-1"
+    dest = root / "benchmark" / "baselines" / "grid-seed-1"
     summary = trials.export_baseline(root, stamp, dest, records, exporter)
     assert summary["runs_used"] == 298 and summary["cases_reproduced"] == 3
     assert len(list((dest / "candidates").iterdir())) == 32
@@ -748,7 +761,7 @@ def test_a_held_trial_whose_failure_shows_on_plain_only_is_published_with_review
     ev = events(root)
     assert ev[-1]["event"] == "trial-exported" and ev[-1]["note"] == "published after review"
     review = json.loads(
-        (root / "runs" / "export" / "17032-none-1" / "review" / "review.json").read_text()
+        (root / "benchmark" / "export" / "17032-none-1" / "review" / "review.json").read_text()
     )
     sets = review["attempts"][0]["sets"]
     assert sets["plain"]["runs"] == 60 and sets["plain"]["fails"]["no_oversell"] == 60
@@ -764,7 +777,7 @@ def test_a_failure_with_redis_in_a_review_stops_everything(root, monkeypatch):
     runner.oversold = FailsOn("redis-control", ledger_path=score.ledger_path_for(root))
     assert runner.review_held() == 1
     assert [e["event"] for e in events(root)][-2:] == ["review-stop", "plan-stop"]
-    assert not (root / "runs" / "export" / "17032-none-1").exists()
+    assert not (root / "benchmark" / "export" / "17032-none-1").exists()
 
 
 def held_final(root):
@@ -787,7 +800,7 @@ def test_a_hold_only_for_one_order_per_cart_on_two_in_memory_servers_waits_for_h
     assert ev["event"] == "review-by-hand" and ev["reason"] == trials.HAND_REVIEW
     assert ev["attempts"] == [held_final(root)["attempt_id"]]
     assert runner.oversold.calls == []
-    assert not (root / "runs" / "export" / "17032-none-1").exists()
+    assert not (root / "benchmark" / "export" / "17032-none-1").exists()
     assert make_runner(root, path).review_held() == 0
     assert kinds(root).count("review-by-hand") == 1
 
@@ -974,7 +987,7 @@ def test_a_review_can_carry_its_own_label(root, monkeypatch):
     runner.review_attempt = labelled
     assert runner.review_held() == 0
     review = json.loads(
-        (root / "runs" / "export" / "17032-none-1" / "review" / "review.json").read_text()
+        (root / "benchmark" / "export" / "17032-none-1" / "review" / "review.json").read_text()
     )
     assert review["label"] == "covered by two issues together"
 
@@ -1033,6 +1046,175 @@ def test_a_budget_arm_runs_through_the_plan_and_records_its_gate(root):
     ]
     runner = make_runner(root, path, model=lambda: ScriptedModel(replies=list(gated)))
     assert runner.run() == 0
-    s = json.loads((root / "runs" / "export" / "budget-none-1" / "score.json").read_text())
+    s = json.loads((root / "benchmark" / "export" / "budget-none-1" / "score.json").read_text())
     assert s["end_reason"] == "finished by the model" and s["gate_answers"] == 2
-    assert (root / "runs" / "export" / "prompts-v2-budget.sha256").exists()
+    assert (root / "benchmark" / "export" / "prompts-v2-budget.sha256").exists()
+
+
+def test_an_absolute_export_folder_is_refused(root, tmp_path):
+    outside = str(tmp_path / "outside")
+    with pytest.raises(trials.PlanError):
+        trials.load_plan(root, write_plan(root, export_root=outside))
+    with pytest.raises(trials.PlanError):
+        trials.load_plan(root, write_v2_plan(root, baseline_root=outside))
+
+
+def test_an_export_folder_with_dot_dot_or_outside_benchmark_is_refused(root):
+    for value in ("benchmark/../runs", "benchmark/agent/../../outside", "../outside", "runs/x"):
+        with pytest.raises(trials.PlanError):
+            trials.load_plan(root, write_plan(root, export_root=value))
+    with pytest.raises(trials.PlanError):
+        trials.load_plan(root, write_plan(root, export_root="benchmark"))
+
+
+def test_an_export_folder_through_a_symlink_is_refused(root, tmp_path):
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
+    (outside / "keep.txt").write_text("keep")
+    (root / "benchmark" / "agent").mkdir(parents=True, exist_ok=True)
+    (root / "benchmark" / "agent" / "link").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(trials.PlanError):
+        trials.load_plan(root, write_plan(root, export_root="benchmark/agent/link"))
+    assert (outside / "keep.txt").read_text() == "keep"
+
+
+def test_arm_and_trial_names_must_be_plain(root):
+    arms = yaml.safe_load(write_v2_plan(root).read_text())["arms"]
+    for bad in ("../x", "Unguided-none", "a_b", "a/b", ""):
+        changed = [dict(arms[0], name=bad), *arms[1:]]
+        order = [f"{bad}-4", "nomenu-none-1", f"{bad}-5", "grid-seed-4"]
+        with pytest.raises(trials.PlanError):
+            trials.load_plan(root, write_v2_plan(root, arms=changed, order=order))
+    changed = [dict(arms[0], trials=["4/../x", 5]), *arms[1:]]
+    with pytest.raises(trials.PlanError):
+        trials.load_plan(root, write_v2_plan(root, arms=changed))
+    with pytest.raises(trials.PlanError):
+        trials.load_plan(root, write_plan(root, cells=[{"issue": "1/..", "feedback": "none"}]))
+
+
+def test_a_symlinked_trial_folder_is_never_replaced_or_followed(root, tmp_path):
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
+    (outside / "keep.txt").write_text("keep")
+    export = root / "benchmark" / "export"
+    export.mkdir(parents=True)
+    (export / "17032-none-1").symlink_to(outside, target_is_directory=True)
+    path = write_plan(root, cells=[{"issue": 17032, "feedback": "none"}])
+    assert make_runner(root, path).run() == 1
+    assert (outside / "keep.txt").read_text() == "keep"
+    assert sorted(p.name for p in outside.iterdir()) == ["keep.txt"]
+    assert (export / "17032-none-1").is_symlink()
+    failed = [e for e in events(root) if e["event"] == "trial-export-failed"]
+    assert failed[0]["trial"] == "17032-none-1"
+    assert not list(export.glob(".*" + trials.STAGE_SUFFIX))
+
+
+def test_an_existing_trial_folder_is_never_replaced(root):
+    dest = root / "benchmark" / "export" / "17032-none-1"
+    dest.mkdir(parents=True)
+    (dest / "keep.txt").write_text("keep")
+    path = write_plan(root, cells=[{"issue": 17032, "feedback": "none"}])
+    assert make_runner(root, path).run() == 1
+    assert sorted(p.name for p in dest.iterdir()) == ["keep.txt"]
+    failed = [e for e in events(root) if e["event"] == "trial-export-failed"]
+    assert "already exists, nothing was replaced" in failed[0]["problems"][0]
+    assert not list(dest.parent.glob(".*" + trials.STAGE_SUFFIX))
+
+
+def test_an_export_is_built_beside_its_folder_and_renamed_into_place(root):
+    seen = []
+    path = write_plan(root, cells=[{"issue": 17032, "feedback": "none"}])
+    runner = make_runner(root, path)
+    real = runner.exporter
+
+    def exporter(folder, dest):
+        seen.append(dest)
+        real(folder, dest)
+
+    runner.exporter = exporter
+    assert runner.run() == 0
+    dest = root / "benchmark" / "export" / "17032-none-1"
+    assert seen and all(p.parent.parent == trials.stage_path(dest) for p in seen)
+    assert (dest / "score.json").exists() and not trials.stage_path(dest).exists()
+
+
+def test_a_rejected_export_leaves_no_folder_and_no_staging(root):
+    path = write_plan(root, cells=[{"issue": 17032, "feedback": "none"}])
+    runner = make_runner(root, path, scanner=lambda folder: ["score.json: holds a local path"])
+    assert runner.run() == 1
+    export = root / "benchmark" / "export"
+    assert not (export / "17032-none-1").exists()
+    assert not list(export.glob(".*" + trials.STAGE_SUFFIX))
+
+
+def test_a_scan_of_a_staged_export_reports_final_paths(root):
+    dest = root / "benchmark" / "agent" / "plan-x" / "trial-1"
+    assert trials.final_place(trials.stage_path(dest)) == dest
+    assert trials.final_place(dest) == dest
+    stage = trials.stage_path(dest)
+    stage.mkdir(parents=True)
+    (root / "runs" / "trials").mkdir(parents=True, exist_ok=True)
+    (stage / "claims.json").write_text('{"summary": "the word secretword here"}')
+    found = trials.scan_export(root, stage, trials.Quotes(root), None, ["secretword"], place=dest)
+    assert any(p.startswith("claims.json") for p in found)
+    allow = [
+        {
+            "path": "benchmark/agent/plan-x/trial-1/claims.json",
+            "sentence": "the word secretword here",
+        }
+    ]
+    found = trials.scan_export(
+        root, stage, trials.Quotes(root), None, ["secretword"], allow, place=dest
+    )
+    assert not any("secretword" in p for p in found)
+
+
+def test_a_staging_folder_outside_benchmark_or_a_symlink_is_never_removed(root, tmp_path):
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
+    (outside / "keep.txt").write_text("keep")
+    export = root / "benchmark" / "export"
+    export.mkdir(parents=True)
+    stage = trials.stage_path(export / "17032-none-1")
+    stage.symlink_to(outside, target_is_directory=True)
+    with pytest.raises(trials.ExportError):
+        trials.remove_stage(root, stage)
+    with pytest.raises(trials.ExportError):
+        trials.remove_stage(root, outside)
+    assert (outside / "keep.txt").read_text() == "keep"
+
+
+def test_a_claim_never_replaces_the_prediction_or_the_named_place_grades(root):
+    replies = full_script()[:-1] + [
+        reply(
+            call(
+                "finish",
+                summary="x",
+                claims=[
+                    {
+                        "attempt": 2,
+                        "file": "packages/modules/inventory/src/services/inventory-module.ts",
+                        "cause": "stale-counter-write",
+                    }
+                ],
+            )
+        )
+    ]
+    t, _, _ = trial(root, replies)
+    t.run()
+    records = ledger.load(score.ledger_path_for(root))
+    before = score_trial(root, records)
+    case = before["cases"]["medusa-17032-last-unit"]
+    prediction = next(r for r in records if r.get("kind") == "prediction" and r["attempt"] == 2)
+    assert (case["file"], case["cause"]) == (prediction["file"], prediction["cause"])
+    claim = before["claims"][0]
+    assert claim["prediction"] == {"file": prediction["file"], "cause": prediction["cause"]}
+    assert claim["diagnosis_after_results"]["file"].endswith("inventory-module.ts")
+    assert claim["diagnosis_after_results"]["grades"]["medusa-17032-last-unit"]["file"] == (
+        "accepted"
+    )
+    late = dict(prediction, file="packages/modules/inventory/src/services/inventory-module.ts")
+    after = score_trial(root, [*records, late])
+    assert after["cases"] == before["cases"]
+    assert after["attempt_list"] == before["attempt_list"]
+    assert after["claims"][0]["prediction"] == claim["prediction"]
