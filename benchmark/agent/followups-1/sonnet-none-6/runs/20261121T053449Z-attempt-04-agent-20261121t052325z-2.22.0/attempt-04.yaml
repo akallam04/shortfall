@@ -1,0 +1,37 @@
+schema: oversold.scenario/v1
+name: attempt-04-agent-20261121t052325z
+description: Many carts for the shared WIDGET item are completed at once with ample
+  stock.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 1000
+carts:
+  a:
+    server: 1
+    count: 20
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  b:
+    server: 2
+    count: 20
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+race:
+- id: a-completes
+  server: 1
+  do: complete
+  cart: a
+- id: b-completes
+  server: 2
+  do: complete
+  cart: b
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 4

@@ -1,0 +1,41 @@
+schema: oversold.scenario/v1
+name: attempt-05-agent-20261121t083207z
+description: Two carts each want the single SOLO unit, and stock is lowered to zero
+  after the carts are prepared, to see whether completion still reserves against the
+  stale location.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  SOLO: 1
+stock_before_race:
+  SOLO: 0
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 20
+seed: 41

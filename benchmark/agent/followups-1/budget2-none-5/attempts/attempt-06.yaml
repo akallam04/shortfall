@@ -1,0 +1,38 @@
+schema: oversold.scenario/v1
+name: attempt-06-agent-20261121t062205z
+description: Two carts with stock for both are completed concurrently on two servers,
+  checking each order is linked to its cart.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  SOLO: 2
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 2
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 5
+faults: []
+runs: 20
+seed: 23

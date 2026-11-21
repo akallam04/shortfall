@@ -1,0 +1,28 @@
+schema: oversold.scenario/v1
+name: attempt-06-agent-20261121t081532z
+description: Cart built with ample stock, then stock is reduced below the cart quantity
+  before completion.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+stock_before_race:
+  WIDGET: 1
+carts:
+  a:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 5
+race:
+- id: c1
+  server: 1
+  do: complete
+  cart: a
+timing:
+  release: sequential
+faults: []
+runs: 3
+seed: 6

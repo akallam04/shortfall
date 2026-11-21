@@ -1,0 +1,33 @@
+schema: oversold.scenario/v1
+name: attempt-08-agent-20261121t083207z
+description: One cart completed from both servers at once with ample stock, to test
+  whether the process-local cart lock allows two orders.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: alice-on-one
+  server: 1
+  do: complete
+  cart: alice
+- id: alice-on-two
+  server: 2
+  do: complete
+  cart: alice
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 5
+faults: []
+runs: 50
+seed: 71

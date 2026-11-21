@@ -1,0 +1,39 @@
+schema: oversold.scenario/v1
+name: attempt-05-agent-20261121t045431z
+description: Several carts reserve WIDGET units at once across two servers, testing
+  that the reserved counter matches the reservation rows.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    count: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  bob:
+    server: 2
+    count: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+runs: 30
+seed: 41

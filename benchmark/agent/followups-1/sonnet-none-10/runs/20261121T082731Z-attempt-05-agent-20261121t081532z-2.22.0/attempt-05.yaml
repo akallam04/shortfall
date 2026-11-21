@@ -1,0 +1,41 @@
+schema: oversold.scenario/v1
+name: attempt-05-agent-20261121t081532z
+description: One cart is completed five times at once on a single server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  a:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 2
+race:
+- id: c1
+  server: 1
+  do: complete
+  cart: a
+- id: c2
+  server: 1
+  do: complete
+  cart: a
+- id: c3
+  server: 1
+  do: complete
+  cart: a
+- id: c4
+  server: 1
+  do: complete
+  cart: a
+- id: c5
+  server: 1
+  do: complete
+  cart: a
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 5

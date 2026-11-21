@@ -1,0 +1,37 @@
+schema: oversold.scenario/v1
+name: attempt-10-agent-20261121t074841z
+description: Piece and twopack carts share the WIDGET level and complete together
+  on one server to vary reservation sizes during concurrent counter writes.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+carts:
+  pieces:
+    server: 1
+    count: 4
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  packs:
+    server: 1
+    count: 3
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+race:
+- id: piece-complete
+  server: 1
+  do: complete
+  cart: pieces
+- id: pack-complete
+  server: 1
+  do: complete
+  cart: packs
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 2
+runs: 30
+seed: 43

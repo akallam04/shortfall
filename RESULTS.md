@@ -10,6 +10,7 @@ This page explains what Shortfall found, in plain words. Every table here is reb
 - The agent stopped early, after a median of 33 to 43 of its 300 runs, so it rarely went on to look for the third scenario.
 - With its test results shown, the agent did worse in these trials, but the gap could be chance. Hiding its list of likely causes did not hurt on the two two-shoppers scenarios, and no gap was clear either way.
 - One agent try cost under 2 US cents and took about 4 minutes. Ten tries per method is still a small sample.
+- **Follow-up experiments, with the tests chosen first.** Not allowed to stop early, the agent found all three scenarios in 7 of 10 tries. The bigger model Claude Sonnet 5.5 found all three in 9 of 10, at about 40 US cents a try. Both beat the earlier 3 of 10, but neither gap passed the test we set in advance, so either could still be chance.
 
 ## 2. The question
 
@@ -170,7 +171,108 @@ Agent against agent, also chosen after seeing the data: Fisher's exact test, two
 | No cause list | medusa-16502-lines | 3 of 10 | 0 of 10 | 0.21 |
 | No cause list | All three in one trial | 3 of 10 | 0 of 10 | 0.21 |
 
-## 6. Guided trials, briefly (open-book)
+## 6. Follow-up experiments: the whole budget and a bigger model
+
+The first results raised two questions, and we ran one experiment for each. This time the tests were chosen before any trial ran: they were written into the [plan file](benchmark/agent/plans/followups-1.yaml) and pushed first. Data: [benchmark/agent/followups-1](benchmark/agent/followups-1/).
+
+- **Did the agent miss scenarios only because it stopped early?** Claude Haiku 5.5 ran the same task as before, on the same prompt except for one line, but it could not end a trial while more than 60 of its 300 runs were left. When it tried, it got one fixed line telling it to keep testing. We call that line a gate answer.
+- **Does a bigger model stop early less often, or find more?** Claude Sonnet 5.5 ran the same task on the same prompt as the Haiku agent with no feedback, with nothing changed.
+
+Both arms ran 10 unguided trials with no feedback, each with at most 300 runs, 30 attempts, 100 turns and $1. Each arm is compared with Haiku 5.5 on prompt v2 with no feedback, the "Agent, no feedback" column in section 4, and with the grid.
+
+**The first whole-budget arm was replaced after 3 trials.** In its first version, every gate answer used up one of the 100 turns. In 2 of its 3 trials the agent kept replying without a new test, waiting for run results that this mode never shows, and reached the 100-turn cap after 119 and 129 runs. So that arm could not tell whether stopping early was the problem. We closed it and replaced it before a 4th trial. In the new version the gate answer says that run results never come in this mode, gate answers do not use up turns, and a trial ends after 15 gate answers. The new arm has the same tests as the old one, pushed before its first trial. The 3 closed trials are published and shown below, without tests.
+
+### What the follow-up arms found
+
+Each cell says in how many trials the scenario was reproduced, and the median runs to its first reproduction, counted as in section 4. The closed arm's cells are out of its 3 trials.
+
+| Test scenario | Haiku 5.5 on v2 | Haiku 5.5, whole budget | Sonnet 5.5 | Grid | Haiku 5.5, first gate, closed |
+|---|---|---|---|---|---|
+| medusa-17032-last-unit | 7 of 10, median 33 | 10 of 10, median 38 | 9 of 10, median 71 | 10 of 10, median 58.5 | 3 of 3, median 33 |
+| medusa-17032-counter | 7 of 10, median 33 | 10 of 10, median 33 | 9 of 10, median 71 | 10 of 10, median 33 | 3 of 3, median 33 |
+| medusa-16502-lines | 3 of 10, median over 300 | 7 of 10, median 178.5 | 9 of 10, median 23 | 10 of 10, median 54 | 1 of 3, median over 300 |
+| All three in one trial | 3 of 10 | 7 of 10 | 9 of 10 | 10 of 10 | 1 of 3 |
+
+### Cost and time per trial
+
+"Called finish" means the agent ended the trial itself and listed its claims. A gate answer is the fixed line sent when the agent tried to stop with more than 60 runs left.
+
+| Arm | Trials | Median runs used | Median turns | Median attempts | Called finish | Claims backed | Claims unbacked | Median dollars | Total dollars | Median minutes | Median gate answers |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Haiku 5.5, whole budget | 10 | 238 | 44.5 | 12 | 1 | 3 | 0 | 0.0388 | 0.3796 | 23.4 | 14 |
+| Sonnet 5.5 | 10 | 119 | 22.5 | 5 | 10 | 8 | 1 | 0.3937 | 4.3275 | 16 | none |
+| Haiku 5.5, first gate, closed | 3 | 129 | 100 | 7 | 0 | 0 | 0 | 0.0579 | 0.1736 | 16.4 | 72 |
+
+### The tests, chosen before the trials
+
+Fisher's exact test, two-sided, on how many of 10 trials reproduced each scenario. Each arm has one primary test, which answers its question: trials that reproduced all three scenarios, against Haiku 5.5 on v2. Its 7 secondary tests are read only as a guide. Holm's correction is applied over each arm's 8 tests, and a test passes when its corrected p-value is under 0.05.
+
+| Arm | Test | Compared with | Scenario | Arm found it | Other method found it | p-value | After Holm, the arm's 8 |
+|---|---|---|---|---|---|---|---|
+| Haiku 5.5, whole budget | primary | Haiku 5.5 on v2 | All three in one trial | 7 of 10 | 3 of 10 | 0.18 | 1 |
+| Haiku 5.5, whole budget | secondary | Haiku 5.5 on v2 | medusa-17032-last-unit | 10 of 10 | 7 of 10 | 0.21 | 1 |
+| Haiku 5.5, whole budget | secondary | Haiku 5.5 on v2 | medusa-17032-counter | 10 of 10 | 7 of 10 | 0.21 | 1 |
+| Haiku 5.5, whole budget | secondary | Haiku 5.5 on v2 | medusa-16502-lines | 7 of 10 | 3 of 10 | 0.18 | 1 |
+| Haiku 5.5, whole budget | secondary | Grid | medusa-17032-last-unit | 10 of 10 | 10 of 10 | 1 | 1 |
+| Haiku 5.5, whole budget | secondary | Grid | medusa-17032-counter | 10 of 10 | 10 of 10 | 1 | 1 |
+| Haiku 5.5, whole budget | secondary | Grid | medusa-16502-lines | 7 of 10 | 10 of 10 | 0.21 | 1 |
+| Haiku 5.5, whole budget | secondary | Grid | All three in one trial | 7 of 10 | 10 of 10 | 0.21 | 1 |
+| Sonnet 5.5 | primary | Haiku 5.5 on v2 | All three in one trial | 9 of 10 | 3 of 10 | 0.02 | 0.16 |
+| Sonnet 5.5 | secondary | Haiku 5.5 on v2 | medusa-17032-last-unit | 9 of 10 | 7 of 10 | 0.58 | 1 |
+| Sonnet 5.5 | secondary | Haiku 5.5 on v2 | medusa-17032-counter | 9 of 10 | 7 of 10 | 0.58 | 1 |
+| Sonnet 5.5 | secondary | Haiku 5.5 on v2 | medusa-16502-lines | 9 of 10 | 3 of 10 | 0.02 | 0.16 |
+| Sonnet 5.5 | secondary | Grid | medusa-17032-last-unit | 9 of 10 | 10 of 10 | 1 | 1 |
+| Sonnet 5.5 | secondary | Grid | medusa-17032-counter | 9 of 10 | 10 of 10 | 1 | 1 |
+| Sonnet 5.5 | secondary | Grid | medusa-16502-lines | 9 of 10 | 10 of 10 | 1 | 1 |
+| Sonnet 5.5 | secondary | Grid | All three in one trial | 9 of 10 | 10 of 10 | 1 | 1 |
+
+### What it means
+
+- **Not allowed to stop early, Haiku found all three scenarios in 7 of 10 trials,** against 3 of 10 when it could stop early. It used a median of 238 runs instead of 43, reproduced both race scenarios in all 10 trials instead of 7, and the two-lines scenario in 7 instead of 3. Its primary test did not pass, so this gap could be chance.
+- **Sonnet 5.5 found all three in 9 of 10 trials,** against 3 of 10 for Haiku. Its primary test had a p-value of 0.02 before the correction and 0.16 after it, so by the bar we set in advance this gap could also be chance.
+- **Sonnet still stopped early, but tried two cart lines early.** It called finish in every trial, after a median of 119 runs. It usually reproduced the two-lines scenario first, at a median of 23 runs, and the two race scenarios later, at a median of 71.
+- **Sonnet cost about ten times as much.** A median of $0.39 per trial, against $0.04 for Haiku not allowed to stop early.
+- **The one Sonnet trial that found nothing never ran a test.** In all 7 of its submissions it put the scenario inside the text of its hypothesis instead of in its own field, so each was refused. It then called finish. It counts as a miss.
+- **Haiku seldom ended a trial itself when it had to use the budget.** It called finish in 1 of 10 trials. 5 trials ended after 15 gate answers, and in 4 it stopped replying with a tool call once 60 or fewer runs were left.
+- **The grid still reproduced all three scenarios in 10 of 10 trials.** No test against the grid passed for either arm.
+
+### Held trials, reviewed by hand
+
+Three trials of this plan were held after it ended: sonnet-none-3, sonnet-none-5 and budget2-none-6. In each, one cart became two orders in a run with two servers and the default in-memory lock, the failure described in [One cart, two orders](#one-cart-two-orders). The plan file sets out how such a trial is reviewed. That rule was added during the plan, after two of these trials were held and before any of them was reviewed: each held test is run 100 times as is, 100 times with Redis locking, 100 times with all completions sent to server 1, and 100 times with the #17032 fix for information only. If one cart never becomes two orders with Redis locking or on server 1, the trial is labeled "documented limit of in-memory locking" and published with its review runs.
+
+| Held trial | Test | Runs | Runs where one cart became two orders |
+|---|---|---|---|
+| sonnet-none-3, attempt 3 | The trial's own runs | 13 | 1 |
+| sonnet-none-3, attempt 3 | Run again as is | 100 | 7 |
+| sonnet-none-3, attempt 3 | Redis locking | 100 | 0 |
+| sonnet-none-3, attempt 3 | All completions sent to server 1 | 100 | 0 |
+| sonnet-none-3, attempt 3 | With the #17032 fix, pull request #17420 | 100 | 9 |
+| sonnet-none-5, attempt 3 | The trial's own runs | 13 | 1 |
+| sonnet-none-5, attempt 3 | Run again as is | 100 | 2 |
+| sonnet-none-5, attempt 3 | Redis locking | 100 | 0 |
+| sonnet-none-5, attempt 3 | All completions sent to server 1 | 100 | 0 |
+| sonnet-none-5, attempt 3 | With the #17032 fix, pull request #17420 | 100 | 4 |
+| budget2-none-6, attempt 4 | The trial's own runs | 13 | 1 |
+| budget2-none-6, attempt 4 | Run again as is | 100 | 1 |
+| budget2-none-6, attempt 4 | Redis locking | 100 | 0 |
+| budget2-none-6, attempt 4 | All completions sent to server 1 | 100 | 0 |
+| budget2-none-6, attempt 4 | With the #17032 fix, pull request #17420 | 100 | 0 |
+| budget2-none-6, attempt 7 | The trial's own runs | 13 | 2 |
+| budget2-none-6, attempt 7 | Run again as is | 100 | 4 |
+| budget2-none-6, attempt 7 | Redis locking | 100 | 0 |
+| budget2-none-6, attempt 7 | All completions sent to server 1 | 100 | 0 |
+| budget2-none-6, attempt 7 | With the #17032 fix, pull request #17420 | 100 | 2 |
+| budget2-none-6, attempt 12 | The trial's own runs | 20 | 1 |
+| budget2-none-6, attempt 12 | Run again as is | 100 | 6 |
+| budget2-none-6, attempt 12 | Redis locking | 100 | 0 |
+| budget2-none-6, attempt 12 | All completions sent to server 1 | 100 | 0 |
+| budget2-none-6, attempt 12 | With the #17032 fix, pull request #17420 | 100 | 2 |
+
+No check failed with Redis locking or with all completions sent to server 1, in any of the five held tests. One cart became two orders only with two servers and the in-memory lock: in 1 to 7 of 100 runs as is, and in 0 to 9 of 100 with the #17032 fix, a set run for information only. The reserved-count check also failed in 28 to 83 of 100 runs as is. That is the #17032 counter scenario, which these trials had already reproduced, and it never failed with Redis locking, on server 1 or with the fix. As before, a checkout that lost the race was refused with an HTTP 400 error, almost always "Cannot create multiple links between 'order' and 'payment'", and with Redis locking or on server 1 no checkout was refused.
+
+So all three trials are labeled "documented limit of in-memory locking", published with their review runs in their `review/` folders, and counted. The review runs do not change any trial's score.
+
+## 7. Guided trials, briefly (open-book)
 
 In a guided trial the agent was handed the public bug report first, like an open-book test. These trials show whether it can turn a report into a working test. They are not a fair race against the simple methods, which got no report. Data: [prompt v1](benchmark/agent/guided-haiku-1/), [prompt v2](benchmark/agent/guided-haiku-2/).
 
@@ -185,13 +287,14 @@ In a guided trial the agent was handed the public bug report first, like an open
 
 Given the #17032 report, the agent first tested with one server, while that bug needs two. Prompt v2 told it to match the conditions in the report, and with feedback it then reproduced the bug in 2 of 3 trials.
 
-## 7. Safety
+## 8. Safety
 
 - **Local copies only.** Every run used a private copy of the shop on one computer, never a live shop or anyone's server.
 - **The stop rule.** If any run breaks a rule that no public bug report covers, everything stops, the result stays on that computer, and nothing about it is published. A new bug would be reported privately to the Medusa team first.
 - **Held results.** When a failure could not be pinned on one known bug, the trial was held and its test was run again many times before it was published.
 - **The stop at random seed 10.** After the plan, an automatic re-check stopped it at random seed 10. That test had both bugs at once, and the re-check tried one fix at a time, so the failure stayed. With the #16502 fix and Redis locking applied together, the failure was gone in all 60 runs, for seed 10 and for seed 4, which had the same kind of test. Redis locking is Medusa's shared lock for several servers, which avoids the #17032 bug. Both trials are published with these extra runs.
 - **Two trials stopped by the safety rule.** In both, one cart became two orders in a single run. Both trials were rerun from scratch, and the reruns are the ones counted. The next part explains what the extra runs showed.
+- **Three trials held for the same failure.** After that failure was added to the list of covered failures, three trials of the follow-up plan were held for it instead of stopped, and reviewed by hand with 100 runs per test. The results are in [section 6](#held-trials-reviewed-by-hand).
 
 ### One cart, two orders
 
@@ -218,19 +321,22 @@ Two agent trials were stopped by the safety rule: nomenu-none-8 in the 10-trial 
 
 Medusa's in-memory lock only works inside one server. Medusa's knowledge base says the in-memory locking provider is meant for development only. The sources are Medusa's [Redis locking docs](https://docs.medusajs.com/resources/infrastructure-modules/locking/redis), the [knowledge base page](https://medusajs.com/kb/tickets-and-bookings/bookings-and-reservations), Medusa's docs on [storing workflow executions](https://docs.medusajs.com/learn/fundamentals/workflows/store-executions), and an [AppCrates article](https://appcrates.pl/en/blog/medusa-js-na-produkcji-architektura-sklepu) on running Medusa in production, which names the same risk: "One payment, two servers, potentially two orders." So we count this failure as a documented limit of in-memory locking, not as a new bug. Shortfall's list of covered failures now includes it for two servers with in-memory locking. Both stopped records are published with these extra runs in [benchmark/agent/stopped](benchmark/agent/stopped/).
 
-## 8. Limits
+## 9. Limits
 
-- **Small samples.** 10 trials per method.
+- **Small samples.** 10 trials per method, and 3 for the closed whole-budget arm.
 - **One shop engine.** Only Medusa, and only version 2.22.0.
 - **Few bugs.** 3 scenarios from 2 root causes.
-- **What the model may know.** The model may know general facts about this kind of bug. The two bug reports were opened on 2026-08-20 and 2026-09-27, after the model's training cutoff of June 2026.
+- **What the models may know.** The models may know general facts about this kind of bug. The two bug reports were opened on 2026-08-20 and 2026-09-27, after the training cutoff of both models, June 2026.
+- **Two models, run a little differently.** Claude Sonnet 5.5 cannot turn its extended thinking off, so it ran at its lowest thinking setting. Claude Haiku 5.5 ran without it.
+- **The follow-up arms ran later.** They ran in a later session than the Haiku arm they are compared with, on the same images, Oversold commit, scoring and prompt v2.
 - **An informed baseline.** The grid was designed knowing what these bugs look like.
 - **The prompt was tuned once.** Prompt v2 was written after seeing the v1 results.
 - **The agent sees the check names.** It knows which rules the checker tests, which hints at what to look for.
-- **Tests chosen after the fact.** The statistics tests in section 5 were chosen after seeing the data.
+- **Tests chosen after the fact, then ahead.** The statistics tests in section 5 were chosen after seeing the data. The tests of the follow-up experiments in section 6 were chosen before their trials ran.
+- **The whole-budget arm forces, it does not ask.** It tests what happens when the agent cannot stop early, not a prompt that asks it to keep going.
 - **False alarms on fixed copies were not tested.** We never ran the agent on a shop with the bugs fixed, so we don't know how often it would claim a bug that is not there.
 
-## 9. What went wrong along the way
+## 10. What went wrong along the way
 
 - Given the #17032 report, the first prompt let the agent test with one server, while that bug needs two.
 - In the first prompt, the agent with no feedback could see how many runs were left, which hinted whether a test had found something.
@@ -242,8 +348,11 @@ Medusa's in-memory lock only works inside one server. Medusa's knowledge base sa
 - The plan's status count once showed 39 of 38 trials, because one trial was counted twice.
 - A results page once described one trial's test wrongly, and another linked to the wrong folder.
 - The baseline runner's log was buffered, so the plan log showed trial starts late.
+- The first whole-budget arm counted every gate answer as a turn, so in 2 of its 3 trials the agent used up its 100 turns while it waited for run results. It was closed after 3 trials and replaced.
+- In one Sonnet trial, sonnet-none-4, the model put its scenario inside the text of its hypothesis in all 7 submissions, so each was refused for having no scenario and the trial ran no tests. It counts as a miss.
+- The follow-up plan was interrupted once, when the terminal session that started it closed and took the engine with it. The trial that was running, sonnet-none-4, was rerun from scratch. After the engine restarted, Oversold's database was not running, and the next try of that trial stopped with a misleading error about image inputs. It was rerun from scratch again. Plans now start through a launcher that brings the database up first, and every trial first checks that the database answers.
 
-## 10. How to check or rerun it
+## 11. How to check or rerun it
 
 **Check the numbers.** This needs no Docker, no API key and no money:
 
@@ -261,10 +370,16 @@ make test
 
 `make test` runs every test, including the numbers check, which rebuilds every results table on this page and in the READMEs from the saved data. To recheck every saved run's verdict with Oversold, follow [How to recheck](benchmark/README.md#how-to-recheck).
 
-**Rerun it.** This needs the local Docker engine described in the [README](README.md#how-to-run). A grid or random trial takes about 34 to 43 minutes and costs nothing. An agent trial needs an Anthropic API key in `.env`, takes about 4 minutes and has cost under 2 US cents each. The 30 unguided agent trials above cost $0.2173 in total. The plan that ran trials 4 to 10 is [benchmark/agent/plans/scale-10.yaml](benchmark/agent/plans/scale-10.yaml):
+**Rerun it.** This needs the local Docker engine described in the [README](README.md#how-to-run). A grid or random trial takes about 34 to 43 minutes and costs nothing. An agent trial needs an Anthropic API key in `.env`. A Haiku trial on prompt v2 takes about 4 minutes and has cost under 2 US cents each. The 30 unguided agent trials in section 4 cost $0.2173 in total. The plan that ran trials 4 to 10 is [benchmark/agent/plans/scale-10.yaml](benchmark/agent/plans/scale-10.yaml):
 
 ```bash
 .venv/bin/python -m shortfall.trials benchmark/agent/plans/scale-10.yaml --raise-dollar-cap 3
+```
+
+The follow-up experiments in section 6 are [benchmark/agent/plans/followups-1.yaml](benchmark/agent/plans/followups-1.yaml). Its 23 published trials cost $4.8807. The launcher runs it in the background:
+
+```bash
+.venv/bin/python -m shortfall.launch benchmark/agent/plans/followups-1.yaml --raise-dollar-cap 8
 ```
 
 **Where the raw data lives.** Every run is saved with its full history:

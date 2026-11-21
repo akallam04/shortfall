@@ -1,0 +1,30 @@
+schema: oversold.scenario/v1
+name: attempt-02-agent-20261121t065003z-pr-16961-control
+description: Variant control of attempt-02-agent-20261121t065003z on Medusa 2.22.0
+  with pr-16961. One cart has two lines sharing the WIDGET item that together exceed
+  stock.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+  variant: pr-16961
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 6
+    - sku: OVS-TWOPACK
+      qty: 3
+race:
+- id: c1
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: together
+faults: []
+runs: 5
+seed: 1

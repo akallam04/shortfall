@@ -1,0 +1,34 @@
+schema: oversold.scenario/v1
+name: attempt-03-agent-20261121t054140z
+description: Two carts each need the single SOLO unit, completed one after another
+  on one server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  SOLO: 1
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+timing:
+  release: sequential
+runs: 10
+seed: 3

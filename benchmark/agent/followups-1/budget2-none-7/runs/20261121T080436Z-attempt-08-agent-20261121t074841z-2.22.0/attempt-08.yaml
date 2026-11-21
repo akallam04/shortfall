@@ -1,0 +1,30 @@
+schema: oversold.scenario/v1
+name: attempt-08-agent-20261121t074841z
+description: One cart is completed at the same time from both servers, with extra
+  completions to widen the window.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: alice-from-1
+  server: 1
+  do: complete
+  cart: alice
+- id: alice-from-2
+  server: 2
+  do: complete
+  cart: alice
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+runs: 30
+seed: 37

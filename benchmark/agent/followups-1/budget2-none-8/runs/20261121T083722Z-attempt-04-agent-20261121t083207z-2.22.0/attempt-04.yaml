@@ -1,0 +1,33 @@
+schema: oversold.scenario/v1
+name: attempt-04-agent-20261121t083207z
+description: One cart completed twice at once on a single server, to check whether
+  two orders can be created for the same cart.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: alice-first
+  server: 1
+  do: complete
+  cart: alice
+- id: alice-second
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 20
+seed: 31

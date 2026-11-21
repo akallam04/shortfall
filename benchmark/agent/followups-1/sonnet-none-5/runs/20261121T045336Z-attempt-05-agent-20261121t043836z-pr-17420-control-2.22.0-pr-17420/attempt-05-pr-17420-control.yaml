@@ -1,0 +1,30 @@
+schema: oversold.scenario/v1
+name: attempt-05-agent-20261121t043836z-pr-17420-control
+description: Variant control of attempt-05-agent-20261121t043836z on Medusa 2.22.0
+  with pr-17420. One cart mixes the two WIDGET variants and needs 11 units against
+  stock of 10.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+  variant: pr-17420
+stock:
+  WIDGET: 10
+carts:
+  mixed:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 3
+    - sku: OVS-PIECE
+      qty: 5
+race:
+- id: mixed-completes
+  server: 1
+  do: complete
+  cart: mixed
+timing:
+  release: sequential
+faults: []
+runs: 3
+seed: 5

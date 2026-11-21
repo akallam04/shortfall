@@ -1,0 +1,53 @@
+schema: oversold.scenario/v1
+name: attempt-09-agent-20261121t062205z
+description: Four carts each pass a per-line stock check alone but together need more
+  WIDGET units than stocked.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 2
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 2
+  carol:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 2
+  dave:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 2
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+- id: carol-completes
+  server: 1
+  do: complete
+  cart: carol
+- id: dave-completes
+  server: 1
+  do: complete
+  cart: dave
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 37

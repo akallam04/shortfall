@@ -1,0 +1,32 @@
+schema: oversold.scenario/v1
+name: attempt-03-agent-20261121t052325z-pr-17420-control
+description: Variant control of attempt-03-agent-20261121t052325z on Medusa 2.22.0
+  with pr-17420. The same cart is completed simultaneously on both servers.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-17420
+stock:
+  WIDGET: 100
+carts:
+  c:
+    server: 1
+    count: 10
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: on-one
+  server: 1
+  do: complete
+  cart: c
+- id: on-two
+  server: 2
+  do: complete
+  cart: c
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 3

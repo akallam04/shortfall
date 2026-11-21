@@ -1,0 +1,47 @@
+{
+ "summary": "Submitted 5 scenarios. I never saw results for any of them, so none of the findings is confirmed by a run.\n\n1. Per-line stock check: `ensureInventoryLevels` in the inventory module validates each reservation line separately against available quantity. It never adds up lines that share an inventory item, such as OVS-PIECE and OVS-TWOPACK on WIDGET. Attempt 1 tests this with one cart that needs 12 units against stock of 10.\n2. Process-local lock: the reservation step takes its lock through the default in-memory locking provider. This only serialises requests inside one server process. Attempts 2, 3 and 4 race completions across two servers.\n3. Duplicate completion: attempt 5 completes one cart six times at once on a single server. I did not find a concrete weakness in the code for this, so I am not claiming it.\n\nI am claiming attempt 1 (per-line-check, from the visible code) and attempt 4 (process-local-lock). Attempt 2 is a second two-server lock scenario but I'm leaving it out of the claims.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  },
+  {
+   "attempt": 4,
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "process-local-lock",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}

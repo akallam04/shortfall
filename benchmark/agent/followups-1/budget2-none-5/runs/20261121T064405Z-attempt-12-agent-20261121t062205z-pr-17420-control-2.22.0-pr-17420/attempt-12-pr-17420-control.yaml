@@ -1,0 +1,67 @@
+schema: oversold.scenario/v1
+name: attempt-12-agent-20261121t062205z-pr-17420-control
+description: Variant control of attempt-12-agent-20261121t062205z on Medusa 2.22.0
+  with pr-17420. Five single-SOLO carts with enough stock complete concurrently across
+  two servers, checking every ok order is saved and linked to its cart.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-17420
+stock:
+  SOLO: 5
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 2
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  carol:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  dave:
+    server: 2
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  erin:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+- id: carol-completes
+  server: 1
+  do: complete
+  cart: carol
+- id: dave-completes
+  server: 2
+  do: complete
+  cart: dave
+- id: erin-completes
+  server: 1
+  do: complete
+  cart: erin
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 5
+faults: []
+runs: 20
+seed: 47

@@ -1,0 +1,36 @@
+schema: oversold.scenario/v1
+name: attempt-07-agent-20261121t070817z-pr-17420-control
+description: Variant control of attempt-07-agent-20261121t070817z on Medusa 2.22.0
+  with pr-17420. Four single-piece carts sharing the WIDGET level are completed concurrently
+  across two servers, stressing the reserved counter write.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-17420
+stock:
+  WIDGET: 10
+carts:
+  piece:
+    server: 1
+    count: 4
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: piece-on-1
+  server: 1
+  do: complete
+  cart: piece
+- id: piece-on-2
+  server: 2
+  do: complete
+  cart: piece
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 4
+faults: []
+runs: 20
+seed: 13

@@ -1,0 +1,114 @@
+{
+ "trial_id": "agent-20261121T043836Z",
+ "task_mode": "unguided",
+ "feedback": "none",
+ "issue": null,
+ "model": "claude-sonnet-5-5",
+ "sdk_version": "2.9.0",
+ "knowledge_cutoff": "Jun 2026",
+ "caps": {
+  "runs": 300,
+  "attempts": 30,
+  "turns": 100,
+  "dollars": 1.0
+ },
+ "end_reason": "finished by the model",
+ "finished_by_model": true,
+ "turns": 26,
+ "attempts": 5,
+ "refused": 0,
+ "oversold_runs": 132,
+ "cases": {
+  "medusa-16502-lines": {
+   "reproduced": true,
+   "attempt": 1,
+   "runs_to_first": 23,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  },
+  "medusa-17032-counter": {
+   "reproduced": true,
+   "attempt": 2,
+   "runs_to_first": 66,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  },
+  "medusa-17032-last-unit": {
+   "reproduced": true,
+   "attempt": 2,
+   "runs_to_first": 66,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  }
+ },
+ "cases_reproduced": 3,
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  },
+  {
+   "attempt": 2,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ],
+ "claims_backed": 2,
+ "claims_unbacked": 0,
+ "expected_check": {
+  "hits": 4,
+  "of": 5
+ },
+ "manual_check": [
+  "one_order_per_cart failed 1 of 13 runs on plain Medusa 2.22.0: violation, cause not isolated, no case's scoring control clears it"
+ ],
+ "tokens": {
+  "input": 80362,
+  "cache_write": 143566,
+  "cache_read": 467559,
+  "output": 7245
+ },
+ "model_calls": 26,
+ "largest_prompt_tokens": 42317,
+ "dollars": 0.638845,
+ "wall_seconds": 952
+}

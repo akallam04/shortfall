@@ -1,0 +1,29 @@
+schema: oversold.scenario/v1
+name: attempt-02-agent-20261120t062050z
+description: The same cart is completed on both servers at once.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  SOLO: 1
+carts:
+  shared:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: complete-on-1
+  server: 1
+  do: complete
+  cart: shared
+- id: complete-on-2
+  server: 2
+  do: complete
+  cart: shared
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 2

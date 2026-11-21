@@ -1,0 +1,93 @@
+{
+ "trial_id": "agent-20261121T025734Z",
+ "task_mode": "unguided",
+ "feedback": "none",
+ "issue": null,
+ "model": "claude-sonnet-5-5",
+ "sdk_version": "2.9.0",
+ "knowledge_cutoff": "Jun 2026",
+ "caps": {
+  "runs": 300,
+  "attempts": 30,
+  "turns": 100,
+  "dollars": 1.0
+ },
+ "end_reason": "finished by the model",
+ "finished_by_model": true,
+ "turns": 19,
+ "attempts": 5,
+ "refused": 0,
+ "oversold_runs": 109,
+ "cases": {
+  "medusa-16502-lines": {
+   "reproduced": true,
+   "attempt": 1,
+   "runs_to_first": 23,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  },
+  "medusa-17032-counter": {
+   "reproduced": true,
+   "attempt": 2,
+   "runs_to_first": 66,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  },
+  "medusa-17032-last-unit": {
+   "reproduced": true,
+   "attempt": 2,
+   "runs_to_first": 66,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  }
+ },
+ "cases_reproduced": 3,
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ],
+ "claims_backed": 1,
+ "claims_unbacked": 0,
+ "expected_check": {
+  "hits": 3,
+  "of": 5
+ },
+ "manual_check": [
+  "one_order_per_cart failed 1 of 13 runs on plain Medusa 2.22.0: violation, cause not isolated, no case's scoring control clears it"
+ ],
+ "tokens": {
+  "input": 30444,
+  "cache_write": 65912,
+  "cache_read": 261394,
+  "output": 5048
+ },
+ "model_calls": 19,
+ "largest_prompt_tokens": 29020,
+ "dollars": 0.302287,
+ "wall_seconds": 845
+}

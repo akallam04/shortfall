@@ -1,0 +1,38 @@
+schema: oversold.scenario/v1
+name: attempt-09-agent-20261121t054140z
+description: Two carts each hold two lines on the WIDGET item, completed together
+  from two servers, to check that lines sharing an item are added up.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  left:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 3
+    - sku: OVS-TWOPACK
+      qty: 2
+  right:
+    server: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 3
+    - sku: OVS-TWOPACK
+      qty: 2
+race:
+- id: left-completes
+  server: 1
+  do: complete
+  cart: left
+- id: right-completes
+  server: 2
+  do: complete
+  cart: right
+timing:
+  release: together
+runs: 20
+seed: 71

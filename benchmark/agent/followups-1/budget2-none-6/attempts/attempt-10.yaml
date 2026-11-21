@@ -1,0 +1,35 @@
+schema: oversold.scenario/v1
+name: attempt-10-agent-20261121t070817z
+description: Two carts race for one SOLO unit; the losing completion may save an order
+  before its reservation fails.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  SOLO: 1
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+timing:
+  release: together
+faults: []
+runs: 20
+seed: 23

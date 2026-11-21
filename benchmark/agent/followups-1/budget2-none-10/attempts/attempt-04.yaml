@@ -1,0 +1,38 @@
+schema: oversold.scenario/v1
+name: attempt-04-agent-20261121t090043z
+description: Two carts with separate stock complete together on one server to check
+  each order keeps its cart link.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 20
+seed: 13

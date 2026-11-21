@@ -1,0 +1,34 @@
+schema: oversold.scenario/v1
+name: attempt-10-agent-20261121t054140z
+description: Two WIDGET carts completed one after another from two servers, to check
+  reservations against the stocked level.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  first:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 3
+  second:
+    server: 2
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 3
+race:
+- id: first-completes
+  server: 1
+  do: complete
+  cart: first
+- id: second-completes
+  server: 2
+  do: complete
+  cart: second
+timing:
+  release: sequential
+runs: 10
+seed: 81

@@ -1,0 +1,47 @@
+{
+ "summary": "I submitted 5 attempts and was not shown any results, so none of these is confirmed by a failing check. The claims rest on code reading alone.\n\n- Attempts 1 and 5 target `ensureInventoryLevels` in the inventory module, which checks each reservation entry against available stock on its own and never sums entries for the same item. The scenarios use carts that need more than the stocked units across two lines (12 and 11 against 10).\n- Attempts 2 and 3 target the locks. The default locking provider is in-memory, so the cart lock and the inventory-item lock only hold inside one process. Attempt 2 races carts for the single SOLO unit across two servers. Attempt 3 completes the same cart on both servers.\n- Attempt 4 targets stale counter writes: many different carts reserving WIDGET at once on one server. It is likely blocked, because the reserve step locks on the inventory item id (in memory, which holds within one process). I am not claiming it.\n\nI did not find anything in the stock-location or payment/order link code, and I did not submit scenarios for either.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  },
+  {
+   "attempt": 2,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,26 @@
+schema: oversold.scenario/v1
+name: attempt-09-agent-20261121t070817z
+description: A single cart is completed once, to check that the saved order keeps
+  its cart link and payment.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  linked:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: linked-completes
+  server: 1
+  do: complete
+  cart: linked
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 19

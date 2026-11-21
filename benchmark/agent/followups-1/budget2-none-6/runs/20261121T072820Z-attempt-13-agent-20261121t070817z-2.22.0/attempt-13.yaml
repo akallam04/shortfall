@@ -1,0 +1,31 @@
+schema: oversold.scenario/v1
+name: attempt-13-agent-20261121t070817z
+description: Several single-piece WIDGET carts are completed simultaneously across
+  two servers with no jitter, to stress the reserved counter.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  piece:
+    server: 1
+    count: 5
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: piece-on-1
+  server: 1
+  do: complete
+  cart: piece
+- id: piece-on-2
+  server: 2
+  do: complete
+  cart: piece
+timing:
+  release: together
+faults: []
+runs: 20
+seed: 37

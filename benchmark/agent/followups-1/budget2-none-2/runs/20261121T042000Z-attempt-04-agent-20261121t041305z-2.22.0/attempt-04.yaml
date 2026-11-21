@@ -1,0 +1,30 @@
+schema: oversold.scenario/v1
+name: attempt-04-agent-20261121t041305z
+description: One cart with one WIDGET unit is completed twice at the same time on
+  one server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: first-complete
+  server: 1
+  do: complete
+  cart: alice
+- id: second-complete
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 11

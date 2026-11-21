@@ -1,0 +1,35 @@
+schema: oversold.scenario/v1
+name: attempt-06-agent-20261121t070817z
+description: Two carts each need more than half of WIDGET stock and are completed
+  together on one server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  first:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 6
+  second:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 3
+race:
+- id: first-completes
+  server: 1
+  do: complete
+  cart: first
+- id: second-completes
+  server: 1
+  do: complete
+  cart: second
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 9

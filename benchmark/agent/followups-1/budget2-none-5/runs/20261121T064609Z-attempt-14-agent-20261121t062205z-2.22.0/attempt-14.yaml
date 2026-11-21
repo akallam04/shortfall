@@ -1,0 +1,39 @@
+schema: oversold.scenario/v1
+name: attempt-14-agent-20261121t062205z
+description: Two carts each mix OVS-PIECE and OVS-TWOPACK on WIDGET, together needing
+  twice the stock.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 4
+    - sku: OVS-TWOPACK
+      qty: 3
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 4
+    - sku: OVS-TWOPACK
+      qty: 3
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 59

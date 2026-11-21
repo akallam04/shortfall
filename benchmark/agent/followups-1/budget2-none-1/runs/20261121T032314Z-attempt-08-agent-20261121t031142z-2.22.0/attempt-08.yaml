@@ -1,0 +1,55 @@
+schema: oversold.scenario/v1
+name: attempt-08-agent-20261121t031142z
+description: Four carts reserve the shared WIDGET level at the same time on one server,
+  so their counter writes can collide.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  piece-a:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  piece-b:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  twin-a:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+  twin-b:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+race:
+- id: piece-a-completes
+  server: 1
+  do: complete
+  cart: piece-a
+- id: piece-b-completes
+  server: 1
+  do: complete
+  cart: piece-b
+- id: twin-a-completes
+  server: 1
+  do: complete
+  cart: twin-a
+- id: twin-b-completes
+  server: 1
+  do: complete
+  cart: twin-b
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+runs: 20
+seed: 31

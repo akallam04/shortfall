@@ -1,0 +1,74 @@
+schema: oversold.scenario/v1
+name: attempt-15-agent-20261121t062205z
+description: Six OVS-PIECE carts complete together across two servers sharing WIDGET
+  stock, to expose a lost reserved_quantity write.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  c1:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  c2:
+    server: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  c3:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  c4:
+    server: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  c5:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  c6:
+    server: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: c1-completes
+  server: 1
+  do: complete
+  cart: c1
+- id: c2-completes
+  server: 2
+  do: complete
+  cart: c2
+- id: c3-completes
+  server: 1
+  do: complete
+  cart: c3
+- id: c4-completes
+  server: 2
+  do: complete
+  cart: c4
+- id: c5-completes
+  server: 1
+  do: complete
+  cart: c5
+- id: c6-completes
+  server: 2
+  do: complete
+  cart: c6
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 20
+seed: 61

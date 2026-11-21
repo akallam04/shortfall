@@ -1,0 +1,47 @@
+{
+ "summary": "I submitted 7 attempts, but no run results were shown to me, so none of them is confirmed by a run. All rest on code reading. In reserve-inventory.ts, locking.execute guards the read-modify-write on reserved_quantity, and in the inventory module createReservationItems_ writes level.reserved_quantity + adjustment from a value read earlier. The cart-completion lock (acquireLockStep, keyed by cart id) and the reservation lock both use the default in-memory provider, so they only hold within one process. The inventory module's per-entry availability check never sums entries that share an inventory item. Attempts 1, 3 and 5 test the process-local lock with two servers: the same cart on both, two carts competing for SOLO, and many WIDGET carts. Attempt 4 tests the counter lost update on one server. Attempts 2 and 6 test the per-line check with two lines on WIDGET that together exceed stock. Attempt 7 tests stock lowered between cart preparation and completion. I claim the two I find most plausible, 1 and 2.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "backed": false,
+   "why": "no violation",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  },
+  {
+   "attempt": 2,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

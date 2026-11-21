@@ -1,0 +1,36 @@
+schema: oversold.scenario/v1
+name: attempt-04-agent-20261121t073221z
+description: Many one-unit carts of one item completed together on two servers, with
+  ample stock, to expose lost reserved_quantity updates.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 1000
+carts:
+  a:
+    server: 1
+    count: 15
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  b:
+    server: 2
+    count: 15
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: ra
+  server: 1
+  do: complete
+  cart: a
+- id: rb
+  server: 2
+  do: complete
+  cart: b
+timing:
+  release: together
+runs: 10
+seed: 4

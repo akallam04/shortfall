@@ -1,0 +1,26 @@
+{
+ "summary": "Submitted 5 attempts. The main code finding is in the inventory module: ensureInventoryLevels checks each reservation entry against available quantity on its own and never sums entries that share an inventory item (per-line-check). Attempt 1 tests it with a single cart mixing OVS-PIECE x6 and OVS-TWOPACK x3, which needs 12 WIDGET units against a stock of 10. Attempts 2 and 3 target the in-memory lock being process-local across two servers. Attempt 4 targets the stale reserved_quantity write, and attempt 5 repeats a same-cart completion on one server. None of the results were shown, so I'm claiming only attempt 1.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

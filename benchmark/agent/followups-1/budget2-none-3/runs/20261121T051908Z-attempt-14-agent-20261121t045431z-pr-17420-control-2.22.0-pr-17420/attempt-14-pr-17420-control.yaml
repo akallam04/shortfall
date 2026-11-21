@@ -1,0 +1,29 @@
+schema: oversold.scenario/v1
+name: attempt-14-agent-20261121t045431z-pr-17420-control
+description: Variant control of attempt-14-agent-20261121t045431z on Medusa 2.22.0
+  with pr-17420. One cart holds two lines of WIDGET items whose combined units exceed
+  stock, then is completed.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+  variant: pr-17420
+stock:
+  WIDGET: 10
+carts:
+  greedy:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 6
+    - sku: OVS-TWOPACK
+      qty: 3
+race:
+- id: greedy-completes
+  server: 1
+  do: complete
+  cart: greedy
+timing:
+  release: together
+runs: 20
+seed: 131

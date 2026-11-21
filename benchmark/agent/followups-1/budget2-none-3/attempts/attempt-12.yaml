@@ -1,0 +1,32 @@
+schema: oversold.scenario/v1
+name: attempt-12-agent-20261121t045431z
+description: One cart is completed twice at once on a single server, to check that
+  only one order results.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  shopper:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: shopper-completes-a
+  server: 1
+  do: complete
+  cart: shopper
+- id: shopper-completes-b
+  server: 1
+  do: complete
+  cart: shopper
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+runs: 30
+seed: 111

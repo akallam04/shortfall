@@ -1,0 +1,159 @@
+{
+  "schema": "oversold.report/v1",
+  "scenario": {
+    "name": "attempt-02-agent-20261121t090043z",
+    "file": "attempt-02.yaml",
+    "sha256": "ea5af6fa14750989cf1789fc34021a44b1194e42de6029b31084413e83779555",
+    "version": "2.22.0"
+  },
+  "oversold": [
+    {
+      "commit": "2004ed534b765a3b3341efaadb3f352ffdecef90",
+      "dirty": false
+    }
+  ],
+  "checked_by": {
+    "commit": "2004ed534b765a3b3341efaadb3f352ffdecef90",
+    "dirty": false
+  },
+  "versions_used": [
+    "2.22.0"
+  ],
+  "servers": [
+    {
+      "service": "medusa",
+      "medusa_version": "2.22.0",
+      "image_id": "sha256:c48358f78c193ccba70f4a7bf5e1e0048decb55bf4019cec48cc631658da0527",
+      "image_inputs": "d701e53cf957c292585cdcafdd628b75a330047e838f35c985b7534153b72be5"
+    },
+    {
+      "service": "medusa-2",
+      "medusa_version": "2.22.0",
+      "image_id": "sha256:c48358f78c193ccba70f4a7bf5e1e0048decb55bf4019cec48cc631658da0527",
+      "image_inputs": "d701e53cf957c292585cdcafdd628b75a330047e838f35c985b7534153b72be5"
+    }
+  ],
+  "postgres_version": "15.19",
+  "runs_planned": 2,
+  "runs_recorded": 2,
+  "checks": [
+    {
+      "check": "no_oversell",
+      "version": 2,
+      "runs": 2,
+      "fail": 2,
+      "pass": 0,
+      "inconclusive": 0
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 2,
+      "runs": 2,
+      "fail": 2,
+      "pass": 0,
+      "inconclusive": 0
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 2,
+      "runs": 2,
+      "fail": 0,
+      "pass": 2,
+      "inconclusive": 0
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 2,
+      "runs": 2,
+      "fail": 0,
+      "pass": 2,
+      "inconclusive": 0
+    },
+    {
+      "check": "no_missing_orders",
+      "version": 1,
+      "runs": 2,
+      "fail": 0,
+      "pass": 2,
+      "inconclusive": 0
+    }
+  ],
+  "runs": [
+    {
+      "index": 1,
+      "file": "run-001.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "SOLO live reservations 2 exceed stocked 1; SOLO orders need 2 units but 1 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "SOLO reserved_quantity 1 but live reservations sum to 2"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart alice: 1 order; cart bob: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "2 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (2 checked)"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "file": "run-002.json.gz",
+      "result": "fail",
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "fail",
+          "reason": "SOLO live reservations 2 exceed stocked 1; SOLO orders need 2 units but 1 were stocked at the start of the race"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "fail",
+          "reason": "SOLO reserved_quantity 1 but live reservations sum to 2"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart alice: 1 order; cart bob: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "2 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (2 checked)"
+        }
+      ]
+    }
+  ],
+  "exit_code": 1,
+  "generated": "2026-11-21T09:03:32.367321000Z"
+}

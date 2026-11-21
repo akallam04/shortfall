@@ -634,6 +634,131 @@ def results_speed(d: Data) -> list[list]:
     return rows
 
 
+FOLLOWUPS = AGENT / "followups-1"
+FOLLOW_TESTED = (("budget2-none", "Haiku 5.5, whole budget"), ("sonnet-none", "Sonnet 5.5"))
+FOLLOW_ARMS = (*FOLLOW_TESTED, ("budget-none", "Haiku 5.5, first gate, closed"))
+FOLLOW_ORDER = (("budget-none", 3), ("budget2-none", 10), ("sonnet-none", 10))
+FOLLOW_PROMPTS = {"budget-none": "v2-budget", "budget2-none": "v2-budget2", "sonnet-none": "v2"}
+FOLLOW_HELD = ("sonnet-none-3", "sonnet-none-5", "budget2-none-6")
+
+
+def follow_folders(d: Data, arm: str) -> list[Path]:
+    return [
+        FOLLOWUPS / f"{arm}-{n}"
+        for n in range(1, 11)
+        if (d.root / FOLLOWUPS / f"{arm}-{n}" / "score.json").exists()
+    ]
+
+
+def follow_arm(d: Data, arm: str) -> list[dict]:
+    out = []
+    for folder in follow_folders(d, arm):
+        s = d.score(folder)
+        out.append(
+            {
+                c: s["cases"][c]["runs_to_first"] if s["cases"][c]["reproduced"] else None
+                for c in CASES
+            }
+        )
+    return out
+
+
+def follow_tests(d: Data) -> list[dict]:
+    haiku, grid = d.arm("unguided-none"), d.arm("grid")
+    tests = []
+    for arm, label in FOLLOW_TESTED:
+        trials = follow_arm(d, arm)
+        own = []
+        for case, other, other_label, kind in (
+            (None, haiku, "Haiku 5.5 on v2", "primary"),
+            *((c, haiku, "Haiku 5.5 on v2", "secondary") for c in CASES),
+            *((c, grid, "Grid", "secondary") for c in (*CASES, None)),
+        ):
+            a, b = found(trials, case), found(other, case)
+            own.append(
+                {
+                    "row": [label, kind, other_label, case or "All three in one trial"],
+                    "a": of(a, len(trials)),
+                    "b": of(b, len(other)),
+                    "p": stats.fisher_exact(a, len(trials) - a, b, len(other) - b),
+                }
+            )
+        for t, h in zip(own, stats.holm([t["p"] for t in own]), strict=True):
+            t["holm"] = h
+        tests += own
+    return tests
+
+
+def follow_test_rows(d: Data) -> list[list]:
+    return [
+        [*t["row"], t["a"], t["b"], p_text(t["p"]), holm_text(t["holm"])] for t in follow_tests(d)
+    ]
+
+
+def follow_headline(d: Data) -> list[list]:
+    arms = [
+        d.arm("unguided-none"),
+        *(follow_arm(d, a) for a, _ in FOLLOW_TESTED),
+        d.arm("grid"),
+        follow_arm(d, "budget-none"),
+    ]
+    rows = [[c, *(cell([t[c] for t in trials]) for trials in arms)] for c in CASES]
+    rows.append([None, *(all_three(trials) for trials in arms)])
+    return rows
+
+
+def readme_follow(d: Data) -> list[list]:
+    arms = [d.arm("unguided-none"), *(follow_arm(d, a) for a, _ in FOLLOW_TESTED), d.arm("grid")]
+    rows = [[c, *(of(found(trials, c), len(trials)) for trials in arms)] for c in CASES]
+    rows.append([None, *(all_three(trials) for trials in arms)])
+    return rows
+
+
+def follow_costs(d: Data) -> list[list]:
+    rows = []
+    for arm, label in FOLLOW_ARMS:
+        ss = [d.score(f) for f in follow_folders(d, arm)]
+        gates = [s.get("gate_answers") or 0 for s in ss]
+        rows.append(
+            [
+                label,
+                len(ss),
+                num(statistics.median(s["oversold_runs"] for s in ss)),
+                num(statistics.median(s["turns"] for s in ss)),
+                num(statistics.median(s["attempts"] for s in ss)),
+                sum(1 for s in ss if s["finished_by_model"]),
+                sum(s["claims_backed"] for s in ss),
+                sum(s["claims_unbacked"] for s in ss),
+                f"{statistics.median(s['dollars'] for s in ss):.4f}",
+                f"{sum(s['dollars'] for s in ss):.4f}",
+                num(round(statistics.median(s["wall_seconds"] for s in ss) / 60, 1)),
+                num(statistics.median(gates)) if arm.startswith("budget") else "none",
+            ]
+        )
+    return rows
+
+
+def follow_rows(d: Data) -> list[list]:
+    order = [
+        f"{arm}-{n}"
+        for arm, count in FOLLOW_ORDER
+        for n in range(1, count + 1)
+        if (d.root / FOLLOWUPS / f"{arm}-{n}" / "score.json").exists()
+    ]
+
+    def extra(name: str, s: dict) -> list:
+        arm = name.rsplit("-", 1)[0]
+        gates = s.get("gate_answers")
+        return [
+            s["model"],
+            FOLLOW_PROMPTS[arm],
+            s["end_reason"],
+            "not gated" if gates is None else gates,
+        ]
+
+    return plan_rows(d, "followups-1", order, extra)
+
+
 STOPPED = AGENT / "stopped"
 STOPPED_RECORDS = (
     ("scale-10-nomenu-none-8", "nomenu-none-8, 10-trial plan"),
@@ -661,13 +786,8 @@ def stopped_rows(d: Data) -> list[list]:
             for r in records
             if r.get("kind") == "final" and r.get("attempt_id") == review["attempt_id"]
         )
-        runs = fails = 0
-        for name, counts in final["candidate_fails"].items():
-            if counts is None:
-                continue
-            runs += final.get(f"{name}_runs") or 0
-            fails += counts["one_order_per_cart"]
-        rows.append([label, "The trial's own runs", runs, fails])
+        runs, n = held_own_runs(final, "one_order_per_cart")
+        rows.append([label, "The trial's own runs", runs, n])
         for name, data in review["sets"].items():
             rows.append(
                 [label, STOPPED_SETS[name], data["runs"], data["fails"]["one_order_per_cart"]]
@@ -675,9 +795,41 @@ def stopped_rows(d: Data) -> list[list]:
     return rows
 
 
+def held_own_runs(final: dict, rule: str) -> tuple[int, int]:
+    runs = fails = 0
+    for name, counts in final["candidate_fails"].items():
+        if counts is None:
+            continue
+        runs += final.get(f"{name}_runs") or 0
+        fails += counts[rule]
+    return runs, fails
+
+
+def follow_hand_rows(d: Data) -> list[list]:
+    rows = []
+    for trial in FOLLOW_HELD:
+        base = d.root / FOLLOWUPS / trial
+        review = json.loads((base / "review" / "review.json").read_text(encoding="utf-8"))
+        records = ledger.load(base / "ledger.jsonl")
+        for item in review["attempts"]:
+            final = next(
+                r
+                for r in records
+                if r.get("kind") == "final" and r.get("attempt_id") == item["attempt_id"]
+            )
+            label = f"{trial}, attempt {int(item['attempt_id'].rsplit('-', 1)[1])}"
+            runs, n = held_own_runs(final, "one_order_per_cart")
+            rows.append([label, "The trial's own runs", runs, n])
+            for name, data in item["sets"].items():
+                counts, total, _ = fails(base / "review" / data["folder"])
+                rows.append([label, STOPPED_SETS[name], total, counts["one_order_per_cart"]])
+    return rows
+
+
 CHECKED = {
     "README.md": {
         "| Test scenario | Public bug | Rule broken on plain Medusa |": readme_cases,
+        "| Test scenario | Haiku 5.5 on v2 | Haiku 5.5, whole budget |": readme_follow,
     },
     "RESULTS.md": {
         "| Test scenario | Grid | Random | Agent, no feedback |": results_headline,
@@ -689,6 +841,10 @@ CHECKED = {
         "| Scenario | Compared with | Agent median runs |": results_speed,
         "| No-feedback agent against | Scenario |": results_versions,
         "| Stopped trial | Test | Runs |": stopped_rows,
+        "| Test scenario | Haiku 5.5 on v2 |": follow_headline,
+        "| Arm | Trials | Median runs used |": follow_costs,
+        "| Arm | Test | Compared with |": follow_test_rows,
+        "| Held trial | Test | Runs |": follow_hand_rows,
     },
     "benchmark/README.md": {
         "| Case | Set | no_oversell 2 |": sets_2004ed5,
@@ -710,6 +866,7 @@ CHECKED = {
         "| Trial | Scenario | Check |": unguided_reviews,
         "| Test scenario | v1, none | v2, none | v1, history | v2, history |": guided_compare,
         "| Trial | Bug report | Feedback |": guided1_rows,
+        "| Trial | Model | Prompts |": follow_rows,
     },
 }
 

@@ -38,7 +38,7 @@ In the none mode the agent never sees any results, so an unbacked claim there is
 Everything the agent is shown, and the settings of its loop, are fixed by one hash before any trial of a plan runs. Each plan folder holds the hash it used.
 
 - **v1** ([hash](guided-haiku-1/prompts.sha256)) was used by guided-haiku-1.
-- **v2** ([hash](prompts.sha256)) is used by unguided-haiku-1, guided-haiku-2 and the v2 arms of scale-10.
+- **v2** ([hash](prompts.sha256)) is used by unguided-haiku-1, guided-haiku-2, the v2 arms of scale-10 and the sonnet-none arm of followups-1, which runs it with `claude-sonnet-5-5`.
 - **v2-nomenu** ([hash](prompts-v2-nomenu.sha256)) is v2 without the list of causes. The agent names only a file for each attempt and each claim. It was used only by the v2-nomenu arm of scale-10, to test whether the list of causes helps.
 - **v2-budget** ([hash](prompts-v2-budget.sha256)) is v2 with one change to the loop: while more than 60 runs are left, the agent cannot end the trial. If it calls finish, or replies without a tool call, it gets one fixed line: "Finish is not available yet. Keep testing until the run budget is nearly used." It was used by plan [followups-1](plans/followups-1.yaml) for 3 trials, and then closed: each gate answer used up a turn, and the agent often kept replying without a tool call while it waited for run results that this mode never shows.
 - **v2-budget2** ([hash](prompts-v2-budget2.sha256)) replaces v2-budget. The gate line is "Finish is not available yet. In this mode you never see run results, so don't wait for them. Submit another attempt until the run budget is nearly used." Gate answers do not count toward the 100-turn cap, and the trial ends after 15 gate answers. Until the gate first answers, its requests are the same as v2-budget's. It is used by plan [followups-1](plans/followups-1.yaml).
@@ -95,8 +95,44 @@ Without the list of causes the agent reproduced the two race scenarios in more t
 ## What is still small about the sample
 
 - 10 trials per method. A difference of a few trials out of 10 can come from chance. The [statistics tests](../../RESULTS.md#statistics-run-after-the-fact), chosen after seeing the data, find that only the grid's lead on medusa-16502-lines and on all three in one trial passes a standard test.
-- One model, `claude-haiku-5-5`, one Medusa version, 2.22.0, and three test scenarios from two public bugs.
+- One model, `claude-haiku-5-5`, in every arm except sonnet-none of [plan followups-1](#plan-followups-1), one Medusa version, 2.22.0, and three test scenarios from two public bugs.
 - Trials 1 to 3 of the four columns ran earlier, in separate sessions, on the same images, Oversold commit and prompts as trials 4 to 10.
+
+## Plan followups-1
+
+The [plan file](plans/followups-1.yaml) ran 23 unguided trials with feedback none in a fixed order, each with a budget of 300 runs, 30 attempts, 100 turns and $1. Its tests were written into the plan file and pushed before its first trial. The results and the tests are in [RESULTS.md](../../RESULTS.md#6-follow-up-experiments-the-whole-budget-and-a-bigger-model), and more about the plan is in [followups-1/](followups-1/).
+
+- **budget-none** ran `claude-haiku-5-5` on prompt version v2-budget for 3 trials and was then closed: each gate answer used up a turn, and in 2 of its 3 trials the agent reached the 100-turn cap while it waited for run results.
+- **budget2-none** ran `claude-haiku-5-5` on prompt version v2-budget2, which replaced v2-budget.
+- **sonnet-none** ran `claude-sonnet-5-5` on prompt version v2.
+
+The 23 trials used 3,691 runs and cost $4.8807. Only the Sonnet trials all ended with the agent calling finish. Of the budget2-none trials, 1 called finish, 5 ended after 15 gate answers and 4 ended when the model stopped replying with a tool call once 60 or fewer runs were left. The 3 budget-none trials all ended without finish. Claims: 3 backed and none unbacked for budget2-none, 8 backed and 1 unbacked for sonnet-none. Three trials, sonnet-none-3, sonnet-none-5 and budget2-none-6, were held for one cart becoming two orders on two servers with in-memory locking, reviewed by hand and published with their review runs. sonnet-none-3 and sonnet-none-4 were each run again from scratch, as [followups-1/](followups-1/) explains.
+
+| Trial | Model | Prompts | Ended | Gate answers | Turns | Attempts (refused) | Runs | Reproduced (run of first reproduction) | Claims backed / unbacked | Expected check failed | Dollars |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| [budget-none-1](followups-1/budget-none-1/) | claude-haiku-5-5 | v2-budget | the model stopped without calling finish | 17 | 68 | 16 (0) | 265 | medusa-16502-lines (run 23), medusa-17032-counter (run 66), medusa-17032-last-unit (run 66) | no finish | 8 of 16 | 0.0632 |
+| [budget-none-2](followups-1/budget-none-2/) | claude-haiku-5-5 | v2-budget | the model stopped without calling finish | 72 | 100 | 6 (0) | 119 | medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | no finish | 3 of 6 | 0.0579 |
+| [budget-none-3](followups-1/budget-none-3/) | claude-haiku-5-5 | v2-budget | the model stopped without calling finish | 77 | 100 | 7 (0) | 129 | medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | no finish | 4 of 7 | 0.0525 |
+| [budget2-none-1](followups-1/budget2-none-1/) | claude-haiku-5-5 | v2-budget2 | stopped after 15 gate answers | 15 | 48 | 8 (0) | 126 | medusa-16502-lines (run 76), medusa-17032-counter (run 43), medusa-17032-last-unit (run 43) | no finish | 2 of 8 | 0.0426 |
+| [budget2-none-2](followups-1/budget2-none-2/) | claude-haiku-5-5 | v2-budget2 | the model stopped without calling finish | 12 | 37 | 13 (0) | 248 | medusa-16502-lines (run 23), medusa-17032-counter (run 66), medusa-17032-last-unit (run 66) | no finish | 5 of 13 | 0.0327 |
+| [budget2-none-3](followups-1/budget2-none-3/) | claude-haiku-5-5 | v2-budget2 | the model stopped without calling finish | 13 | 46 | 15 (0) | 268 | medusa-16502-lines (run 192), medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | no finish | 6 of 15 | 0.0428 |
+| [budget2-none-4](followups-1/budget2-none-4/) | claude-haiku-5-5 | v2-budget2 | finished by the model | 9 | 28 | 11 (0) | 241 | medusa-16502-lines (run 165), medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | 3 / 0 | 6 of 11 | 0.0264 |
+| [budget2-none-5](followups-1/budget2-none-5/) | claude-haiku-5-5 | v2-budget2 | the model stopped without calling finish | 11 | 46 | 15 (0) | 281 | medusa-16502-lines (run 56), medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | no finish | 5 of 15 | 0.0395 |
+| [budget2-none-6](followups-1/budget2-none-6/) | claude-haiku-5-5 | v2-budget2 | the model stopped without calling finish | 13 | 59 | 15 (0) | 246 | medusa-16502-lines (run 99), medusa-17032-counter (run 43), medusa-17032-last-unit (run 43) | no finish | 6 of 15 | 0.0538 |
+| [budget2-none-7](followups-1/budget2-none-7/) | claude-haiku-5-5 | v2-budget2 | stopped after 15 gate answers | 15 | 43 | 13 (0) | 235 | medusa-16502-lines (run 192), medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | no finish | 5 of 13 | 0.0381 |
+| [budget2-none-8](followups-1/budget2-none-8/) | claude-haiku-5-5 | v2-budget2 | stopped after 15 gate answers | 15 | 57 | 10 (0) | 149 | medusa-17032-counter (run 43), medusa-17032-last-unit (run 43) | no finish | 3 of 10 | 0.0464 |
+| [budget2-none-9](followups-1/budget2-none-9/) | claude-haiku-5-5 | v2-budget2 | stopped after 15 gate answers | 15 | 31 | 6 (0) | 106 | medusa-17032-counter (run 33), medusa-17032-last-unit (run 33) | no finish | 2 of 6 | 0.0281 |
+| [budget2-none-10](followups-1/budget2-none-10/) | claude-haiku-5-5 | v2-budget2 | stopped after 15 gate answers | 15 | 40 | 7 (0) | 142 | medusa-17032-counter (run 23), medusa-17032-last-unit (run 56) | no finish | 4 of 7 | 0.0292 |
+| [sonnet-none-1](followups-1/sonnet-none-1/) | claude-sonnet-5-5 | v2 | finished by the model | not gated | 25 | 5 (0) | 119 | medusa-16502-lines (run 23), medusa-17032-counter (run 76), medusa-17032-last-unit (run 76) | 2 / 0 | 3 of 5 | 0.5593 |
+| [sonnet-none-2](followups-1/sonnet-none-2/) | claude-sonnet-5-5 | v2 | finished by the model | not gated | 20 | 5 (0) | 119 | medusa-16502-lines (run 23), medusa-17032-counter (run 86), medusa-17032-last-unit (run 86) | 0 / 0 | 3 of 5 | 0.3584 |
+| [sonnet-none-3](followups-1/sonnet-none-3/) | claude-sonnet-5-5 | v2 | finished by the model | not gated | 19 | 5 (0) | 109 | medusa-16502-lines (run 23), medusa-17032-counter (run 66), medusa-17032-last-unit (run 66) | 1 / 0 | 3 of 5 | 0.3023 |
+| [sonnet-none-4](followups-1/sonnet-none-4/) | claude-sonnet-5-5 | v2 | finished by the model | not gated | 29 | 7 (7) | 0 | none | 0 / 0 | 0 of 0 | 0.4662 |
+| [sonnet-none-5](followups-1/sonnet-none-5/) | claude-sonnet-5-5 | v2 | finished by the model | not gated | 26 | 5 (0) | 132 | medusa-16502-lines (run 23), medusa-17032-counter (run 66), medusa-17032-last-unit (run 66) | 2 / 0 | 4 of 5 | 0.6388 |
+| [sonnet-none-6](followups-1/sonnet-none-6/) | claude-sonnet-5-5 | v2 | finished by the model | not gated | 21 | 4 (0) | 112 | medusa-16502-lines (run 23), medusa-17032-counter (run 66), medusa-17032-last-unit (run 66) | 0 / 0 | 3 of 4 | 0.4127 |
+| [sonnet-none-7](followups-1/sonnet-none-7/) | claude-sonnet-5-5 | v2 | finished by the model | not gated | 23 | 5 (0) | 132 | medusa-16502-lines (run 23), medusa-17032-counter (run 66), medusa-17032-last-unit (run 66) | 1 / 0 | 3 of 5 | 0.3696 |
+| [sonnet-none-8](followups-1/sonnet-none-8/) | claude-sonnet-5-5 | v2 | finished by the model | not gated | 22 | 7 (0) | 152 | medusa-16502-lines (run 33), medusa-17032-counter (run 76), medusa-17032-last-unit (run 76) | 1 / 1 | 4 of 7 | 0.3747 |
+| [sonnet-none-9](followups-1/sonnet-none-9/) | claude-sonnet-5-5 | v2 | finished by the model | not gated | 19 | 5 (0) | 109 | medusa-16502-lines (run 23), medusa-17032-counter (run 76), medusa-17032-last-unit (run 76) | 1 / 0 | 3 of 5 | 0.3726 |
+| [sonnet-none-10](followups-1/sonnet-none-10/) | claude-sonnet-5-5 | v2 | finished by the model | not gated | 25 | 7 (0) | 152 | medusa-16502-lines (run 23), medusa-17032-counter (run 66), medusa-17032-last-unit (run 66) | 0 / 0 | 4 of 7 | 0.4729 |
 
 ## Plan scale-10
 
@@ -216,5 +252,6 @@ The guided results are not a fair comparison with the two simple methods, becaus
 - `ledger.jsonl`: the trial's ledger lines, including each model call's tokens and cost.
 - `transcript.jsonl.gz`: everything the model was shown and wrote, with anything that looks like a key masked. The transcripts quote Medusa source code from files under the [MIT license](https://github.com/medusajs/medusa/blob/v2.22.0/LICENSE). None of them quotes Medusa's Enterprise Edition files, which are under a different license.
 - `runs/`: every Oversold run with its full history. CI rechecks each one with `oversold check --verify`.
+- `review/`: only in a trial that was held and published after a review. It holds the extra runs, and `review/review.json` gives each set's runs and the failures of every check. These runs do not change the trial's score.
 
 The [pilot](pilot/) is an earlier development run with the same layout. It is not counted.

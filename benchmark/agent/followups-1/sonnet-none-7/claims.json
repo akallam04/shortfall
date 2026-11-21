@@ -1,0 +1,26 @@
+{
+ "summary": "I submitted five scenarios. I read the source and found one concrete defect: the inventory module's reservation availability check validates each entry separately and never sums entries that share an inventory item. A cart with lines for two variants of WIDGET (6 PIECE plus 3 TWOPACK, or 4 plus 4) needs 12 units against 10 in stock, and each line passes alone. I did not see any run results, so none of this is confirmed by a failed check. The other three scenarios test the process-local lock with two servers and duplicate completion of one cart on one and two servers, and I found no code defect for those. I did not test stock-location-mixup, because the scenarios only have one stock location. I also did not find evidence for stale-counter-write or payment-order-link in the paths I read.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,56 @@
+schema: oversold.scenario/v1
+name: attempt-01-agent-20261121t090043z
+description: Four carts on two servers each reserve WIDGET units and complete together,
+  racing on the shared inventory level.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  bob:
+    server: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  carol:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  dave:
+    server: 2
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+- id: carol-completes
+  server: 1
+  do: complete
+  cart: carol
+- id: dave-completes
+  server: 2
+  do: complete
+  cart: dave
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 10
+seed: 1

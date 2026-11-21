@@ -25,6 +25,9 @@ def test_every_results_table_matches_the_committed_data(data):
     [
         ("RESULTS.md", "| 9 of 10, median 110 |", "| 9 of 10, median 111 |"),
         ("README.md", "| 23 of 30 runs |", "| 24 of 30 runs |"),
+        ("README.md", "| 7 of 10 | 9 of 10 | 10 of 10 |", "| 6 of 10 | 9 of 10 | 10 of 10 |"),
+        ("RESULTS.md", "| 9 of 10, median 23 |", "| 9 of 10, median 24 |"),
+        ("RESULTS.md", "| 0.02 | 0.16 |", "| 0.03 | 0.16 |"),
         ("benchmark/README.md", "| 298 | 3 of 3 | 144 |", "| 297 | 3 of 3 | 144 |"),
         (
             "benchmark/agent/README.md",

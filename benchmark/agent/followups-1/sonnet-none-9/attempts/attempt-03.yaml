@@ -1,0 +1,36 @@
+schema: oversold.scenario/v1
+name: attempt-03-agent-20261121t073221z
+description: Many carts for the same WIDGET item are completed concurrently on two
+  servers; stock only covers some of them.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 5
+carts:
+  a:
+    server: 1
+    count: 8
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+  b:
+    server: 2
+    count: 8
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: ra
+  server: 1
+  do: complete
+  cart: a
+- id: rb
+  server: 2
+  do: complete
+  cart: b
+timing:
+  release: together
+runs: 10
+seed: 3

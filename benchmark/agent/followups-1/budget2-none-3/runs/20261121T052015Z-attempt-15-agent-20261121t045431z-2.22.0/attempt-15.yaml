@@ -1,0 +1,34 @@
+schema: oversold.scenario/v1
+name: attempt-15-agent-20261121t045431z
+description: Two SOLO carts, one per server, are completed together with no added
+  delay.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  SOLO: 1
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 2
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+timing:
+  release: together
+runs: 30
+seed: 141

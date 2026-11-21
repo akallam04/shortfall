@@ -1,0 +1,35 @@
+schema: oversold.scenario/v1
+name: attempt-10-agent-20261121t045431z-pr-17420-control
+description: Variant control of attempt-10-agent-20261121t045431z on Medusa 2.22.0
+  with pr-17420. Many WIDGET carts are completed at once across two servers to race
+  the shared reserved counter.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-17420
+stock:
+  WIDGET: 10
+carts:
+  shopper:
+    server: 1
+    count: 10
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: shopper-via-one
+  server: 1
+  do: complete
+  cart: shopper
+- id: shopper-via-two
+  server: 2
+  do: complete
+  cart: shopper
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 4
+runs: 30
+seed: 91

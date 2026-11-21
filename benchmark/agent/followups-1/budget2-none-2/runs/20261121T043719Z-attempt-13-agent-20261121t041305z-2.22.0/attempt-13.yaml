@@ -1,0 +1,26 @@
+schema: oversold.scenario/v1
+name: attempt-13-agent-20261121t041305z
+description: Five WIDGET carts are completed one after another on one server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  step:
+    server: 1
+    count: 5
+    lines:
+    - sku: OVS-PIECE
+      qty: 2
+race:
+- id: step
+  server: 1
+  do: complete
+  cart: step
+timing:
+  release: sequential
+faults: []
+runs: 5
+seed: 101

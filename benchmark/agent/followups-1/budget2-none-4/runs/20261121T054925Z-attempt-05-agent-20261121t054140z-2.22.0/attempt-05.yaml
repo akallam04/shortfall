@@ -1,0 +1,31 @@
+schema: oversold.scenario/v1
+name: attempt-05-agent-20261121t054140z
+description: The same cart is completed twice at the same moment on one server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: alice-complete-a
+  server: 1
+  do: complete
+  cart: alice
+- id: alice-complete-b
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+runs: 20
+seed: 31

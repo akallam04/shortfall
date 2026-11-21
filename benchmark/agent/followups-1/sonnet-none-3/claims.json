@@ -1,0 +1,26 @@
+{
+ "summary": "Submitted 5 attempts: per-line-check (same-item lines not summed in reservation validation), process-local-lock (two servers racing on SOLO), duplicate-completion (same cart on 2 servers and on 1 server), and stale-counter-write (concurrent WIDGET reservations). I did not see run results. Only the per-line-check claim rests on code I read directly.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

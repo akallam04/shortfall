@@ -1,0 +1,37 @@
+schema: oversold.scenario/v1
+name: attempt-13-agent-20261121t045431z-pr-16961-control
+description: Variant control of attempt-13-agent-20261121t045431z on Medusa 2.22.0
+  with pr-16961. WIDGET carts are prepared against ten units, stock is cut to three,
+  then they are completed across two servers.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-16961
+stock:
+  WIDGET: 10
+stock_before_race:
+  WIDGET: 3
+carts:
+  shopper:
+    server: 1
+    count: 5
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: shopper-via-one
+  server: 1
+  do: complete
+  cart: shopper
+- id: shopper-via-two
+  server: 2
+  do: complete
+  cart: shopper
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 4
+runs: 25
+seed: 121

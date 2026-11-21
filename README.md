@@ -4,10 +4,11 @@ Shortfall looks for a kind of bug in online shop software that only shows up whe
 
 ## What we found
 
-- A simple fixed list of tests found all three known bug scenarios in every one of its 10 tries. The AI agent found all three in at most 3 of 10.
+- A simple fixed list of tests found all three known bug scenarios in every one of its 10 tries. The AI agent, Claude Haiku 5.5, found all three in at most 3 of 10.
 - When the agent found the "last item sold twice" scenario, it had the lowest median: 33 runs, against 58.5 for the fixed list. Once its misses count, this speed gap could be chance. On the reserved-count scenario the fixed list tied it at 33.
 - The agent stopped early, after a median of 33 to 43 of its 300 runs. With its test results shown, it did worse in these trials, but the gap could be chance.
-- One agent try cost under 2 US cents and took about 4 minutes. The full results, their limits and how to check them are in [RESULTS.md](RESULTS.md).
+- One agent try cost under 2 US cents and took about 4 minutes.
+- In two follow-up experiments whose tests were chosen before they ran, the agent found all three scenarios in 7 of 10 tries when it was not allowed to stop early, and the bigger model Claude Sonnet 5.5 in 9 of 10. Neither gap with the earlier 3 of 10 passed the test set in advance. The full results, their limits and how to check them are in [RESULTS.md](RESULTS.md).
 
 ## The problem, in everyday terms
 
@@ -77,19 +78,30 @@ The AI agent has run trials with the model Claude Haiku 5.5. In an unguided tria
 
 A further 10 trials tested whether the agent's list of likely causes helps, by leaving it out. Without it, the agent reproduced both #17032 scenarios in more trials, 9 of 10, and the #16502 scenario in none. No gap between the two versions was clear either way.
 
+Two follow-up experiments asked whether the agent missed scenarios only because it stopped early, and whether a bigger model does better. Their tests were chosen and pushed before the first trial. In one arm Haiku could not end a trial while more than 60 runs were left. In the other, Claude Sonnet 5.5 ran the same task on the same prompt. Each cell says in how many of 10 unguided trials the scenario was reproduced. The agents had no feedback on their results:
+
+| Test scenario | Haiku 5.5 on v2 | Haiku 5.5, whole budget | Sonnet 5.5 | Grid (no AI) |
+|---|---|---|---|---|
+| medusa-17032-last-unit | 7 of 10 | 10 of 10 | 9 of 10 | 10 of 10 |
+| medusa-17032-counter | 7 of 10 | 10 of 10 | 9 of 10 | 10 of 10 |
+| medusa-16502-lines | 3 of 10 | 7 of 10 | 9 of 10 | 10 of 10 |
+| All three in one trial | 3 of 10 | 7 of 10 | 9 of 10 | 10 of 10 |
+
+Neither arm's main test, all three scenarios against Haiku on prompt v2, passed after the correction for its 8 tests, so these gaps could still be chance. A Sonnet trial cost a median of 39 US cents, against 4 US cents for Haiku not allowed to stop early. A first version of the whole-budget arm was closed after 3 trials, because it counted the agent's tries to stop as turns. [RESULTS.md, section 6](RESULTS.md#6-follow-up-experiments-the-whole-budget-and-a-bigger-model) has the details.
+
 It has also run 18 guided trials, where it is given the public bug report, like an open-book test. Each trial and its full record is on [the agent trials page](benchmark/agent/README.md).
 
 ## Limits
 
 - 10 trials per method.
-- One AI model (Claude Haiku 5.5).
+- Two AI models: Claude Haiku 5.5 in every experiment, and Claude Sonnet 5.5 in one follow-up of 10 trials.
 - The agent was compared on one Medusa version (2.22.0). The bugs themselves were reproduced on 2.19.0, 2.21.2 and 2.22.0.
 - Three test scenarios from two public bugs, in one shop engine.
-- In every published trial, the agent stopped on its own after at most 76 of its 300 runs.
+- Left to stop on its own, Haiku used at most 76 of its 300 runs in any published trial, and Sonnet at most 152. Only the two whole-budget arms, which could not stop while more than 60 runs were left, used more.
 - False alarms on fixed builds were not tested.
-- The statistics tests were chosen after seeing the data.
+- The statistics tests of the first results were chosen after seeing the data. Those of the follow-up experiments were chosen before their trials ran.
 
-The rest are in [RESULTS.md, section 8](RESULTS.md#8-limits).
+The rest are in [RESULTS.md, section 9](RESULTS.md#9-limits).
 
 ## Why you can trust the numbers
 

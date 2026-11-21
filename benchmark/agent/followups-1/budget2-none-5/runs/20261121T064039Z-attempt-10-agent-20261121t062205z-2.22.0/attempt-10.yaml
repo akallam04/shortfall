@@ -1,0 +1,62 @@
+schema: oversold.scenario/v1
+name: attempt-10-agent-20261121t062205z
+description: Five SOLO carts with stock for all complete at once on one server, to
+  expose a lost reserved_quantity update.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  SOLO: 5
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  carol:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  dave:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  erin:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+- id: carol-completes
+  server: 1
+  do: complete
+  cart: carol
+- id: dave-completes
+  server: 1
+  do: complete
+  cart: dave
+- id: erin-completes
+  server: 1
+  do: complete
+  cart: erin
+timing:
+  release: together
+faults: []
+runs: 20
+seed: 41

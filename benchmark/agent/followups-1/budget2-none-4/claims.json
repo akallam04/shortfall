@@ -1,0 +1,68 @@
+{
+ "summary": "Static review of stock reservation and cart completion, with eleven unconfirmed hypotheses submitted as attempts 1-11. No run results were visible, so no finding is verified. The most code-grounded concerns are the per-process in-memory locking default (attempt 1), the read-then-write reserved_quantity update (attempts 4, 7 and 11), and lines sharing an inventory item possibly not being summed in the stock check (attempts 8 and 9). Attempts 2, 3, 5, 6 and 10 are weaker structural guesses. Treat all as hypotheses, not confirmed bugs.",
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  },
+  {
+   "attempt": 4,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  },
+  {
+   "attempt": 9,
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ]
+}

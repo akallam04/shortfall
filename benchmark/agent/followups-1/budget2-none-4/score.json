@@ -1,0 +1,134 @@
+{
+ "trial_id": "agent-20261121T054140Z",
+ "task_mode": "unguided",
+ "feedback": "none",
+ "issue": null,
+ "model": "claude-haiku-5-5",
+ "sdk_version": "2.9.0",
+ "knowledge_cutoff": "Jun 2026",
+ "caps": {
+  "runs": 300,
+  "attempts": 30,
+  "turns": 100,
+  "dollars": 1.0
+ },
+ "end_reason": "finished by the model",
+ "finished_by_model": true,
+ "turns": 28,
+ "attempts": 11,
+ "refused": 0,
+ "oversold_runs": 241,
+ "cases": {
+  "medusa-16502-lines": {
+   "reproduced": true,
+   "attempt": 8,
+   "runs_to_first": 165,
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "per-line-check",
+   "file_grade": "not accepted",
+   "cause_grade": "accepted"
+  },
+  "medusa-17032-counter": {
+   "reproduced": true,
+   "attempt": 1,
+   "runs_to_first": 33,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  },
+  "medusa-17032-last-unit": {
+   "reproduced": true,
+   "attempt": 1,
+   "runs_to_first": 33,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  }
+ },
+ "cases_reproduced": 3,
+ "claims": [
+  {
+   "attempt": 1,
+   "file": "packages/modules/locking/src/providers/in-memory.ts",
+   "cause": "process-local-lock",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  },
+  {
+   "attempt": 4,
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted"
+    }
+   }
+  },
+  {
+   "attempt": 9,
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "per-line-check",
+   "backed": true,
+   "why": "violation on plain Medusa",
+   "grades": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "accepted"
+    },
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "not accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "not accepted"
+    }
+   }
+  }
+ ],
+ "claims_backed": 3,
+ "claims_unbacked": 0,
+ "expected_check": {
+  "hits": 6,
+  "of": 11
+ },
+ "manual_check": [],
+ "tokens": {
+  "input": 26257,
+  "cache_write": 103678,
+  "cache_read": 319731,
+  "output": 15218
+ },
+ "model_calls": 28,
+ "largest_prompt_tokens": 23384,
+ "gate_answers": 9,
+ "dollars": 0.026392,
+ "wall_seconds": 1371
+}

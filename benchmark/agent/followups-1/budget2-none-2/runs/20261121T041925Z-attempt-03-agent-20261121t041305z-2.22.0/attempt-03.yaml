@@ -1,0 +1,28 @@
+schema: oversold.scenario/v1
+name: attempt-03-agent-20261121t041305z
+description: A SOLO cart is built against stock 1, then stock is lowered to 0 before
+  the race; one complete call.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  SOLO: 1
+stock_before_race:
+  SOLO: 0
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: together
+faults: []
+runs: 5
+seed: 3

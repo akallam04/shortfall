@@ -1,0 +1,23 @@
+schema: oversold.scenario/v1
+name: attempt-05-agent-20261121t031142z
+description: One cart with one PIECE unit is completed once; the order should link
+  to the cart and its payment.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: together
+runs: 5
+seed: 5

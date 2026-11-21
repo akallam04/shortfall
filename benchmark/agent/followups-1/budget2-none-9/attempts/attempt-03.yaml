@@ -1,0 +1,37 @@
+schema: oversold.scenario/v1
+name: attempt-03-agent-20261121t084645z
+description: Stock of the shared widget is lowered after the carts are prepared, then
+  two carts race to complete.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock_before_race:
+  WIDGET: 2
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 2
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-TWOPACK
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+runs: 15
+seed: 23

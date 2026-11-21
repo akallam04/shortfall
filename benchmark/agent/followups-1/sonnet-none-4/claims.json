@@ -1,0 +1,4 @@
+{
+ "summary": "I found several plausible weaknesses by reading the code, but none was tested. All seven submitted attempts were refused with \"a candidate needs a target mapping\", whatever file, cause or scenario I used, so no scenario ran and I have no results. The candidates, from the code: (1) The inventory module's createReservationItems_ checks each entry against available quantity alone, so a cart with OVS-PIECE x6 and OVS-TWOPACK x3 against 10 WIDGET could oversell (per-line-check). (2) The default in-memory lock is local to one process, so the same cart completed on two servers, or two carts competing for SOLO on different servers, may both go through (process-local-lock). (3) createReservationItems_ writes reserved_quantity as a value read earlier plus the adjustment, which could lose an update under concurrency (stale-counter-write). I make no claims because none of them was confirmed by a run.",
+ "claims": []
+}

@@ -1,0 +1,3889 @@
+{
+  "schema": "oversold.report/v1",
+  "scenario": {
+    "name": "attempt-03-agent-20261121t025734z-redis-control",
+    "file": "b-redis.yaml",
+    "sha256": "2bddbd16f48a581849997dd1bff213c2f4db5fe9a8a18d5f240cb519ce3b8fcb",
+    "version": "2.22.0"
+  },
+  "oversold": [
+    {
+      "commit": "2004ed534b765a3b3341efaadb3f352ffdecef90",
+      "dirty": false
+    }
+  ],
+  "checked_by": {
+    "commit": "2004ed534b765a3b3341efaadb3f352ffdecef90",
+    "dirty": false
+  },
+  "versions_used": [
+    "2.22.0"
+  ],
+  "servers": [
+    {
+      "service": "medusa",
+      "medusa_version": "2.22.0",
+      "image_id": "sha256:c48358f78c193ccba70f4a7bf5e1e0048decb55bf4019cec48cc631658da0527",
+      "image_inputs": "d701e53cf957c292585cdcafdd628b75a330047e838f35c985b7534153b72be5"
+    },
+    {
+      "service": "medusa-2",
+      "medusa_version": "2.22.0",
+      "image_id": "sha256:c48358f78c193ccba70f4a7bf5e1e0048decb55bf4019cec48cc631658da0527",
+      "image_inputs": "d701e53cf957c292585cdcafdd628b75a330047e838f35c985b7534153b72be5"
+    }
+  ],
+  "postgres_version": "15.19",
+  "locking": "redis",
+  "redis_versions": [
+    "7.4.11"
+  ],
+  "runs_planned": 100,
+  "runs_recorded": 100,
+  "checks": [
+    {
+      "check": "no_oversell",
+      "version": 2,
+      "runs": 100,
+      "fail": 0,
+      "pass": 100,
+      "inconclusive": 0
+    },
+    {
+      "check": "reserved_matches_reservations",
+      "version": 2,
+      "runs": 100,
+      "fail": 0,
+      "pass": 100,
+      "inconclusive": 0
+    },
+    {
+      "check": "one_order_per_cart",
+      "version": 2,
+      "runs": 100,
+      "fail": 0,
+      "pass": 100,
+      "inconclusive": 0
+    },
+    {
+      "check": "no_orphaned_orders",
+      "version": 2,
+      "runs": 100,
+      "fail": 0,
+      "pass": 100,
+      "inconclusive": 0
+    },
+    {
+      "check": "no_missing_orders",
+      "version": 1,
+      "runs": 100,
+      "fail": 0,
+      "pass": 100,
+      "inconclusive": 0
+    }
+  ],
+  "runs": [
+    {
+      "index": 1,
+      "file": "run-001.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "file": "run-002.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "file": "run-003.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "file": "run-004.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "file": "run-005.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "file": "run-006.json.gz",
+      "result": "pass",
+      "lock_calls": 86,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "file": "run-007.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "file": "run-008.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "file": "run-009.json.gz",
+      "result": "pass",
+      "lock_calls": 85,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "file": "run-010.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "file": "run-011.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "file": "run-012.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "file": "run-013.json.gz",
+      "result": "pass",
+      "lock_calls": 86,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "file": "run-014.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "file": "run-015.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "file": "run-016.json.gz",
+      "result": "pass",
+      "lock_calls": 88,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "file": "run-017.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "file": "run-018.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "file": "run-019.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "file": "run-020.json.gz",
+      "result": "pass",
+      "lock_calls": 92,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "file": "run-021.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "file": "run-022.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "file": "run-023.json.gz",
+      "result": "pass",
+      "lock_calls": 94,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "file": "run-024.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "file": "run-025.json.gz",
+      "result": "pass",
+      "lock_calls": 92,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "file": "run-026.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 27,
+      "file": "run-027.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 28,
+      "file": "run-028.json.gz",
+      "result": "pass",
+      "lock_calls": 94,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 29,
+      "file": "run-029.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 30,
+      "file": "run-030.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 31,
+      "file": "run-031.json.gz",
+      "result": "pass",
+      "lock_calls": 92,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 32,
+      "file": "run-032.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 33,
+      "file": "run-033.json.gz",
+      "result": "pass",
+      "lock_calls": 92,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 34,
+      "file": "run-034.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 35,
+      "file": "run-035.json.gz",
+      "result": "pass",
+      "lock_calls": 88,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 36,
+      "file": "run-036.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 37,
+      "file": "run-037.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 38,
+      "file": "run-038.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 39,
+      "file": "run-039.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 40,
+      "file": "run-040.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 41,
+      "file": "run-041.json.gz",
+      "result": "pass",
+      "lock_calls": 94,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 42,
+      "file": "run-042.json.gz",
+      "result": "pass",
+      "lock_calls": 93,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 43,
+      "file": "run-043.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 44,
+      "file": "run-044.json.gz",
+      "result": "pass",
+      "lock_calls": 95,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 45,
+      "file": "run-045.json.gz",
+      "result": "pass",
+      "lock_calls": 94,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 46,
+      "file": "run-046.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 47,
+      "file": "run-047.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 48,
+      "file": "run-048.json.gz",
+      "result": "pass",
+      "lock_calls": 88,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 49,
+      "file": "run-049.json.gz",
+      "result": "pass",
+      "lock_calls": 92,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 50,
+      "file": "run-050.json.gz",
+      "result": "pass",
+      "lock_calls": 94,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 51,
+      "file": "run-051.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 52,
+      "file": "run-052.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 53,
+      "file": "run-053.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 54,
+      "file": "run-054.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 55,
+      "file": "run-055.json.gz",
+      "result": "pass",
+      "lock_calls": 86,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 56,
+      "file": "run-056.json.gz",
+      "result": "pass",
+      "lock_calls": 92,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 57,
+      "file": "run-057.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 58,
+      "file": "run-058.json.gz",
+      "result": "pass",
+      "lock_calls": 88,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 59,
+      "file": "run-059.json.gz",
+      "result": "pass",
+      "lock_calls": 92,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 60,
+      "file": "run-060.json.gz",
+      "result": "pass",
+      "lock_calls": 86,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 61,
+      "file": "run-061.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 62,
+      "file": "run-062.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 63,
+      "file": "run-063.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 64,
+      "file": "run-064.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 65,
+      "file": "run-065.json.gz",
+      "result": "pass",
+      "lock_calls": 88,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 66,
+      "file": "run-066.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 67,
+      "file": "run-067.json.gz",
+      "result": "pass",
+      "lock_calls": 92,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 68,
+      "file": "run-068.json.gz",
+      "result": "pass",
+      "lock_calls": 92,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 69,
+      "file": "run-069.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 70,
+      "file": "run-070.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 71,
+      "file": "run-071.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 72,
+      "file": "run-072.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 73,
+      "file": "run-073.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 74,
+      "file": "run-074.json.gz",
+      "result": "pass",
+      "lock_calls": 85,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 75,
+      "file": "run-075.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 76,
+      "file": "run-076.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 77,
+      "file": "run-077.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 78,
+      "file": "run-078.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 79,
+      "file": "run-079.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 80,
+      "file": "run-080.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 81,
+      "file": "run-081.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 82,
+      "file": "run-082.json.gz",
+      "result": "pass",
+      "lock_calls": 88,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 83,
+      "file": "run-083.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 84,
+      "file": "run-084.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 85,
+      "file": "run-085.json.gz",
+      "result": "pass",
+      "lock_calls": 88,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 86,
+      "file": "run-086.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 87,
+      "file": "run-087.json.gz",
+      "result": "pass",
+      "lock_calls": 88,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 88,
+      "file": "run-088.json.gz",
+      "result": "pass",
+      "lock_calls": 88,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 89,
+      "file": "run-089.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 90,
+      "file": "run-090.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 91,
+      "file": "run-091.json.gz",
+      "result": "pass",
+      "lock_calls": 84,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 92,
+      "file": "run-092.json.gz",
+      "result": "pass",
+      "lock_calls": 92,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 93,
+      "file": "run-093.json.gz",
+      "result": "pass",
+      "lock_calls": 91,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 94,
+      "file": "run-094.json.gz",
+      "result": "pass",
+      "lock_calls": 90,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 95,
+      "file": "run-095.json.gz",
+      "result": "pass",
+      "lock_calls": 88,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 96,
+      "file": "run-096.json.gz",
+      "result": "pass",
+      "lock_calls": 88,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 97,
+      "file": "run-097.json.gz",
+      "result": "pass",
+      "lock_calls": 89,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 98,
+      "file": "run-098.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 99,
+      "file": "run-099.json.gz",
+      "result": "pass",
+      "lock_calls": 92,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    },
+    {
+      "index": 100,
+      "file": "run-100.json.gz",
+      "result": "pass",
+      "lock_calls": 87,
+      "verdicts": [
+        {
+          "check": "no_oversell",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO live 0 of 1 stocked; WIDGET live 5 of 10 stocked; WIDGET orders need 5 of 10"
+        },
+        {
+          "check": "reserved_matches_reservations",
+          "version": 2,
+          "result": "pass",
+          "reason": "SOLO reserved 0 = live 0; WIDGET reserved 5 = live 5"
+        },
+        {
+          "check": "one_order_per_cart",
+          "version": 2,
+          "result": "pass",
+          "reason": "cart c-1: 1 order; cart c-2: 1 order; cart c-3: 1 order; cart c-4: 1 order; cart c-5: 1 order"
+        },
+        {
+          "check": "no_orphaned_orders",
+          "version": 2,
+          "result": "pass",
+          "reason": "5 orders, each linked to a scenario cart and holding the reservations its lines need"
+        },
+        {
+          "check": "no_missing_orders",
+          "version": 1,
+          "result": "pass",
+          "reason": "every ok complete call returned a saved order linked to its cart (20 checked)"
+        }
+      ]
+    }
+  ],
+  "exit_code": 0,
+  "generated": "2026-11-21T17:42:18.106642000Z"
+}

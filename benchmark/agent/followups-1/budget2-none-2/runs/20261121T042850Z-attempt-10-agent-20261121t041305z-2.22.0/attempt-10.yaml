@@ -1,0 +1,27 @@
+schema: oversold.scenario/v1
+name: attempt-10-agent-20261121t041305z
+description: Ten identical carts each want the single SOLO unit and are completed
+  together on one server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  SOLO: 1
+carts:
+  buyer:
+    server: 1
+    count: 10
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: buy
+  server: 1
+  do: complete
+  cart: buyer
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 71

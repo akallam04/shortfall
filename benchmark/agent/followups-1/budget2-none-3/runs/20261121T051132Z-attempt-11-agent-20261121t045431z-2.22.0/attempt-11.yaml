@@ -1,0 +1,30 @@
+schema: oversold.scenario/v1
+name: attempt-11-agent-20261121t045431z
+description: Separate carts are completed in a staggered sequence across two servers
+  to check that each ok response matches a linked order.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  shopper:
+    server: 1
+    count: 4
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: shopper-via-one
+  server: 1
+  do: complete
+  cart: shopper
+- id: shopper-via-two
+  server: 2
+  do: complete
+  cart: shopper
+timing:
+  release: sequential
+runs: 25
+seed: 101

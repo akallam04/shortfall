@@ -1,0 +1,29 @@
+schema: oversold.scenario/v1
+name: attempt-08-agent-20261121t045431z
+description: Many carts sharing the WIDGET level are completed at once on one server,
+  testing the reserved counter.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+carts:
+  shopper:
+    server: 1
+    count: 8
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: shopper-completes
+  server: 1
+  do: complete
+  cart: shopper
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+runs: 30
+seed: 71

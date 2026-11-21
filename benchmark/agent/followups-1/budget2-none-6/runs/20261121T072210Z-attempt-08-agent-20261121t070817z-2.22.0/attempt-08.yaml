@@ -1,0 +1,26 @@
+schema: oversold.scenario/v1
+name: attempt-08-agent-20261121t070817z
+description: A single WIDGET cart is completed when stock has been set to zero, to
+  see whether the check and reservation use different locations.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 0
+carts:
+  solo-piece:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: piece-completes
+  server: 1
+  do: complete
+  cart: solo-piece
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 17

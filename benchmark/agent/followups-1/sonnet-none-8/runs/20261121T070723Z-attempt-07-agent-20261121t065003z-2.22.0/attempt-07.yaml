@@ -1,0 +1,27 @@
+schema: oversold.scenario/v1
+name: attempt-07-agent-20261121t065003z
+description: Stock is lowered to 1 after the cart for 5 units was prepared.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+stock_before_race:
+  WIDGET: 1
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 5
+race:
+- id: c1
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: sequential
+faults: []
+runs: 5
+seed: 6

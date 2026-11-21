@@ -1,0 +1,29 @@
+schema: oversold.scenario/v1
+name: attempt-04-agent-20261121t074841z
+description: Five single-piece carts are prepared against 10 WIDGET units, then stock
+  drops to 2 before all five complete together.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock_before_race:
+  WIDGET: 2
+carts:
+  buyer:
+    server: 1
+    count: 5
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: buyer-complete
+  server: 1
+  do: complete
+  cart: buyer
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+runs: 20
+seed: 17

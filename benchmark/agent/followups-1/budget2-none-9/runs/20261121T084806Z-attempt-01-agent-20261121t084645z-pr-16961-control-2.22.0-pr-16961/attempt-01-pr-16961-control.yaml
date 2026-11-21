@@ -1,0 +1,38 @@
+schema: oversold.scenario/v1
+name: attempt-01-agent-20261121t084645z-pr-16961-control
+description: Variant control of attempt-01-agent-20261121t084645z on Medusa 2.22.0
+  with pr-16961. Two carts each need the single SOLO unit and are completed together,
+  one on each server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  variant: pr-16961
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+  bob:
+    server: 2
+    lines:
+    - sku: OVS-SOLO
+      qty: 1
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 2
+  do: complete
+  cart: bob
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 5
+  request_timeout_ms: 30000
+runs: 20
+seed: 7

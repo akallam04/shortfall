@@ -1,0 +1,29 @@
+schema: oversold.scenario/v1
+name: attempt-05-agent-20261121t060455z-pr-16961-control
+description: Variant control of attempt-05-agent-20261121t060455z on Medusa 2.22.0
+  with pr-16961. Two lines of the shared item each fit alone but need 12 units together
+  against 10.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+  variant: pr-16961
+stock:
+  WIDGET: 10
+carts:
+  big:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 4
+    - sku: OVS-TWOPACK
+      qty: 4
+race:
+- id: big-completes
+  server: 1
+  do: complete
+  cart: big
+timing:
+  release: sequential
+runs: 3
+seed: 5

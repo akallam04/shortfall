@@ -1,0 +1,268 @@
+[
+ {
+  "attempt": 1,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "stale-counter-write",
+  "expected_check": "reserved_matches_reservations",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "createReservationItems_ reads level.reserved_quantity (via a plain list, no row lock, and availability is checked from that same unlocked read) and later writes reserved_quantity = stale + adjustment. Two concurrent completions of different carts that both reserve the same inventory item can read the same reserved value, so one increment is lost: the counter disagrees with the live reservation rows (reserved_matches_reservations), and both carts may pass the availability check for a single SOLO unit (no_oversell). I expect at least some runs to show a lost update.",
+  "scenario_sha256": "b27e93671fdda73f1b8229e64482e1db5dab959cf09d0da9d71ef5a9b1dceca7",
+  "scenario_file": "attempts/attempt-01.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: solo-race-two-carts\ndescription: Two carts each want the single SOLO unit and are completed together on one server.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 1\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nruns: 10\nseed: 1\n"
+ },
+ {
+  "attempt": 2,
+  "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+  "cause": "process-local-lock",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 11,
+    "reserved_matches_reservations": 11
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 11,
+   "reserved_matches_reservations": 11
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "not reproduced",
+   "medusa-17032-counter": "reproduced",
+   "medusa-17032-last-unit": "reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "process-local-lock",
+   "cases": {
+    "medusa-17032-counter": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    },
+    "medusa-17032-last-unit": {
+     "file": "accepted",
+     "cause": "accepted",
+     "located": "accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "reserve-inventory wraps the reservation in locking.execute(lockingKeys). With the default in-memory locking provider the lock lives in each server process, so when two servers on one database complete two carts for the single SOLO unit at the same time, each process holds its own lock and both can reserve the unit. I expect no_oversell to fail: two live reservations (or two orders) against stock 1.",
+  "scenario_sha256": "12d762a74ff45ab17a6ed5233d6ad81b22a48c41199f33e9d312748d10503dd1",
+  "scenario_file": "attempts/attempt-02.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: solo-two-servers\ndescription: Two carts each want the single SOLO unit and are completed at the same time on two servers.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 2\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 2\n  do: complete\n  cart: bob\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nruns: 20\nseed: 7\n"
+ },
+ {
+  "attempt": 3,
+  "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+  "cause": "duplicate-completion",
+  "expected_check": "one_order_per_cart",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+   "cause": "duplicate-completion",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "The same cart is sent to complete twice at the same time on one server. If the cart-completed guard is checked from a read taken before either request writes, both completions can create an order, so one cart is linked to two orders (one_order_per_cart (a)) and/or both 'ok' responses return different order ids (one_order_per_cart (b)).",
+  "scenario_sha256": "e212ab2991097d146616d60a900a9341617cab667dffd4778b270c5fffcb8725",
+  "scenario_file": "attempts/attempt-03.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: same-cart-twice\ndescription: One cart with one SOLO unit is completed twice at the same time on one server.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-first\n  server: 1\n  do: complete\n  cart: alice\n- id: alice-second\n  server: 1\n  do: complete\n  cart: alice\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nruns: 20\nseed: 11\n"
+ },
+ {
+  "attempt": 4,
+  "file": "packages/core/core-flows/src/cart/utils/prepare-confirm-inventory-input.ts",
+  "cause": "per-line-check",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "violation",
+   "rules": {
+    "no_oversell": 13
+   },
+   "runs": 13
+  },
+  "plain_failed_rules": {
+   "no_oversell": 13
+  },
+  "expected_check_failed": true,
+  "reproduced": {
+   "medusa-16502-lines": "reproduced",
+   "medusa-17032-last-unit": "not reproduced"
+  },
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/utils/prepare-confirm-inventory-input.ts",
+   "cause": "per-line-check",
+   "cases": {
+    "medusa-16502-lines": {
+     "file": "not accepted",
+     "cause": "accepted",
+     "located": "not accepted"
+    }
+   }
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 33,
+  "hypothesis": "Two lines in one cart share the WIDGET inventory item: OVS-PIECE qty 6 and OVS-TWOPACK qty 3 (needs 6 + 6 = 12 units against stock 10). If each line is checked against stock alone, each passes (6 <= 10, 6 <= 10) and both reserve, so the order needs 12 WIDGET units against 10 stocked, which no_oversell (b) reports. The same pattern across two carts is the other variant.",
+  "scenario_sha256": "041ad0b4a9b8fbe4ddcde90d59f0dff99fee9fda87cfc0a8e0623c26ca751469",
+  "scenario_file": "attempts/attempt-04.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: widget-shared-lines\ndescription: One cart holds two lines that share the WIDGET item and together need more than the stocked 10.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 6\n    - sku: OVS-TWOPACK\n      qty: 3\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\ntiming:\n  release: together\nruns: 10\nseed: 3\n"
+ },
+ {
+  "attempt": 5,
+  "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+  "cause": "payment-order-link",
+  "expected_check": "no_missing_orders",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/workflows/complete-cart.ts",
+   "cause": "payment-order-link",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "A single complete on a valid cart should produce an order linked to that cart and its payment. If the order is saved without its cart link or payment, the ok response returns an order id that is not linked to the cart, which no_missing_orders reports. This is a baseline check of the order-link path, not a race.",
+  "scenario_sha256": "d9a981b57db9cb76ec32e387c4c8949201649bb3db580bb4f8bc526f31558720",
+  "scenario_file": "attempts/attempt-05.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: single-complete-link\ndescription: One cart with one PIECE unit is completed once; the order should link to the cart and its payment.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\ntiming:\n  release: together\nruns: 5\nseed: 5\n"
+ },
+ {
+  "attempt": 6,
+  "file": "packages/core/core-flows/src/cart/utils/prepare-confirm-inventory-input.ts",
+  "cause": "stock-location-mixup",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/utils/prepare-confirm-inventory-input.ts",
+   "cause": "stock-location-mixup",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "If stock is read at one location and reserved at another, a cart can pass the availability check against one location's stock while its reservation lands on a location with less stock. Here I race two SOLO carts while stock is changed between cart preparation and the race, so a cart built against SOLO 1 is completed against a different level. I expect no_oversell to fail if the reservation and availability check use mismatched locations.",
+  "scenario_sha256": "1eb9dc2617631fe660e2e6339d949d74994e569aebe8caac97a131723e1f170f",
+  "scenario_file": "attempts/attempt-06.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: solo-stock-changes-before-race\ndescription: Two SOLO carts are prepared against stock 2, the stock is lowered to 1 before the race, and both complete together.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  SOLO: 2\nstock_before_race:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 1\n  do: complete\n  cart: bob\ntiming:\n  release: together\nruns: 10\nseed: 9\n"
+ },
+ {
+  "attempt": 7,
+  "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+  "cause": "process-local-lock",
+  "expected_check": "no_oversell",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "process-local-lock",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "reserveInventoryStep serializes createReservationItems with locking.execute keyed by inventory item. The default locking provider is the in-memory one, which only locks inside one Node process. With two servers on one database, carts completed on different servers can both pass the availability check for the single SOLO unit before either reservation commits. I expect no_oversell to fail on some runs: more than one live reservation against SOLO stock 1.",
+  "scenario_sha256": "ae0c9798c85c03f586f907150d6348b745eb8c44e5cef000986868b24e9a87d9",
+  "scenario_file": "attempts/attempt-07.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: solo-three-carts-two-servers\ndescription: Three carts each want the single SOLO unit, split across two servers, completed at the same time.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 2\nstock:\n  SOLO: 1\ncarts:\n  alice:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  bob:\n    server: 2\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\n  carol:\n    server: 1\n    lines:\n    - sku: OVS-SOLO\n      qty: 1\nrace:\n- id: alice-completes\n  server: 1\n  do: complete\n  cart: alice\n- id: bob-completes\n  server: 2\n  do: complete\n  cart: bob\n- id: carol-completes\n  server: 1\n  do: complete\n  cart: carol\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 5\nruns: 20\nseed: 21\n"
+ },
+ {
+  "attempt": 8,
+  "file": "packages/modules/inventory/src/services/inventory-module.ts",
+  "cause": "stale-counter-write",
+  "expected_check": "reserved_matches_reservations",
+  "refused": null,
+  "ran": true,
+  "violation": {
+   "result": "not reproduced within 10 runs",
+   "rules": {},
+   "runs": 10
+  },
+  "plain_failed_rules": {},
+  "expected_check_failed": false,
+  "reproduced": {},
+  "located": {
+   "result": "graded",
+   "file": "packages/modules/inventory/src/services/inventory-module.ts",
+   "cause": "stale-counter-write",
+   "cases": {}
+  },
+  "manual_check": [],
+  "stop_reason": null,
+  "oversold_runs": 10,
+  "hypothesis": "createReservationItems_ reads level.reserved_quantity in ensureInventoryLevels and writes back reserved_quantity + adjustment with no row lock. Two carts whose reservations hit the same WIDGET level at the same time can read the same starting value, so one increment is lost while both reservation rows survive. That should make reserved_quantity disagree with the live reservation sum (reserved_matches_reservations). Using OVS-PIECE and OVS-TWOPACK on the same WIDGET item maximizes concurrent writes to one level.",
+  "scenario_sha256": "b32e83451ba6391dcfa2822f23352ece2f760fbaa97330aba7d1c5cc32e37d0d",
+  "scenario_file": "attempts/attempt-08.yaml",
+  "submitted_scenario": "schema: oversold.scenario/v1\nname: widget-shared-level-race\ndescription: Four carts reserve the shared WIDGET level at the same time on one server, so their counter writes can collide.\ntarget:\n  engine: medusa\n  version: 2.22.0\n  servers: 1\nstock:\n  WIDGET: 10\ncarts:\n  piece-a:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 1\n  piece-b:\n    server: 1\n    lines:\n    - sku: OVS-PIECE\n      qty: 1\n  twin-a:\n    server: 1\n    lines:\n    - sku: OVS-TWOPACK\n      qty: 1\n  twin-b:\n    server: 1\n    lines:\n    - sku: OVS-TWOPACK\n      qty: 1\nrace:\n- id: piece-a-completes\n  server: 1\n  do: complete\n  cart: piece-a\n- id: piece-b-completes\n  server: 1\n  do: complete\n  cart: piece-b\n- id: twin-a-completes\n  server: 1\n  do: complete\n  cart: twin-a\n- id: twin-b-completes\n  server: 1\n  do: complete\n  cart: twin-b\ntiming:\n  release: together\n  jitter_ms:\n  - 0\n  - 3\nruns: 20\nseed: 31\n"
+ }
+]

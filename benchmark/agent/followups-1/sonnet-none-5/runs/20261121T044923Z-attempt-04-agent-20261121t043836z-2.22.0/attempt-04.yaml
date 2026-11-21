@@ -1,0 +1,27 @@
+schema: oversold.scenario/v1
+name: attempt-04-agent-20261121t043836z
+description: Many different carts reserve the same WIDGET item concurrently on one
+  server.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 1000
+carts:
+  w:
+    server: 1
+    count: 30
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: w-completes
+  server: 1
+  do: complete
+  cart: w
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 4

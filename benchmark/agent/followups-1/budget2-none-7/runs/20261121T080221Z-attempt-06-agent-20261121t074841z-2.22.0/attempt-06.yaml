@@ -1,0 +1,27 @@
+schema: oversold.scenario/v1
+name: attempt-06-agent-20261121t074841z
+description: Eight single-piece carts share WIDGET stock and are completed together
+  on one server to expose lost counter updates.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+carts:
+  buyer:
+    server: 1
+    count: 8
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: buyer-complete
+  server: 1
+  do: complete
+  cart: buyer
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+runs: 20
+seed: 29

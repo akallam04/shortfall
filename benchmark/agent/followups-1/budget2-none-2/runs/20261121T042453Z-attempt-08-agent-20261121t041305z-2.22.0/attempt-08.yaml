@@ -1,0 +1,28 @@
+schema: oversold.scenario/v1
+name: attempt-08-agent-20261121t041305z
+description: A WIDGET cart is built against stock 10, stock is reduced to 0 before
+  the race, then completed.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+stock_before_race:
+  WIDGET: 0
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 2
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 51

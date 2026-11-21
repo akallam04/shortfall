@@ -1,0 +1,70 @@
+{
+ "trial_id": "agent-20261121T074841Z",
+ "task_mode": "unguided",
+ "feedback": "none",
+ "issue": null,
+ "model": "claude-haiku-5-5",
+ "sdk_version": "2.9.0",
+ "knowledge_cutoff": "Jun 2026",
+ "caps": {
+  "runs": 300,
+  "attempts": 30,
+  "turns": 100,
+  "dollars": 1.0
+ },
+ "end_reason": "stopped after 15 gate answers",
+ "finished_by_model": false,
+ "turns": 43,
+ "attempts": 13,
+ "refused": 0,
+ "oversold_runs": 235,
+ "cases": {
+  "medusa-16502-lines": {
+   "reproduced": true,
+   "attempt": 11,
+   "runs_to_first": 192,
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "per-line-check",
+   "file_grade": "not accepted",
+   "cause_grade": "accepted"
+  },
+  "medusa-17032-counter": {
+   "reproduced": true,
+   "attempt": 1,
+   "runs_to_first": 33,
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "process-local-lock",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  },
+  "medusa-17032-last-unit": {
+   "reproduced": true,
+   "attempt": 1,
+   "runs_to_first": 33,
+   "file": "packages/core/core-flows/src/cart/steps/reserve-inventory.ts",
+   "cause": "process-local-lock",
+   "file_grade": "accepted",
+   "cause_grade": "accepted"
+  }
+ },
+ "cases_reproduced": 3,
+ "claims": null,
+ "claims_backed": 0,
+ "claims_unbacked": 0,
+ "expected_check": {
+  "hits": 5,
+  "of": 13
+ },
+ "manual_check": [],
+ "tokens": {
+  "input": 42756,
+  "cache_write": 152790,
+  "cache_read": 594010,
+  "output": 17602
+ },
+ "model_calls": 43,
+ "largest_prompt_tokens": 26424,
+ "gate_answers": 15,
+ "dollars": 0.038115,
+ "wall_seconds": 1588
+}

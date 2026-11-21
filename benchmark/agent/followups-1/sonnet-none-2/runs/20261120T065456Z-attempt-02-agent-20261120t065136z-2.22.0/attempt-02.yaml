@@ -1,0 +1,30 @@
+schema: oversold.scenario/v1
+name: attempt-02-agent-20261120t065136z
+description: The same cart is completed at the same time on two servers sharing a
+  database.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+stock:
+  WIDGET: 10
+carts:
+  shared:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 2
+race:
+- id: c1
+  server: 1
+  do: complete
+  cart: shared
+- id: c2
+  server: 2
+  do: complete
+  cart: shared
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 2

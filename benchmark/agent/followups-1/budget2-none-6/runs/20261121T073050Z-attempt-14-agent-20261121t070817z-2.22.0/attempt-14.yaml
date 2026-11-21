@@ -1,0 +1,28 @@
+schema: oversold.scenario/v1
+name: attempt-14-agent-20261121t070817z
+description: A WIDGET cart is prepared against stock 5, then stock is lowered to 0
+  before the race completes it.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 5
+stock_before_race:
+  WIDGET: 0
+carts:
+  prepared:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: prepared-completes
+  server: 1
+  do: complete
+  cart: prepared
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 41

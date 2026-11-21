@@ -1,0 +1,51 @@
+{
+ "trial_id": "agent-20261121T041128Z",
+ "task_mode": "unguided",
+ "feedback": "none",
+ "issue": null,
+ "model": "claude-sonnet-5-5",
+ "sdk_version": "2.9.0",
+ "knowledge_cutoff": "Jun 2026",
+ "caps": {
+  "runs": 300,
+  "attempts": 30,
+  "turns": 100,
+  "dollars": 1.0
+ },
+ "end_reason": "finished by the model",
+ "finished_by_model": true,
+ "turns": 29,
+ "attempts": 7,
+ "refused": 7,
+ "oversold_runs": 0,
+ "cases": {
+  "medusa-16502-lines": {
+   "reproduced": false
+  },
+  "medusa-17032-counter": {
+   "reproduced": false
+  },
+  "medusa-17032-last-unit": {
+   "reproduced": false
+  }
+ },
+ "cases_reproduced": 0,
+ "claims": [],
+ "claims_backed": 0,
+ "claims_unbacked": 0,
+ "expected_check": {
+  "hits": 0,
+  "of": 0
+ },
+ "manual_check": [],
+ "tokens": {
+  "input": 47270,
+  "cache_write": 99401,
+  "cache_read": 449944,
+  "output": 7814
+ },
+ "model_calls": 29,
+ "largest_prompt_tokens": 30745,
+ "dollars": 0.466177,
+ "wall_seconds": 91
+}

@@ -1,0 +1,46 @@
+schema: oversold.scenario/v1
+name: attempt-11-agent-20261121t062205z
+description: Carts are prepared against WIDGET stock 10, then stock drops to 2 before
+  three carts complete together.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 1
+stock:
+  WIDGET: 10
+stock_before_race:
+  WIDGET: 2
+carts:
+  alice:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 2
+  bob:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 2
+  carol:
+    server: 1
+    lines:
+    - sku: OVS-PIECE
+      qty: 2
+race:
+- id: alice-completes
+  server: 1
+  do: complete
+  cart: alice
+- id: bob-completes
+  server: 1
+  do: complete
+  cart: bob
+- id: carol-completes
+  server: 1
+  do: complete
+  cart: carol
+timing:
+  release: together
+faults: []
+runs: 10
+seed: 43

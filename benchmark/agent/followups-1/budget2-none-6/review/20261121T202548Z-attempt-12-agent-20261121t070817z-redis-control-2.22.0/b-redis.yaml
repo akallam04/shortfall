@@ -1,0 +1,35 @@
+schema: oversold.scenario/v1
+name: attempt-12-agent-20261121t070817z-redis-control
+description: Copies of one cart are completed from both servers at the same time,
+  to test whether the cart lock spans processes.
+target:
+  engine: medusa
+  version: 2.22.0
+  servers: 2
+  locking: redis
+stock:
+  WIDGET: 10
+carts:
+  dup:
+    server: 1
+    count: 3
+    lines:
+    - sku: OVS-PIECE
+      qty: 1
+race:
+- id: dup-on-1
+  server: 1
+  do: complete
+  cart: dup
+- id: dup-on-2
+  server: 2
+  do: complete
+  cart: dup
+timing:
+  release: together
+  jitter_ms:
+  - 0
+  - 3
+faults: []
+runs: 20
+seed: 31

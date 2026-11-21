@@ -3,7 +3,7 @@
 Two agent trials were stopped by the safety rule, which stops a plan when a run breaks a rule that nothing in the coverage map covers. In both, the agent sent the same cart to checkout at the same moment through both servers, and in one run one cart became two orders. Each trial was rerun from scratch, and the rerun is the trial that counts. These folders keep the stopped records as they were, with the extra runs made afterwards.
 
 - [scale-10-nomenu-none-8](scale-10-nomenu-none-8/): trial nomenu-none-8 of plan scale-10, one cart. Its rerun is in [scale-10/nomenu-none-8](../scale-10/nomenu-none-8/).
-- [followups-1-sonnet-none-3](followups-1-sonnet-none-3/): trial sonnet-none-3 of plan followups-1, five carts. Its rerun is published with plan followups-1.
+- [followups-1-sonnet-none-3](followups-1-sonnet-none-3/): trial sonnet-none-3 of plan followups-1, five carts. Its rerun is in [followups-1/sonnet-none-3](../followups-1/sonnet-none-3/). That rerun was held for the same failure and published after a review by hand.
 
 Each folder has the same layout as a published trial: `ledger.jsonl`, `transcript.jsonl.gz`, `attempts/`, `attempts.json`, `claims.json`, `score.json` and the trial's own runs under `runs/`. The extra runs are under `review/`, with `review/review.json` giving each set's runs, the failures of every check, and the HTTP errors returned to checkouts that failed. The scenario of each set is in its run folder.
 
