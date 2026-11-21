@@ -158,10 +158,16 @@ make engine-down
 
 `src/shortfall/models.py` connects the agent to Claude through the official `anthropic` Python SDK, pinned in `pyproject.toml`. It knows `claude-haiku-5-5` and `claude-sonnet-5-5`. Each call may write up to 2,000 output tokens and runs without extended thinking (on Claude Sonnet 5.5, which cannot turn thinking off, at its lowest setting). The tool definitions and the system prompt are cached, and a second cache marker moves along the conversation to the last message that the next turn will send unchanged. Prices are dated constants taken from the [pricing page](https://platform.claude.com/docs/en/about-claude/pricing). Before each call the trial reserves the most the call could cost, and afterwards it records the real cost from the response's usage: input, cache write, cache read and output tokens. A call that would pass the trial's dollar cap or the $20 total is not made. Rate-limit and server errors are retried at most twice, and billing or authentication errors end the trial. The API key is read only from `.env`, which git ignores, and anything that looks like a key is masked in the ledger and in transcripts.
 
-`src/shortfall/trials.py` runs a plan of trials, such as [benchmark/agent/plans/guided-haiku-1.yaml](benchmark/agent/plans/guided-haiku-1.yaml), in round-robin order. Before each trial it checks the engine, the image ids, the prompt hash, the Oversold pin, the dollar room and the free disk space, and it stops the plan on any mismatch. A trial that was interrupted is rerun from the start with a new id. Each finished trial is exported under `benchmark/agent/<plan>/`, its histories are verified, and its files are scanned for local paths and keys before it counts as exported. A plan with a real model needs the key in `.env` (copy `.env.example`), the engine and Oversold's Postgres:
+`src/shortfall/trials.py` runs a plan of trials, such as [benchmark/agent/plans/guided-haiku-1.yaml](benchmark/agent/plans/guided-haiku-1.yaml), in round-robin order. Before each trial it checks the engine, Oversold's Postgres, the image ids, the prompt hash, the Oversold pin, the dollar room and the free disk space, and it stops the plan on any mismatch. A trial that was interrupted is rerun from the start with a new id. Each finished trial is exported under `benchmark/agent/<plan>/`, its histories are verified, and its files are scanned for local paths and keys before it counts as exported. A plan with a real model needs the key in `.env` (copy `.env.example`), the engine and Oversold's Postgres:
 
 ```bash
 .venv/bin/python -m shortfall.trials benchmark/agent/plans/guided-haiku-1.yaml --raise-dollar-cap 3
+```
+
+To run a plan in the background, use the launcher instead. It first runs `sh scripts/oversold.sh up`, then starts the plan in its own session, so the plan keeps running after the terminal that started it closes. On a Mac it also keeps the machine awake with `caffeinate` until the plan ends. The plan's output goes to `runs/trials/<plan>.log`:
+
+```bash
+.venv/bin/python -m shortfall.launch benchmark/agent/plans/guided-haiku-1.yaml --raise-dollar-cap 3
 ```
 
 ```bash

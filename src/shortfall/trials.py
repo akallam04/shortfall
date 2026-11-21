@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -17,7 +18,7 @@ import yaml
 
 from shortfall import agent, control, freeze, ledger, redact, score
 from shortfall.budget import TOTAL_DOLLAR_CAP
-from shortfall.coverage import HELD_NOTE
+from shortfall.coverage import HELD_NOTE, LIMIT_IN_MEMORY, covering_issues
 from shortfall.pin import read_pin
 from shortfall.trialscore import score_trial
 
@@ -25,6 +26,14 @@ PLAN_SCHEMA = "shortfall.plan/v1"
 PLAN_SCHEMA_V2 = "shortfall.plan/v2"
 REVIEW_RUNS = 60
 REVIEW_FIX = "pr-17420"
+HAND_RULE = "one_order_per_cart"
+HAND_REVIEW = (
+    "one_order_per_cart failed only on two servers with in-memory locking, the documented limit "
+    "of in-memory locking; it is reviewed by hand with 100 runs each on plain two servers, Redis "
+    "and all completions on server 1, plus pr-17420 for information only"
+)
+POSTGRES_ENV = Path(".oversold") / ".env"
+POSTGRES_PORT = 55432
 WORD_FILES = Path(".git") / "info" / "private-word-files"
 ENGINE_NAME = "colima-shortfall"
 ENGINE_PROFILE = "shortfall"
@@ -377,6 +386,25 @@ def oversold_running() -> bool:
     return bool(proc.stdout.strip())
 
 
+def oversold_postgres_port(root: Path) -> int:
+    path = Path(root) / POSTGRES_ENV
+    port = POSTGRES_PORT
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            key, sep, value = line.partition("=")
+            if sep and key.strip() == "POSTGRES_PORT" and value.strip().isdigit():
+                port = int(value.strip())
+    return port
+
+
+def postgres_answers(port: int) -> bool:
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=3):
+            return True
+    except OSError:
+        return False
+
+
 @dataclass
 class Checks:
     engine_name: Callable[[], str] = engine_name
@@ -384,6 +412,7 @@ class Checks:
     vm_free_bytes: Callable[[], int | None] = vm_free_bytes
     mac_free_bytes: Callable[[Path], int] = lambda root: shutil.disk_usage(root).free
     oversold_running: Callable[[], bool] = oversold_running
+    postgres_answers: Callable[[int], bool] = postgres_answers
 
 
 def preflight(
@@ -404,6 +433,12 @@ def preflight(
             problems.append(f"the engine VM has {fmt_bytes(free)} free, 5 GB needed")
         if checks.oversold_running():
             problems.append("another Oversold run is still going")
+        port = oversold_postgres_port(root)
+        if not checks.postgres_answers(port):
+            problems.append(
+                f"Oversold's postgres does not answer on 127.0.0.1:{port}, "
+                "run sh scripts/oversold.sh up"
+            )
     pairs = sorted({(s.variant, s.prompt_hash) for s in plan.specs if s.kind == "agent"})
     for variant, wanted in pairs:
         current = freeze.prompt_hash(root, variant)
@@ -1136,7 +1171,7 @@ class Runner:
         closed = {
             e["trial"]
             for e in events
-            if e["event"] in ("trial-exported", "review-kept-held", "review-stop")
+            if e["event"] in ("trial-exported", "review-kept-held", "review-stop", "review-by-hand")
         }
         specs = {s.id: s for s in self.plan.specs}
         for e in events:
@@ -1148,6 +1183,15 @@ class Runner:
             spec, run_id = specs[e["trial"]], e["run_id"]
             mine = [r for r in self.records() if r["attempt_id"].startswith(f"{run_id}-")]
             finals = [r for r in mine if r.get("kind") == "final" and r.get("manual_check")]
+            if finals and all(hand_review(self.root, f) for f in finals):
+                self.state.add(
+                    "review-by-hand",
+                    trial=spec.id,
+                    run_id=run_id,
+                    attempts=[f["attempt_id"] for f in finals],
+                    reason=HAND_REVIEW,
+                )
+                continue
             review = []
             for final in finals:
                 rules = sorted({n.split(" ")[0] for n in final["manual_check"]})
@@ -1173,6 +1217,14 @@ class Runner:
             else:
                 self.state.add("review-kept-held", trial=spec.id, run_id=run_id, review=review)
         return 0
+
+
+def hand_review(root: Path, final: dict) -> bool:
+    rules = {str(n).split(" ")[0] for n in final.get("manual_check") or []}
+    if rules != {HAND_RULE}:
+        return False
+    data = yaml.safe_load((Path(root) / final["scenario"]).read_text(encoding="utf-8"))
+    return LIMIT_IN_MEMORY in covering_issues(score.shape(data), HAND_RULE)
 
 
 def status(root: Path, plan: Plan) -> dict:

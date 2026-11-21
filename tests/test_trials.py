@@ -1,14 +1,18 @@
 import gzip
 import json
+import os
 import shutil
+import socket
+import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
 from test_agent import SCENARIO, FakeRunner, call, full_script, make_root, reply, trial
 
-from shortfall import freeze, ledger, score, trials
+from shortfall import freeze, launch, ledger, score, trials
 from shortfall.agent import ModelUnavailable, Reply, ScriptedModel
 from shortfall.trialscore import score_trial
 
@@ -90,6 +94,7 @@ def make_runner(root, plan_path, cap=3.0, model=None, **kw):
         vm_free_bytes=lambda: 10**12,
         mac_free_bytes=lambda r: 10**12,
         oversold_running=lambda: False,
+        postgres_answers=lambda port: True,
     )
 
     def exporter(folder, dest):
@@ -183,6 +188,89 @@ def test_a_preflight_mismatch_stops_before_any_trial(root, over, expected):
     assert make_runner(root, write_plan(root, **over)).run() == 1
     assert "trial-start" not in kinds(root)
     assert expected in events(root)[-1]["reason"]
+
+
+def test_a_postgres_that_does_not_answer_stops_the_plan_before_any_trial(root):
+    checks = trials.Checks(
+        engine_name=lambda: "colima-shortfall",
+        image_id=lambda v, var: IMAGE,
+        vm_free_bytes=lambda: 10**12,
+        mac_free_bytes=lambda r: 10**12,
+        oversold_running=lambda: False,
+        postgres_answers=lambda port: False,
+    )
+    assert make_runner(root, write_plan(root), checks=checks).run() == 1
+    assert "trial-start" not in kinds(root)
+    assert (
+        "Oversold's postgres does not answer on 127.0.0.1:55432, run sh scripts/oversold.sh up"
+        in events(root)[-1]["reason"]
+    )
+
+
+def test_the_postgres_port_comes_from_the_oversold_env_file(tmp_path):
+    assert trials.oversold_postgres_port(tmp_path) == 55432
+    env = tmp_path / ".oversold" / ".env"
+    env.parent.mkdir()
+    env.write_text("POSTGRES_USER=oversold\nPOSTGRES_PORT=55433\n")
+    assert trials.oversold_postgres_port(tmp_path) == 55433
+
+
+def test_postgres_answers_only_while_something_listens_on_the_port():
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        s.listen(1)
+        port = s.getsockname()[1]
+        assert trials.postgres_answers(port)
+    assert not trials.postgres_answers(port)
+
+
+class Launched:
+    def __init__(self, up_code=0):
+        self.up_code = up_code
+        self.calls = []
+
+    def run(self, cmd, cwd=None):
+        self.calls.append(("run", cmd, {"cwd": cwd}))
+        return subprocess.CompletedProcess(cmd, self.up_code)
+
+    def popen(self, cmd, **kw):
+        self.calls.append(("popen", cmd, kw))
+        return SimpleNamespace(pid=4242)
+
+
+def test_the_launcher_brings_postgres_up_then_starts_the_plan_in_its_own_session(root):
+    path = write_plan(root)
+    fake = Launched()
+    code = launch.launch(
+        root, str(path), 3.0, run=fake.run, popen=fake.popen, which=lambda name: name
+    )
+    assert code == 0
+    assert fake.calls[0] == ("run", ["sh", "scripts/oversold.sh", "up"], {"cwd": root})
+    kind, cmd, kw = fake.calls[1]
+    assert kind == "popen" and kw["start_new_session"] and kw["cwd"] == root
+    assert cmd[1:] == ["-u", "-m", "shortfall.trials", "plan.yaml", "--raise-dollar-cap", "3.0"]
+    kind, cmd, kw = fake.calls[2]
+    assert cmd == ["caffeinate", "-ims", "-w", "4242"] and kw["start_new_session"]
+    assert (root / "runs" / "trials" / "test-plan.pid").read_text() == "4242\n"
+    assert (root / "runs" / "trials" / "test-plan.log").exists()
+
+
+def test_the_launcher_does_not_start_the_plan_when_postgres_does_not_come_up(root):
+    path = write_plan(root)
+    fake = Launched(up_code=2)
+    code = launch.launch(root, str(path), run=fake.run, popen=fake.popen, which=lambda n: n)
+    assert code == 1 and [c[0] for c in fake.calls] == ["run"]
+    assert not (root / "runs" / "trials" / "test-plan.pid").exists()
+
+
+def test_the_launcher_refuses_while_the_plan_is_running(root):
+    path = write_plan(root)
+    pid = root / "runs" / "trials" / "test-plan.pid"
+    pid.parent.mkdir(parents=True, exist_ok=True)
+    pid.write_text(f"{os.getpid()}\n")
+    fake = Launched()
+    code = launch.launch(root, str(path), run=fake.run, popen=fake.popen, which=lambda n: n)
+    assert code == 1 and fake.calls == []
 
 
 def test_engine_and_disk_checks(root):
@@ -597,15 +685,20 @@ def test_a_baseline_trial_exports_in_the_baseline_layout(root):
     assert len(list((dest / "runs").iterdir())) > 0
 
 
-def held_run(root, monkeypatch):
+NO_OVERSELL = "no_oversell failed 1 of 13 runs on plain Medusa 2.22.0: violation"
+ONE_ORDER = (
+    "one_order_per_cart failed 1 of 13 runs on plain Medusa 2.22.0: violation, cause not "
+    "isolated, no case's scoring control clears it"
+)
+
+
+def held_run(root, monkeypatch, notes=(NO_OVERSELL,)):
     real = trials.score_trial
 
     def held_first(r, records):
         out = real(r, records)
         if not getattr(held_first, "done", False):
-            out["manual_check"] = [
-                "no_oversell failed 1 of 13 runs on plain Medusa 2.22.0: violation"
-            ]
+            out["manual_check"] = list(notes)
             held_first.done = True
         return out
 
@@ -622,9 +715,7 @@ def held_run(root, monkeypatch):
     for line in ledger_path.read_text().splitlines():
         r = json.loads(line)
         if r.get("kind") == "final" and r["attempt_id"].startswith(event["run_id"]):
-            r["manual_check"] = [
-                "no_oversell failed 1 of 13 runs on plain Medusa 2.22.0: violation"
-            ]
+            r["manual_check"] = list(notes)
         lines.append(json.dumps(r))
     ledger_path.write_text("\n".join(lines) + "\n")
     return path
@@ -674,6 +765,55 @@ def test_a_failure_with_redis_in_a_review_stops_everything(root, monkeypatch):
     assert runner.review_held() == 1
     assert [e["event"] for e in events(root)][-2:] == ["review-stop", "plan-stop"]
     assert not (root / "runs" / "export" / "17032-none-1").exists()
+
+
+def held_final(root):
+    run_id = next(e for e in events(root) if e["event"] == "trial-held")["run_id"]
+    return next(
+        r
+        for r in ledger.load(score.ledger_path_for(root))
+        if r.get("kind") == "final" and r["attempt_id"].startswith(run_id)
+    )
+
+
+def test_a_hold_only_for_one_order_per_cart_on_two_in_memory_servers_waits_for_hand_review(
+    root, monkeypatch
+):
+    path = held_run(root, monkeypatch, [ONE_ORDER])
+    runner = make_runner(root, path)
+    runner.oversold = FailsOn("pr-17420-control", ledger_path=score.ledger_path_for(root))
+    assert runner.review_held() == 0
+    ev = events(root)[-1]
+    assert ev["event"] == "review-by-hand" and ev["reason"] == trials.HAND_REVIEW
+    assert ev["attempts"] == [held_final(root)["attempt_id"]]
+    assert runner.oversold.calls == []
+    assert not (root / "runs" / "export" / "17032-none-1").exists()
+    assert make_runner(root, path).review_held() == 0
+    assert kinds(root).count("review-by-hand") == 1
+
+
+def test_a_one_order_per_cart_hold_on_one_server_still_gets_the_automatic_review(root, monkeypatch):
+    path = held_run(root, monkeypatch, [ONE_ORDER])
+    scenario = root / held_final(root)["scenario"]
+    data = yaml.safe_load(scenario.read_text())
+    data["target"]["servers"] = 1
+    for item in [*data["carts"].values(), *data["race"]]:
+        item["server"] = 1
+    scenario.write_text(yaml.safe_dump(data, sort_keys=False))
+    runner = make_runner(root, path)
+    runner.oversold = FailsOn("pr-17420-control", ledger_path=score.ledger_path_for(root))
+    assert runner.review_held() == 1
+    assert [e["event"] for e in events(root)][-2:] == ["review-stop", "plan-stop"]
+
+
+def test_a_hold_with_another_rule_besides_one_order_per_cart_gets_the_automatic_review(
+    root, monkeypatch
+):
+    path = held_run(root, monkeypatch, [ONE_ORDER, NO_OVERSELL])
+    runner = make_runner(root, path)
+    runner.oversold = FailsOn("pr-17420-control", ledger_path=score.ledger_path_for(root))
+    assert runner.review_held() == 1
+    assert [e["event"] for e in events(root)][-2:] == ["review-stop", "plan-stop"]
 
 
 def test_a_held_trial_whose_failure_never_shows_on_plain_stays_held(root, monkeypatch):
