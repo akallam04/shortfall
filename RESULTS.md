@@ -371,7 +371,7 @@ Medusa's in-memory lock only works inside one server. Medusa's knowledge base sa
 - **The agent sees the check names.** It knows which rules the checker tests, which hints at what to look for.
 - **Tests chosen after the fact, then ahead.** The statistics tests in section 5 were chosen after seeing the data. The tests of the follow-up experiments in section 6 were chosen before their trials ran.
 - **The whole-budget arm forces, it does not ask.** It tests what happens when the agent cannot stop early, not a prompt that asks it to keep going.
-- **One Oversold check can say pass when it should not.** In Oversold v0.1.1, `no_missing_orders` skips a cart when any checkout of that cart has an unknown outcome, and can still say pass. Shortfall counts every run with such a checkout as inconclusive for every check, never as a pass.
+- **One Oversold check can say pass when it should not.** In Oversold v0.1.1, `no_missing_orders` skips a cart when any checkout of that cart has an unknown outcome, and can still say pass. Oversold now documents this in its [known limits](https://github.com/akallam04/oversold/commit/25643fe96a10219a9d4a7c74907cc80079158215), and Shortfall stays pinned to v0.1.1. Shortfall counts every run with such a checkout as inconclusive for every check, never as a pass. 39 of Shortfall's 16,994 committed runs had a checkout with an unknown outcome, and all 39 are marked inconclusive. In every one of them Oversold said pass on all five checks.
 - **False alarms on fixed copies were not tested.** We never ran the agent on a shop with the bugs fixed, so we don't know how often it would claim a bug that is not there.
 
 ## 10. What went wrong along the way

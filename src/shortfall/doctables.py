@@ -2,6 +2,7 @@ import functools
 import gzip
 import json
 import math
+import re
 import statistics
 import sys
 from datetime import datetime
@@ -82,6 +83,31 @@ class Data:
         self.rules = {c: self.cases[c].rule for c in self.cases}
         self.full = {c: load_case(self.cases[c].folder) for c in self.cases}
         self._scores: dict[Path, dict] = {}
+        self._unknown: dict[str, int] | None = None
+
+    def unknown_runs(self) -> dict[str, int]:
+        if self._unknown is None:
+            out = dict.fromkeys(("runs", "unknown", "inconclusive", "oversold_pass"), 0)
+            folders = sorted({p.parent for p in (self.root / "benchmark").rglob("run-*.json*")})
+            for folder in folders:
+                for h in histories(folder):
+                    out["runs"] += 1
+                    if not score.unknown_completion(h):
+                        continue
+                    out["unknown"] += 1
+                    c = score.counts([h])
+                    out["inconclusive"] += (
+                        all(
+                            row["inconclusive"] == 1 and row["pass"] == 0 and row["fail"] == 0
+                            for row in c.values()
+                        )
+                        and score.inconclusive_runs([h]) == 1
+                    )
+                    out["oversold_pass"] += bool(h.get("verdicts")) and all(
+                        v["result"] == "pass" for v in h["verdicts"]
+                    )
+            self._unknown = out
+        return self._unknown
 
     def baseline(self, method: str, n: int) -> dict:
         folder = self.root / BASELINES / f"{method}-seed-{n}"
@@ -1025,6 +1051,26 @@ CHECKED = {
 SAME_HEADER = {"| Trial | Feedback | Turns |": (unguided_rows, guided2_rows)}
 
 
+def unknown_prose(d: Data) -> list[str]:
+    u = d.unknown_runs()
+    every = "every one" if u["oversold_pass"] == u["unknown"] else f"{u['oversold_pass']:,}"
+    return [f"{u['unknown']:,}", f"{u['runs']:,}", f"{u['inconclusive']:,}", every]
+
+
+PROSE = {
+    "RESULTS.md": [
+        (
+            re.compile(
+                r"(\S+) of Shortfall's (\S+) committed runs had a checkout with an unknown "
+                r"outcome, and all (\S+) are marked inconclusive\. In (every one|\S+) of them "
+                r"Oversold said pass on all five checks\."
+            ),
+            unknown_prose,
+        )
+    ],
+}
+
+
 def split(line: str) -> list[str]:
     return [c.strip() for c in line.strip()[1:-1].split(" | ")]
 
@@ -1096,6 +1142,17 @@ def problems(root: Path, texts: dict[str, str] | None = None, d: Data | None = N
         for key in checked:
             if key not in found:
                 out.append(f"{doc}: no table starting {key[:60]!r}")
+        for pattern, maker in PROSE.get(doc, []):
+            m = pattern.search(text)
+            if m is None:
+                out.append(f"{doc}: no line matching {pattern.pattern[:60]!r}")
+                continue
+            for k, (got, want) in enumerate(zip(m.groups(), maker(d), strict=True), start=1):
+                if got != want:
+                    out.append(
+                        f"{doc} line {pattern.pattern[:30]!r} value {k}: "
+                        f"the doc says {got!r}, the data gives {want!r}"
+                    )
     return out
 
 

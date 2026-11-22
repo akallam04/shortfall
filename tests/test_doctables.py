@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -71,3 +72,37 @@ def test_a_missing_table_is_caught(data):
         "README.md: no table starting "
         "'| Test scenario | Public bug | Rule broken on plain Medusa |'"
     ]
+
+
+@pytest.mark.parametrize(
+    "old,new,said",
+    [
+        ("39 of Shortfall's", "38 of Shortfall's", "38"),
+        ("16,994 committed runs", "16,993 committed runs", "16,993"),
+        ("and all 39 are marked", "and all 38 are marked", "38"),
+        ("In every one of them Oversold", "In 38 of them Oversold", "38"),
+    ],
+)
+def test_a_changed_unknown_outcome_count_is_caught(data, old, new, said):
+    body = text("RESULTS.md")
+    assert body.count(old) == 1
+    found = doctables.problems(ROOT, {"RESULTS.md": body.replace(old, new)}, data)
+    assert len(found) == 1 and f"the doc says {said!r}" in found[0]
+
+
+def test_a_missing_unknown_outcome_line_is_caught(data):
+    body = text("RESULTS.md").replace("committed runs had a checkout", "runs had a call")
+    found = doctables.problems(ROOT, {"RESULTS.md": body}, data)
+    assert len(found) == 1 and found[0].startswith("RESULTS.md: no line matching")
+
+
+def test_unknown_outcome_runs_are_counted_and_all_marked_inconclusive(tmp_path):
+    folder = tmp_path / "benchmark" / "x" / "runs" / "set"
+    folder.mkdir(parents=True)
+    verdicts = [{"check": c, "version": 1, "result": "pass"} for c in doctables.CHECKS]
+    ops = [{"phase": "race", "step": "complete_cart", "cart": "a", "outcome": "unknown"}]
+    (folder / "run-001.json").write_text(json.dumps({"verdicts": verdicts, "operations": ops}))
+    (folder / "run-002.json").write_text(json.dumps({"verdicts": verdicts, "operations": []}))
+    d = doctables.Data.__new__(doctables.Data)
+    d.root, d._unknown = tmp_path, None
+    assert d.unknown_runs() == {"runs": 2, "unknown": 1, "inconclusive": 1, "oversold_pass": 1}
