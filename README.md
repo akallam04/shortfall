@@ -2,6 +2,8 @@
 
 Shortfall looks for race-condition and inventory-consistency bugs in online shop software: bugs where the shop sells stock it does not have, or its stock counts stop adding up, often only when several customers act at the same moment. It uses an AI model to guess where these bugs hide, and it tests every guess on a private copy of the shop running on one computer. Two of its three test scenarios are races between shoppers. The third, two cart lines that use the same stock ([#16502](https://github.com/medusajs/medusa/issues/16502)), needs no concurrency: one checkout is enough.
 
+[See one real trial, step by step](WALKTHROUGH.md).
+
 ## What we found
 
 - A simple fixed list of tests found all three known bug scenarios in every one of its 10 tries. The AI agent, Claude Haiku 5.5, found all three in at most 3 of 10.

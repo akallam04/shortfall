@@ -4,6 +4,8 @@ This page explains what Shortfall found, in plain words. Every table here is reb
 
 ## 1. In one minute
 
+[See one real trial, step by step](WALKTHROUGH.md): what the agent read, what it guessed, the test it wrote and what Oversold found.
+
 - We asked whether a cheap AI agent that reads a shop's code can find real race-condition and inventory-consistency bugs in its checkout faster than two simple searches that use no AI, with the same budget of 300 test runs.
 - The simple fixed-list search found all three known bug scenarios in every one of its 10 tries. The agent found all three in at most 3 of 10 tries.
 - When the agent found the "last item sold twice" scenario, it found it fast: a median of 33 runs, against 58.5 for the fixed list. Once its misses count, this speed gap could be chance. On the other two-shoppers scenario, the fixed list tied it at 33.

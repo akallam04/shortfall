@@ -8,7 +8,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from shortfall import answers, ledger, score, stats
+import yaml
+
+from shortfall import agent, answers, ledger, score, stats
 from shortfall.cases import load_case
 
 CASES = ("medusa-17032-last-unit", "medusa-17032-counter", "medusa-16502-lines")
@@ -23,7 +25,13 @@ CHECKS = (
 BASELINES = Path("benchmark") / "baselines" / "2004ed5"
 AGENT = Path("benchmark") / "agent"
 CASE_ROOT = Path("benchmark") / "cases"
-DOCS = ("README.md", "RESULTS.md", "benchmark/README.md", "benchmark/agent/README.md")
+DOCS = (
+    "README.md",
+    "RESULTS.md",
+    "benchmark/README.md",
+    "benchmark/agent/README.md",
+    "WALKTHROUGH.md",
+)
 ARMS = ("unguided-none", "unguided-history", "nomenu-none")
 NOT_RESULTS = (
     "| Field | Meaning |",
@@ -1001,6 +1009,292 @@ def pooled_rows(d: Data) -> list[list]:
     return rows
 
 
+WALK = AGENT / "scale-10" / "unguided-none-5"
+WALK_MISS = AGENT / "scale-10" / "unguided-none-4"
+WALK_BIG = AGENT / "followups-1" / "sonnet-none-6"
+WALK_RUN = "20261118T060640Z-attempt-01-agent-20261118t060622z-2.22.0"
+WORDS = ("no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten")
+BUILDS = {
+    None: "Plain Medusa 2.22.0",
+    "pr-16961": "With the #16502 fix, pr-16961",
+    "pr-17420": "With the #17032 fix, pr-17420",
+}
+
+
+def word(n: int) -> str:
+    return WORDS[n] if 0 <= n < len(WORDS) else str(n)
+
+
+def transcript(d: Data, folder: Path) -> list[dict]:
+    body = gzip.decompress((d.root / folder / "transcript.jsonl.gz").read_bytes())
+    return [json.loads(x) for x in body.decode("utf-8").splitlines()]
+
+
+def records(d: Data, folder: Path) -> list[dict]:
+    return ledger.load(d.root / folder / "ledger.jsonl")
+
+
+def walk_steps(d: Data) -> list[list]:
+    events = transcript(d, WALK)
+    results = {e["call"]: e["content"] for e in events if e.get("event") == "tool"}
+    rows: list[list] = []
+    sent = 0
+    for e in events:
+        if e.get("event") != "reply":
+            continue
+        for call in e["message"].get("tool_calls") or []:
+            a = call["arguments"]
+            if call["name"] == "search":
+                what = f"Searched `{a.get('path', '.')}` for `{a['text']}`"
+            elif call["name"] == "read_file":
+                head = results[call["id"]].splitlines()[0]
+                m = re.match(r"(.+), lines (\d+) to (\d+) of \d+$", head)
+                what = f"Read `{m.group(1)}`, lines {m.group(2)} to {m.group(3)}"
+            elif call["name"] == "list_files":
+                what = f"Listed `{a['path']}`"
+            elif call["name"] == "submit_attempt":
+                sent += 1
+                what = f"Sent attempt {sent}"
+            elif call["name"] == "finish":
+                n = len(a.get("claims") or [])
+                what = (
+                    "Called finish with no claims" if n == 0 else f"Called finish with {n} claims"
+                )
+            else:
+                what = call["name"]
+            rows.append([len(rows) + 1, what, None])
+    return rows
+
+
+def walk_prediction(d: Data) -> list[list]:
+    first = min(
+        (r for r in records(d, WALK) if r.get("kind") == "prediction"), key=lambda r: r["attempt"]
+    )
+    s = d.score(WALK)
+    named = [
+        c
+        for c in CASES
+        if s["cases"][c]["reproduced"]
+        and s["cases"][c]["attempt"] == first["attempt"]
+        and s["cases"][c]["file_grade"] == answers.ACCEPTED
+        and s["cases"][c]["cause_grade"] == answers.ACCEPTED
+    ]
+    return [
+        ["File", f"`{first['file']}`"],
+        ["Cause", f"`{first['cause']}`"],
+        ["Check it expected to fail", f"`{first['expected_check']}`"],
+        ["Named the right place", "yes, for " + " and ".join(named) if named else "no"],
+    ]
+
+
+def walk_folders(d: Data, attempt: int) -> dict[str | None, list[Path]]:
+    final = next(
+        r
+        for r in records(d, WALK)
+        if r.get("kind") == "final" and r["attempt_id"].endswith(f"-{attempt:02d}")
+    )
+    out: dict[str | None, list[Path]] = {}
+    for name in final["run_folders"]:
+        m = re.search(r"-(pr-\d+)-control-", name)
+        out.setdefault(m.group(1) if m else None, []).append(
+            d.root / WALK / "runs" / Path(name).name
+        )
+    return out
+
+
+def walk_results(d: Data) -> list[list]:
+    rows = []
+    for variant, folders in walk_folders(d, 1).items():
+        total = dict.fromkeys(CHECKS, 0)
+        runs = 0
+        for folder in folders:
+            f, n, _ = fails(folder)
+            runs += n
+            for k in CHECKS:
+                total[k] += f[k]
+        rows.append([BUILDS[variant], runs, *(total[k] for k in CHECKS)])
+    return rows
+
+
+def walk_end(d: Data) -> list[list]:
+    s = d.score(WALK)
+    claims = s["claims"] or []
+    return [
+        ["Attempts", s["attempts"]],
+        ["Claims", len(claims)],
+        ["Claims backed by a violation", s["claims_backed"]],
+        ["Runs used", f"{s['oversold_runs']} of {s['caps']['runs']}"],
+        ["Turns", f"{s['turns']} of {s['caps']['turns']}"],
+        ["Cost", f"${s['dollars']:.4f}"],
+        ["Time", f"{num(round(s['wall_seconds'] / 60, 1))} minutes"],
+    ]
+
+
+def rules_text(v: dict) -> str:
+    rules = [r for r in CHECKS if v["rules"].get(r)]
+    counts = {v["rules"][r] for r in rules}
+    names = " and ".join(f"`{r}`" for r in rules)
+    if len(counts) == 1:
+        return f"{names} in {counts.pop()} of {v['runs']} runs"
+    return ", ".join(f"`{r}` in {v['rules'][r]}" for r in rules) + f" of {v['runs']} runs"
+
+
+def walk_big(d: Data) -> list[list]:
+    rows = []
+    for r in records(d, WALK_BIG):
+        if r.get("kind") != "final":
+            continue
+        cases = (r.get("reproduced") or {}).get("cases") or {}
+        hits = [c for c in CASES if cases.get(c) == score.REPRODUCED]
+        at = r.get("reproduced_at") or {}
+        rows.append(
+            [
+                int(r["attempt_id"].rsplit("-", 1)[1]),
+                None,
+                rules_text(r["violation"]),
+                ", ".join(f"{c} (run {at[c]})" for c in hits) or "none",
+            ]
+        )
+    return rows
+
+
+def walk_scenario(d: Data) -> str:
+    return (d.root / WALK / "attempts" / "attempt-01.yaml").read_text(encoding="utf-8").rstrip()
+
+
+def walk_excerpt(d: Data) -> str:
+    folder = d.root / WALK / "runs" / WALK_RUN
+    h = next(
+        h
+        for h in histories(folder)
+        if any(v["check"] == "no_oversell" and v["result"] == "fail" for v in h["verdicts"])
+    )
+    keep = ("id", "step", "cart", "server", "status", "outcome")
+    race = [{k: op[k] for k in keep} for op in h["operations"] if op.get("phase") == "race"]
+    verdicts = [
+        {k: v[k] for k in ("check", "result", "reason")}
+        for v in h["verdicts"]
+        if v["result"] == "fail"
+    ]
+    lines = ["{", ' "race": [']
+    lines += [f"  {json.dumps(op)}," for op in race]
+    lines[-1] = lines[-1].rstrip(",")
+    lines += [" ],", ' "failed checks": [']
+    lines += [f"  {json.dumps(v)}," for v in verdicts]
+    lines[-1] = lines[-1].rstrip(",")
+    lines += [" ]", "}"]
+    return "\n".join(lines)
+
+
+def walk_prose_found(d: Data) -> list[str]:
+    trials = d.arm("unguided-none")
+    races = sum(1 for t in trials if all(t[c] is not None for c in RACE))
+    return [str(races), str(len(trials)), str(found(trials, None)), str(len(trials))]
+
+
+def walk_prose_run(d: Data) -> list[str]:
+    s = d.score(WALK)
+    runs = {s["cases"][c]["runs_to_first"] for c in RACE}
+    return [str(runs.pop()) if len(runs) == 1 else "differs"]
+
+
+def walk_prose_scenario(d: Data) -> list[str]:
+    data = yaml.safe_load(walk_scenario(d))
+    return [word(data["target"]["servers"]), str(data["stock"]["SOLO"])]
+
+
+def walk_prose_miss(d: Data) -> list[str]:
+    s = d.score(WALK_MISS)
+    return [word(s["attempts"]), str(s["oversold_runs"]), str(s["caps"]["runs"]), str(s["turns"])]
+
+
+def walk_prose_big(d: Data) -> list[str]:
+    s, haiku = d.score(WALK_BIG), d.score(WALK)
+    return [
+        str(s["oversold_runs"]),
+        str(s["turns"]),
+        num(round(s["wall_seconds"] / 60, 1)),
+        f"{s['dollars']:.4f}",
+        f"{haiku['dollars']:.4f}",
+    ]
+
+
+def walk_prose_caps(d: Data) -> list[str]:
+    caps = d.score(WALK)["caps"]
+    return [str(caps["runs"]), str(caps["attempts"]), str(caps["turns"])]
+
+
+def walk_quotes(d: Data) -> list[str]:
+    first = min(
+        (r for r in records(d, WALK) if r.get("kind") == "prediction"), key=lambda r: r["attempt"]
+    )
+    sentences = re.split(r"(?<=\.) ", first["hypothesis"])
+    events = transcript(d, WALK)
+    code = next(
+        e["content"]
+        for e in events
+        if e.get("event") == "tool" and e["content"].startswith(f"{CODE_FILE}, lines 1 to")
+    )
+    lines = {
+        int(n): text
+        for n, _, text in (x.strip(" ").partition("\t") for x in code.splitlines()[1:])
+        if n.isdigit()
+    }
+    block = "\n".join(lines[n] for n in CODE_LINES)
+    summary = json.loads((d.root / WALK / "claims.json").read_text(encoding="utf-8"))["summary"]
+    said = next(s for s in re.split(r"(?<=\.) ", summary) if s.startswith("No claims"))
+    return [
+        "> " + " ".join(sentences[:2]),
+        f"```ts\n{block}\n```",
+        f'"{said}"',
+        f"{CODE_URL}#L{CODE_LINES[0]}-L{CODE_LINES[-1]}",
+    ]
+
+
+ORDINALS = ("first", "second", "third", "fourth", "fifth")
+READ_TOOLS = ("list_files", "read_file", "search")
+
+
+def walk_prose_tools(d: Data) -> list[str]:
+    names = [t["name"] for t in agent.tools_for("v2")]
+    return [word(len(names)), word(sum(1 for n in names if n in READ_TOOLS)).capitalize()]
+
+
+def walk_prose_rules(d: Data) -> list[str]:
+    return [word(len(CHECKS))]
+
+
+def walk_prose_key_read(d: Data) -> list[str]:
+    steps = walk_steps(d)
+    sent = next(i for i, r in enumerate(steps) if r[1] == "Sent attempt 1")
+    before = [r[1] for r in steps[:sent] if r[1].startswith("Read ")]
+    return ["last" if before and f"Read `{CODE_FILE}`" in before[-1] else "not the last"]
+
+
+def walk_prose_excerpt(d: Data) -> list[str]:
+    plain = sorted(f.name for f in walk_folders(d, 1)[None])
+    folder = d.root / WALK / "runs" / WALK_RUN
+    index = next(
+        i
+        for i, h in enumerate(histories(folder), start=1)
+        if any(v["check"] == "no_oversell" and v["result"] == "fail" for v in h["verdicts"])
+    )
+    return [str(index), ORDINALS[plain.index(WALK_RUN)], WALK_RUN, f"{index:03d}"]
+
+
+CODE_FILE = "packages/modules/locking/src/providers/in-memory.ts"
+CODE_LINES = (16, 17, 18, 19)
+CODE_URL = f"https://github.com/medusajs/medusa/blob/v2.22.0/{CODE_FILE}"
+
+QUOTES = {"WALKTHROUGH.md": walk_quotes}
+
+BLOCKS = {
+    "WALKTHROUGH.md": [
+        ("<summary>The full scenario file</summary>", "yaml", walk_scenario),
+        ("<summary>One failing run, as Oversold recorded it</summary>", "json", walk_excerpt),
+    ],
+}
+
 CHECKED = {
     "README.md": {
         "| Test scenario | Public bug | Rule broken on plain Medusa |": readme_cases,
@@ -1046,6 +1340,13 @@ CHECKED = {
         "| Trial | Bug report | Feedback |": guided1_rows,
         "| Trial | Model | Prompts |": follow_rows,
     },
+    "WALKTHROUGH.md": {
+        "| Step | What it did | Why it mattered |": walk_steps,
+        "| Saved before any run | Value |": walk_prediction,
+        "| Build | Runs | no_oversell |": walk_results,
+        "| How it ended | Value |": walk_end,
+        "| Attempt | What it tested |": walk_big,
+    },
 }
 
 SAME_HEADER = {"| Trial | Feedback | Turns |": (unguided_rows, guided2_rows)}
@@ -1058,6 +1359,51 @@ def unknown_prose(d: Data) -> list[str]:
 
 
 PROSE = {
+    "WALKTHROUGH.md": [
+        (
+            re.compile(
+                r"(\S+) of (\S+) no-feedback Haiku trials reproduced both race scenarios, "
+                r"and (\S+) of (\S+) found all three scenarios"
+            ),
+            walk_prose_found,
+        ),
+        (re.compile(r"credited at run (\d+)"), walk_prose_run),
+        (re.compile(r"The agent could use (\S+) tools\. (\S+) read"), walk_prose_tools),
+        (re.compile(r"checked (\S+) rules after every run"), walk_prose_rules),
+        (
+            re.compile(r"The key read is the (\S+) one before the first attempt"),
+            walk_prose_key_read,
+        ),
+        (
+            re.compile(
+                r"From \[run (\d+) of the (\S+) plain set\]"
+                r"\(benchmark/agent/scale-10/unguided-none-5/runs/(\S+)/run-(\d+)\.json\.gz\)"
+            ),
+            walk_prose_excerpt,
+        ),
+        (
+            re.compile(r"The trial had at most (\S+) runs, (\S+) attempts and (\S+) turns"),
+            walk_prose_caps,
+        ),
+        (
+            re.compile(
+                r"It starts (\S+) Medusa servers that share one database, sets the stock of an "
+                r"item called SOLO to (\S+) unit"
+            ),
+            walk_prose_scenario,
+        ),
+        (
+            re.compile(r"It sent (\S+) attempt, used (\S+) of its (\S+) runs and (\S+) turns"),
+            walk_prose_miss,
+        ),
+        (
+            re.compile(
+                r"It used (\S+) runs and (\S+) turns, took (\S+) minutes and cost \$(\S+), "
+                r"against \$(\S+) for the Haiku trial above"
+            ),
+            walk_prose_big,
+        ),
+    ],
     "RESULTS.md": [
         (
             re.compile(
@@ -1143,16 +1489,30 @@ def problems(root: Path, texts: dict[str, str] | None = None, d: Data | None = N
             if key not in found:
                 out.append(f"{doc}: no table starting {key[:60]!r}")
         for pattern, maker in PROSE.get(doc, []):
-            m = pattern.search(text)
-            if m is None:
+            matches = list(pattern.finditer(text))
+            if not matches:
                 out.append(f"{doc}: no line matching {pattern.pattern[:60]!r}")
                 continue
-            for k, (got, want) in enumerate(zip(m.groups(), maker(d), strict=True), start=1):
-                if got != want:
-                    out.append(
-                        f"{doc} line {pattern.pattern[:30]!r} value {k}: "
-                        f"the doc says {got!r}, the data gives {want!r}"
-                    )
+            want_all = maker(d)
+            for m in matches:
+                for k, (got, want) in enumerate(zip(m.groups(), want_all, strict=True), start=1):
+                    if got != want:
+                        out.append(
+                            f"{doc} line {pattern.pattern[:30]!r} value {k}: "
+                            f"the doc says {got!r}, the data gives {want!r}"
+                        )
+        for summary, lang, maker in BLOCKS.get(doc, []):
+            at = text.find(summary)
+            start = text.find(f"```{lang}\n", at) if at >= 0 else -1
+            end = text.find("\n```", start + len(lang) + 4) if start >= 0 else -1
+            if end < 0:
+                out.append(f"{doc}: no {lang} block after {summary!r}")
+            elif text[start + len(lang) + 4 : end] != maker(d):
+                out.append(f"{doc}: the {lang} block after {summary!r} does not match the data")
+        if doc in QUOTES:
+            for quote in QUOTES[doc](d):
+                if quote not in text:
+                    out.append(f"{doc}: does not hold {quote[:60]!r} as the data gives it")
     return out
 
 

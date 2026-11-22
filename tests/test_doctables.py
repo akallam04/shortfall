@@ -106,3 +106,39 @@ def test_unknown_outcome_runs_are_counted_and_all_marked_inconclusive(tmp_path):
     d = doctables.Data.__new__(doctables.Data)
     d.root, d._unknown = tmp_path, None
     assert d.unknown_runs() == {"runs": 2, "unknown": 1, "inconclusive": 1, "oversold_pass": 1}
+
+
+@pytest.mark.parametrize(
+    "old,new",
+    [
+        ("7 of 10 no-feedback", "6 of 10 no-feedback"),
+        (
+            "both race scenarios were credited at run 33",
+            "both race scenarios were credited at run 32",
+        ),
+        ("| Plain Medusa 2.22.0 | 13 | 7 |", "| Plain Medusa 2.22.0 | 13 | 6 |"),
+        ("| Turns | 11 of 100 |", "| Turns | 12 of 100 |"),
+        ("lines 55 to 116", "lines 55 to 140"),
+        ("used 10 of its 300 runs and 11 turns", "used 10 of its 300 runs and 12 turns"),
+        ("cost $0.4127", "cost $0.4128"),
+        ("  SOLO: 1\ncarts:", "  SOLO: 2\ncarts:"),
+        ('"SOLO reserved_quantity 1 but', '"SOLO reserved_quantity 0 but'),
+        ("whose lock lives in one process's Map.", "whose lock lives in a process's Map."),
+        ("in-memory.ts#L16-L19", "in-memory.ts#L16-L20"),
+        ("The key read is the last one", "The key read is the first one"),
+        ("From [run 2 of the second", "From [run 1 of the second"),
+    ],
+)
+def test_a_changed_walkthrough_value_is_caught(data, old, new):
+    body = text("WALKTHROUGH.md")
+    assert body.count(old) >= 1
+    found = doctables.problems(ROOT, {"WALKTHROUGH.md": body.replace(old, new, 1)}, data)
+    assert len(found) == 1 and found[0].startswith("WALKTHROUGH.md")
+
+
+def test_a_missing_walkthrough_table_is_caught(data):
+    body = text("WALKTHROUGH.md")
+    start = body.index("| How it ended | Value |")
+    end = body.index("\n\n", start)
+    found = doctables.problems(ROOT, {"WALKTHROUGH.md": body[:start] + body[end + 2 :]}, data)
+    assert found == ["WALKTHROUGH.md: no table starting '| How it ended | Value |'"]
