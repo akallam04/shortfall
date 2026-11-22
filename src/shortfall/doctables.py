@@ -1088,11 +1088,7 @@ def walk_prediction(d: Data) -> list[list]:
 
 
 def walk_folders(d: Data, attempt: int) -> dict[str | None, list[Path]]:
-    final = next(
-        r
-        for r in records(d, WALK)
-        if r.get("kind") == "final" and r["attempt_id"].endswith(f"-{attempt:02d}")
-    )
+    final = walk_final(d, attempt)
     out: dict[str | None, list[Path]] = {}
     for name in final["run_folders"]:
         m = re.search(r"-(pr-\d+)-control-", name)
@@ -1162,13 +1158,24 @@ def walk_scenario(d: Data) -> str:
     return (d.root / WALK / "attempts" / "attempt-01.yaml").read_text(encoding="utf-8").rstrip()
 
 
-def walk_excerpt(d: Data) -> str:
+def first_failing(d: Data) -> tuple[int, dict]:
     folder = d.root / WALK / "runs" / WALK_RUN
-    h = next(
-        h
-        for h in histories(folder)
-        if any(v["check"] == "no_oversell" and v["result"] == "fail" for v in h["verdicts"])
+    for index, h in enumerate(histories(folder), start=1):
+        if any(v["check"] == "no_oversell" and v["result"] == "fail" for v in h["verdicts"]):
+            return index, h
+    raise ValueError(f"no failing run in {WALK_RUN}")
+
+
+def walk_final(d: Data, attempt: int) -> dict:
+    return next(
+        r
+        for r in records(d, WALK)
+        if r.get("kind") == "final" and r["attempt_id"].endswith(f"-{attempt:02d}")
     )
+
+
+def walk_excerpt(d: Data) -> str:
+    _, h = first_failing(d)
     keep = ("id", "step", "cart", "server", "status", "outcome")
     race = [{k: op[k] for k in keep} for op in h["operations"] if op.get("phase") == "race"]
     verdicts = [
@@ -1189,7 +1196,93 @@ def walk_excerpt(d: Data) -> str:
 def walk_prose_found(d: Data) -> list[str]:
     trials = d.arm("unguided-none")
     races = sum(1 for t in trials if all(t[c] is not None for c in RACE))
-    return [str(races), str(len(trials)), str(found(trials, None)), str(len(trials))]
+    n = str(len(trials))
+    return [str(races), n, str(found(trials, None)), n, word(len(CASES))]
+
+
+def cart_count(data: dict) -> int:
+    return sum(c.get("count", 1) for c in data["carts"].values())
+
+
+def one_line_carts(data: dict) -> bool:
+    return all(len(c["lines"]) == 1 for c in data["carts"].values())
+
+
+def attempt_file(d: Data, folder: Path, attempt: int) -> dict:
+    path = d.root / folder / "attempts" / f"attempt-{attempt:02d}.yaml"
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+def walk_prose_calls(d: Data) -> list[str]:
+    replies = sum(1 for e in transcript(d, WALK) if e.get("event") == "reply")
+    turns = d.score(WALK)["turns"]
+    return [str(len(walk_steps(d))), str(turns) if replies == turns else "differs"]
+
+
+def walk_prose_seed(d: Data) -> list[str]:
+    data = yaml.safe_load(walk_scenario(d))
+    runs = [h["run"] for fs in walk_folders(d, 1).values() for f in fs for h in histories(f)]
+    sizes = {r["runs"] for r in runs}
+    seeds = {r["seed"] for r in runs}
+    return [
+        "used" if data["runs"] in sizes else str(data["runs"]),
+        str(data["seed"]) if seeds == {data["seed"]} else "differs",
+    ]
+
+
+def walk_prose_plain(d: Data) -> list[str]:
+    final = walk_final(d, 1)
+    groups = walk_folders(d, 1)
+    plain = sorted(groups[None], key=lambda f: f.name)
+    sizes = [len(histories(f)) for f in plain]
+    controls = {c["runs"] for c in final["controls"]}
+    fix_sizes = {sum(len(histories(f)) for f in fs) for v, fs in groups.items() if v}
+    first_failed = any(fails(f)[0][rule] for f in plain[:-1] for rule in CHECKS)
+    ok = (
+        len(sizes) == 3
+        and final["retry_runs"] == 0
+        and sum(sizes[:-1]) == final["screen_runs"]
+        and sizes[-1] == final["score_runs"]
+        and len(controls) == 1
+        and fix_sizes == controls
+        and first_failed
+    )
+    if not ok:
+        return ["differs"] * 6
+    return [
+        str(sum(sizes)),
+        str(final["screen_runs"]),
+        str(sizes[0]),
+        str(sizes[1]),
+        str(final["score_runs"]),
+        str(controls.pop()),
+    ]
+
+
+def walk_prose_second(d: Data) -> list[str]:
+    data = attempt_file(d, WALK, 2)
+    return [word(cart_count(data)) if one_line_carts(data) else "not one-line carts"]
+
+
+def walk_prose_miss_test(d: Data) -> list[str]:
+    data = attempt_file(d, WALK_MISS, 1)
+    carts = word(cart_count(data)) if one_line_carts(data) else "not one-line carts"
+    return [carts, word(data["target"]["servers"])]
+
+
+def walk_prose_miss_named(d: Data) -> list[str]:
+    summary = json.loads((d.root / WALK_MISS / "claims.json").read_text(encoding="utf-8"))
+    named = all(c in summary["summary"] for c in ("process-local-lock", "per-line-check"))
+    return ["both" if named else "not both"]
+
+
+def walk_prose_big_all(d: Data) -> list[str]:
+    s = d.score(WALK_BIG)
+    clean = (
+        s["refused"] == 0 and not s["manual_check"] and not (d.root / WALK_BIG / "review").exists()
+    )
+    n = sum(1 for c in CASES if s["cases"][c]["reproduced"])
+    return [word(n) if clean else "held or refused"]
 
 
 def walk_prose_run(d: Data) -> list[str]:
@@ -1200,7 +1293,12 @@ def walk_prose_run(d: Data) -> list[str]:
 
 def walk_prose_scenario(d: Data) -> list[str]:
     data = yaml.safe_load(walk_scenario(d))
-    return [word(data["target"]["servers"]), str(data["stock"]["SOLO"])]
+    servers = data["target"]["servers"]
+    placed = sorted(c["server"] for c in data["carts"].values() for _ in range(c.get("count", 1)))
+    carts = (
+        word(cart_count(data)) if placed == list(range(1, servers + 1)) else "not one per server"
+    )
+    return [word(servers), str(data["stock"]["SOLO"]), carts]
 
 
 def walk_prose_miss(d: Data) -> list[str]:
@@ -1271,15 +1369,27 @@ def walk_prose_key_read(d: Data) -> list[str]:
     return ["last" if before and f"Read `{CODE_FILE}`" in before[-1] else "not the last"]
 
 
+TIMES = {1: "once", 2: "twice"}
+
+
 def walk_prose_excerpt(d: Data) -> list[str]:
     plain = sorted(f.name for f in walk_folders(d, 1)[None])
-    folder = d.root / WALK / "runs" / WALK_RUN
-    index = next(
-        i
-        for i, h in enumerate(histories(folder), start=1)
-        if any(v["check"] == "no_oversell" and v["result"] == "fail" for v in h["verdicts"])
-    )
-    return [str(index), ORDINALS[plain.index(WALK_RUN)], WALK_RUN, f"{index:03d}"]
+    index, h = first_failing(d)
+    race = [op for op in h["operations"] if op.get("phase") == "race"]
+    failed = [v for v in h["verdicts"] if v["result"] == "fail"]
+    stocked = next(x for x in h["before"]["inventory_levels"] if x["sku"] == "SOLO")
+    orders = len(h["after"].get("orders") or [])
+    all_ok = all(op.get("outcome") == "ok" for op in race)
+    return [
+        word(len(race)),
+        word(len(failed)),
+        str(index),
+        ORDINALS[plain.index(WALK_RUN)],
+        WALK_RUN,
+        f"{index:03d}",
+        word(orders) if all_ok else "not every checkout succeeded",
+        TIMES.get(stocked["stocked_quantity"], f"{stocked['stocked_quantity']} times"),
+    ]
 
 
 CODE_FILE = "packages/modules/locking/src/providers/in-memory.ts"
@@ -1291,7 +1401,7 @@ QUOTES = {"WALKTHROUGH.md": walk_quotes}
 BLOCKS = {
     "WALKTHROUGH.md": [
         ("<summary>The full scenario file</summary>", "yaml", walk_scenario),
-        ("<summary>One failing run, as Oversold recorded it</summary>", "json", walk_excerpt),
+        ("<summary>One failing run, in short</summary>", "json", walk_excerpt),
     ],
 }
 
@@ -1363,7 +1473,7 @@ PROSE = {
         (
             re.compile(
                 r"(\S+) of (\S+) no-feedback Haiku trials reproduced both race scenarios, "
-                r"and (\S+) of (\S+) found all three scenarios"
+                r"and (\S+) of (\S+) found all (\S+) scenarios"
             ),
             walk_prose_found,
         ),
@@ -1376,10 +1486,44 @@ PROSE = {
         ),
         (
             re.compile(
-                r"From \[run (\d+) of the (\S+) plain set\]"
-                r"\(benchmark/agent/scale-10/unguided-none-5/runs/(\S+)/run-(\d+)\.json\.gz\)"
+                r"This is trimmed from Oversold's record to the (\S+) checkout calls and the "
+                r"(\S+) failed checks, and the full record is \[run (\d+) of the (\S+) plain set\]"
+                r"\(benchmark/agent/scale-10/unguided-none-5/runs/(\S+)/run-(\d+)\.json\.gz\)\. "
+                r"Both checkouts succeeded, and (\S+) orders hold reservations for a unit that "
+                r"was stocked (\S+)\."
             ),
             walk_prose_excerpt,
+        ),
+        (re.compile(r"so (\d+) calls took (\d+) turns"), walk_prose_calls),
+        (
+            re.compile(
+                r"so the file's `runs: (\d+)` is not used\. Its `seed: (\d+)` is used, "
+                r"and every run record shows it\."
+            ),
+            walk_prose_seed,
+        ),
+        (
+            re.compile(
+                r"The (\d+) plain runs are (\d+) first runs, in sets of (\d+) and (\d+), then "
+                r"(\d+) more because a check failed in those first runs, and each fix build "
+                r"ran (\d+)\."
+            ),
+            walk_prose_plain,
+        ),
+        (
+            re.compile(
+                r"Its second attempt tested the line-by-line stock check with (\S+) separate carts"
+            ),
+            walk_prose_second,
+        ),
+        (
+            re.compile(r"It tested only the second, with (\S+) one-line carts on (\S+) server"),
+            walk_prose_miss_test,
+        ),
+        (re.compile(r"its own summary named (\S+) likely problems"), walk_prose_miss_named),
+        (
+            re.compile(r"reproduced all (\S+) scenarios with no hold or refused attempt"),
+            walk_prose_big_all,
         ),
         (
             re.compile(r"The trial had at most (\S+) runs, (\S+) attempts and (\S+) turns"),
@@ -1388,7 +1532,7 @@ PROSE = {
         (
             re.compile(
                 r"It starts (\S+) Medusa servers that share one database, sets the stock of an "
-                r"item called SOLO to (\S+) unit"
+                r"item called SOLO to (\S+) unit, and builds (\S+) carts, one on each server"
             ),
             walk_prose_scenario,
         ),

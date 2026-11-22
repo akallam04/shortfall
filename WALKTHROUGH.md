@@ -20,7 +20,7 @@ sequenceDiagram
     O-->>R: more run histories
     R->>R: credit the scenario whose fix clears the failure
     S-->>A: accepted, with attempts and turns left, and no results
-    A->>S: finish, with claims
+    A->>S: finish, with any claims
 ```
 
 ## What the agent was given
@@ -29,9 +29,11 @@ The task: there is no bug report, so read the shop's code and decide which stock
 
 It got no bug report, no benchmark scenarios or answers, and no Enterprise Edition files. In this mode it never sees run results either: after each attempt it only hears that the attempt was accepted, and how many attempts and turns are left.
 
-Everything it was shown is fixed by one hash before the trial: the [system prompt](src/shortfall/prompts/system.md), the [test setup](src/shortfall/prompts/setup.md), the [unguided task](src/shortfall/prompts/unguided.md), the [scenario format](src/shortfall/scenario_format.py) and the [hash file](benchmark/agent/prompts.sha256).
+Its instructions and the loop's settings are fixed by one hash before the trial: the [system prompt](src/shortfall/prompts/system.md), the [test setup](src/shortfall/prompts/setup.md), the [unguided task](src/shortfall/prompts/unguided.md), the [scenario format](src/shortfall/scenario_format.py) and the [hash file](benchmark/agent/prompts.sha256), which lists every file it covers. The Medusa code it reads is pinned by the [2.22.0 snapshot record](benchmark/snapshots/medusa-2.22.0.json), which names the git tag and commit the code was taken from and holds a sha256 of its files.
 
 ## What it read
+
+Each row is one tool call, and one reply can make more than one call, so 15 calls took 11 turns.
 
 | Step | What it did | Why it mattered |
 |---|---|---|
@@ -51,7 +53,7 @@ Everything it was shown is fixed by one hash before the trial: the [system promp
 | 14 | Sent attempt 2 | A second test. |
 | 15 | Called finish with no claims | Ended the trial itself. |
 
-The key read is the last one before the first attempt. The default lock keeps its locks in a list in one server's memory ([in-memory.ts at v2.22.0](https://github.com/medusajs/medusa/blob/v2.22.0/packages/modules/locking/src/providers/in-memory.ts#L16-L19)):
+The key read is the last one before the first attempt. The default lock keeps its locks in a Map, a lookup table in one server's memory ([in-memory.ts at v2.22.0](https://github.com/medusajs/medusa/blob/v2.22.0/packages/modules/locking/src/providers/in-memory.ts#L16-L19)):
 
 ```ts
 export class InMemoryLockingProvider implements ILockingProvider {
@@ -60,7 +62,7 @@ export class InMemoryLockingProvider implements ILockingProvider {
   private locks: Map<string, LockInfo> = new Map()
 ```
 
-A second server has its own list and never sees these locks.
+A second server has its own Map and never sees these locks.
 
 ## What it guessed, before any run
 
@@ -125,6 +127,8 @@ runs: 20
 seed: 7
 ```
 
+Shortfall decides how many runs each set does, so the file's `runs: 20` is not used. Its `seed: 7` is used, and every run record shows it.
+
 </details>
 
 ## What Oversold found
@@ -137,12 +141,14 @@ Oversold ran the test on fresh copies of the shop and checked five rules after e
 | With the #16502 fix, pr-16961 | 10 | 7 | 7 | 0 | 0 | 0 |
 | With the #17032 fix, pr-17420 | 10 | 0 | 0 | 0 | 0 | 0 |
 
+The 13 plain runs are 3 first runs, in sets of 1 and 2, then 10 more because a check failed in those first runs, and each fix build ran 10.
+
 On plain Medusa the last unit was sold twice and the count of reserved stock went wrong. The #16502 fix did not clear this, so the two-lines scenario gets no credit. The #17032 fix cleared both rules, and the fix that clears a failure decides the credit, so both race scenarios were credited at run 33, when the last of these runs finished.
 
 <details>
-<summary>One failing run, as Oversold recorded it</summary>
+<summary>One failing run, in short</summary>
 
-From [run 2 of the second plain set](benchmark/agent/scale-10/unguided-none-5/runs/20261118T060640Z-attempt-01-agent-20261118t060622z-2.22.0/run-002.json.gz). Both checkouts succeeded, and two orders hold reservations for a unit that was stocked once.
+This is trimmed from Oversold's record to the two checkout calls and the two failed checks, and the full record is [run 2 of the second plain set](benchmark/agent/scale-10/unguided-none-5/runs/20261118T060640Z-attempt-01-agent-20261118t060622z-2.22.0/run-002.json.gz). Both checkouts succeeded, and two orders hold reservations for a unit that was stocked once.
 
 ```json
 {

@@ -126,7 +126,12 @@ def test_unknown_outcome_runs_are_counted_and_all_marked_inconclusive(tmp_path):
         ("whose lock lives in one process's Map.", "whose lock lives in a process's Map."),
         ("in-memory.ts#L16-L19", "in-memory.ts#L16-L20"),
         ("The key read is the last one", "The key read is the first one"),
-        ("From [run 2 of the second", "From [run 1 of the second"),
+        ("the full record is [run 2 of the", "the full record is [run 1 of the"),
+        ("so 15 calls took 11 turns", "so 15 calls took 12 turns"),
+        ("the file's `runs: 20` is not used", "the file's `runs: 10` is not used"),
+        ("The 13 plain runs are 3 first runs", "The 13 plain runs are 4 first runs"),
+        ("and two orders hold reservations", "and three orders hold reservations"),
+        ("with two one-line carts on one server", "with three one-line carts on one server"),
     ],
 )
 def test_a_changed_walkthrough_value_is_caught(data, old, new):
