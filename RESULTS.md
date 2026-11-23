@@ -11,7 +11,7 @@ This page explains what Shortfall found, in plain words. Every table here is reb
 - When the agent found the "last item sold twice" scenario, it found it fast: a median of 33 runs, against 58.5 for the fixed list. Once its misses count, this speed gap could be chance. On the other two-shoppers scenario, the fixed list tied it at 33.
 - The agent stopped early, after a median of 33 to 43 of its 300 runs, so it rarely went on to look for the third scenario.
 - With its test results shown, the agent did worse in these trials, but the gap could be chance. Hiding its list of likely causes did not hurt on the two two-shoppers scenarios, and no gap was clear either way.
-- One agent try cost under 2 US cents and took about 4 minutes. Ten tries per method is still a small sample.
+- One Claude Haiku 5.5 try in the main trials cost under 2 US cents and took about 4 minutes. Ten tries per method is still a small sample.
 - **Follow-up experiments, with the tests chosen first.** Not allowed to stop early, the agent found all three scenarios in 7 of 10 tries. The bigger model Claude Sonnet 5.5 found all three in 9 of 10, at about 40 US cents a try. Both beat the earlier 3 of 10, but neither gap passed the test we set in advance, so either could still be chance.
 
 ## 2. The question
@@ -143,7 +143,7 @@ For the controls of tests credited as reproduced, 0 is partly by design, because
 - **Hiding the cause list did not hurt** on the two race scenarios: 9 of 10 trials each, at the same median of 33. It never reproduced the two-lines scenario without the list. No gap between the two versions was clear either way.
 - **The grid found all three scenarios far more often than any agent version** (10 of 10, against 0 to 3 of 10), and the same holds for the two-lines scenario. These gaps pass a standard statistics test. For the agent with no feedback they pass when its own 8 tests are corrected together, and narrowly miss when all 24 tests are.
 - **The other gaps are small enough that chance could explain them**, including the agent's speed on the race scenarios once its misses count.
-- **We chose these tests after seeing the data**, so treat them as a guide. The results also say nothing yet about other shops, other bugs or other AI models.
+- **We chose these tests after seeing the data**, so treat them as a guide. The results also say nothing about other shops or other bugs, and section 6 tries only one other AI model, Claude Sonnet 5.5.
 
 ### Statistics, run after the fact
 

@@ -4,12 +4,14 @@ Shortfall looks for race-condition and inventory-consistency bugs in online shop
 
 [See one real trial, step by step](WALKTHROUGH.md).
 
+The project is finished, and the [latest release](https://github.com/akallam04/shortfall/releases/latest) is its final version.
+
 ## What we found
 
 - A simple fixed list of tests found all three known bug scenarios in every one of its 10 tries. The AI agent, Claude Haiku 5.5, found all three in at most 3 of 10.
 - When the agent found the "last item sold twice" scenario, it had the lowest median: 33 runs, against 58.5 for the fixed list. Once its misses count, this speed gap could be chance. On the reserved-count scenario the fixed list tied it at 33.
 - The agent stopped early, after a median of 33 to 43 of its 300 runs. With its test results shown, it did worse in these trials, but the gap could be chance.
-- One agent try cost under 2 US cents and took about 4 minutes.
+- One Claude Haiku 5.5 try in the main trials cost under 2 US cents and took about 4 minutes.
 - In two follow-up experiments whose tests were chosen before they ran, the agent found all three scenarios in 7 of 10 tries when it was not allowed to stop early, and the bigger model Claude Sonnet 5.5 in 9 of 10. Neither gap with the earlier 3 of 10 passed the test set in advance. The full results, their limits and how to check them are in [RESULTS.md](RESULTS.md).
 
 ## The problem, in everyday terms
@@ -52,7 +54,7 @@ flowchart TD
 
 The AI agent, Claude Haiku 5.5, reads a read-only copy of Medusa 2.22.0's code and writes test scenario files, while the grid and random searches write the same kind of file with no AI. Before any run, Shortfall checks each file's format, holds every trial to its run and dollar caps, and ends an agent trial if the benchmark's case names, answer files or fix names would reach the model. Oversold, pinned to v0.1.1, then starts a fresh local copy of the shop with one or two Medusa servers, Postgres, and Redis when the test needs it, sends the purchases at the same moment, and checks the five rules on the saved history. Scoring runs the same test on plain Medusa and on builds with each public fix, and a test rebuilds every results table from the saved data. The agent can change only its own scenario files, never the checks, Oversold, the scoring or the answers, and only in history mode do the results of its runs go back to it.
 
-## What has been measured so far
+## What was measured
 
 A run is one go of a test: a fresh copy of the shop starts, the shoppers press Buy, and the result is checked against the rules.
 
@@ -69,9 +71,9 @@ Two simple methods that use no AI were measured for comparison, each in 10 trial
 - A fixed list of test shapes found all three scenarios in every one of its 10 trials.
 - Randomly drawn tests found the #17032 counter scenario in 10 of 10 trials, the #17032 last-unit scenario in 9 of 10 and the #16502 scenario in 7 of 10, and all three in 6 of 10.
 
-## What the agent has done so far
+## What the agent did
 
-The AI agent has run trials with the model Claude Haiku 5.5. In an unguided trial it gets no bug report and has the same 300-run budget as the two simple methods above. It ran 10 unguided trials in each of its two feedback modes:
+The main agent trials used the model Claude Haiku 5.5, and one follow-up used Claude Sonnet 5.5. In an unguided trial it gets no bug report and has the same 300-run budget as the two simple methods above. It ran 10 unguided trials in each of its two feedback modes:
 
 - With no feedback on its results, it reproduced both #17032 scenarios in 7 of 10 trials, at a median of 33 runs, and the #16502 scenario in 3 of 10.
 - With feedback on its results, it reproduced the #17032 counter scenario in 6 of 10 trials, the #17032 last-unit scenario in 5 of 10, and the #16502 scenario in 2 of 10.
@@ -91,7 +93,7 @@ Two follow-up experiments asked whether the agent missed scenarios only because 
 
 Neither arm's main test, all three scenarios against Haiku on prompt v2, passed after the correction for its 8 tests, so these gaps could still be chance. A Sonnet trial cost a median of 39 US cents, against 4 US cents for Haiku not allowed to stop early. A first version of the whole-budget arm was closed after 3 trials, because it counted the agent's tries to stop as turns. [RESULTS.md, section 6](RESULTS.md#6-follow-up-experiments-the-whole-budget-and-a-bigger-model) has the details.
 
-It has also run 18 guided trials, where it is given the public bug report, like an open-book test. Each trial and its full record is on [the agent trials page](benchmark/agent/README.md).
+It also ran 18 guided trials, where it was given the public bug report, like an open-book test. Each trial and its full record is on [the agent trials page](benchmark/agent/README.md).
 
 ## Limits
 
@@ -171,7 +173,7 @@ make engine-down
 
 ## The agent
 
-`src/shortfall/agent.py` runs one trial of the agent. The model can list, read and search the Medusa 2.22.0 source, submit an attempt (a file, a cause from a fixed list, the check it expects to fail, a short hypothesis and a scenario) and finish with its claims. Prompt version v2-nomenu leaves out the list of causes, and the agent names only a file. Each attempt and its prediction go into `runs/ledger.jsonl` before its first run, and each is scored the same way as the baselines. A trial stops at 300 runs, 30 attempts, 100 model turns or a dollar cap (12 attempts and 60 turns on prompt version v1). In the `none` feedback mode the model only learns whether an attempt was accepted or refused, and how many attempts and turns are left (on v1 also how many runs). In the `history` mode it also sees, for the runs on plain Medusa only, how often each check failed and a short summary of each run. It never sees control runs, the benchmark cases or their answers. The prompts are in `src/shortfall/prompts/`, and the scenario format text the model reads is built from the same list of fields that the candidate check accepts, in `src/shortfall/scenario_format.py`. One sha256 over everything the model is shown and the loop settings is kept in [benchmark/agent/prompts.sha256](benchmark/agent/prompts.sha256).
+`src/shortfall/agent.py` runs one trial of the agent. The model can list, read and search the Medusa 2.22.0 source, submit an attempt (a file, a cause from a fixed list, the check it expects to fail, a short hypothesis and a scenario) and finish with its claims. Prompt version v2-nomenu leaves out the list of causes, and the agent names only a file. Prompt versions v2-budget and v2-budget2 refuse finish, and any reply without a tool call, while more than 60 runs are left and attempts and turns remain, and send a fixed line instead: v2-budget counted each such line as a turn and was closed after 3 trials, and v2-budget2 does not count them as turns and ends the trial after 15 of them, as [the agent trials page](benchmark/agent/README.md#prompt-versions) explains. Each attempt and its prediction go into `runs/ledger.jsonl` before its first run, and each is scored the same way as the baselines. A trial stops at 300 runs, 30 attempts, 100 model turns or a dollar cap (12 attempts and 60 turns on prompt version v1). In the `none` feedback mode the model only learns whether an attempt was accepted or refused, and how many attempts and turns are left (on v1 also how many runs). In the `history` mode it also sees, for the runs on plain Medusa only, how often each check failed and a short summary of each run. It never sees control runs, the benchmark cases or their answers. The prompts are in `src/shortfall/prompts/`, and the scenario format text the model reads is built from the same list of fields that the candidate check accepts, in `src/shortfall/scenario_format.py`. One sha256 over everything the model is shown and the loop settings is kept in [benchmark/agent/prompts.sha256](benchmark/agent/prompts.sha256).
 
 `src/shortfall/models.py` connects the agent to Claude through the official `anthropic` Python SDK, pinned in `pyproject.toml`. It knows `claude-haiku-5-5` and `claude-sonnet-5-5`. Each call may write up to 2,000 output tokens and runs without extended thinking (on Claude Sonnet 5.5, which cannot turn thinking off, at its lowest setting). The tool definitions and the system prompt are cached, and a second cache marker moves along the conversation to the last message that the next turn will send unchanged. Prices are dated constants taken from the [pricing page](https://platform.claude.com/docs/en/about-claude/pricing). Before each call the trial reserves the most the call could cost, and afterwards it records the real cost from the response's usage: input, cache write, cache read and output tokens. A call that would pass the trial's dollar cap or the $20 total is not made. Rate-limit and server errors are retried at most twice, and billing or authentication errors end the trial. The API key is read only from `.env`, which git ignores, and anything that looks like a key is masked in the ledger and in transcripts.
 

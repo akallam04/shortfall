@@ -1,10 +1,10 @@
 # Agent trials
 
-This page explains, in plain words, what the AI agent has done so far, and lists every trial it has run.
+This page explains, in plain words, what the AI agent did, and lists every trial it ran.
 
 ## What a trial is
 
-A trial gives the agent one task and a fixed budget of runs, attempts, turns and dollars. Every trial so far had at most 300 runs and $1. Trials on prompt version v1 also had at most 12 attempts and 60 turns, and trials on v2 at most 30 attempts and 100 turns. A turn is one reply from the AI model. A run is one go of a test on a fresh private copy of the shop.
+A trial gives the agent one task and a fixed budget of runs, attempts, turns and dollars. Every trial had at most 300 runs and $1. Trials on prompt version v1 also had at most 12 attempts and 60 turns, and trials on v2 at most 30 attempts and 100 turns. A turn is one reply from the AI model. A run is one go of a test on a fresh private copy of the shop.
 
 During a trial the agent reads Medusa's source code and then submits attempts. Each attempt is a small test scenario plus a guess: the source file it thinks holds the problem, one cause from a fixed list (not on prompt version v2-nomenu, described below), and the one check it expects to fail. The guess is saved before the test runs, so it cannot be changed once the result is known. When the agent is done, it calls finish and lists its claims.
 
@@ -40,12 +40,12 @@ The file and the cause in a claim are recorded as the agent's diagnosis after re
 Everything the agent is shown, and the settings of its loop, are fixed by one hash before any trial of a plan runs. Each plan folder holds the hash it used.
 
 - **v1** ([hash](guided-haiku-1/prompts.sha256)) was used by guided-haiku-1.
-- **v2** ([hash](prompts.sha256)) is used by unguided-haiku-1, guided-haiku-2, the v2 arms of scale-10 and the sonnet-none arm of followups-1, which runs it with `claude-sonnet-5-5`.
+- **v2** ([hash](prompts.sha256)) was used by unguided-haiku-1, guided-haiku-2, the v2 arms of scale-10 and the sonnet-none arm of followups-1, which ran it with `claude-sonnet-5-5`.
 - **v2-nomenu** ([hash](prompts-v2-nomenu.sha256)) is v2 without the list of causes. The agent names only a file for each attempt and each claim. It was used only by the v2-nomenu arm of scale-10, to test whether the list of causes helps.
 - **v2-budget** ([hash](prompts-v2-budget.sha256)) is v2 with one change to the loop: while more than 60 runs are left, the agent cannot end the trial. If it calls finish, or replies without a tool call, it gets one fixed line: "Finish is not available yet. Keep testing until the run budget is nearly used." It was used by plan [followups-1](plans/followups-1.yaml) for 3 trials, and then closed: each gate answer used up a turn, and the agent often kept replying without a tool call while it waited for run results that this mode never shows.
-- **v2-budget2** ([hash](prompts-v2-budget2.sha256)) replaces v2-budget. The gate line is "Finish is not available yet. In this mode you never see run results, so don't wait for them. Submit another attempt until the run budget is nearly used." Gate answers do not count toward the 100-turn cap, and the trial ends after 15 gate answers. Until the gate first answers, its requests are the same as v2-budget's. It is used by plan [followups-1](plans/followups-1.yaml).
+- **v2-budget2** ([hash](prompts-v2-budget2.sha256)) replaced v2-budget. The gate line is "Finish is not available yet. In this mode you never see run results, so don't wait for them. Submit another attempt until the run budget is nearly used." Gate answers do not count toward the 100-turn cap, and the trial ends after 15 gate answers. Until the gate first answers, its requests are the same as v2-budget's. It was used by plan [followups-1](plans/followups-1.yaml).
 
-v2 was written after the guided v1 results were known. The unguided trials ran only on v2 and v2-nomenu. What changed from v1 to v2, and why:
+v2 was written after the guided v1 results were known. The unguided trials ran only on v2 and on versions built from it: v2-nomenu, v2-budget and v2-budget2. What changed from v1 to v2, and why:
 
 - In the none feedback mode the agent no longer sees how many runs are left, only attempts and turns. On v1 the run count told it, indirectly, whether an attempt had found something, because an attempt that finds something gets extra runs to confirm it.
 - The budget is now 300 runs, 30 attempts and 100 turns, so the run budget is the real limit, as it is for the two simple methods. The agent is told that the budget is for finding as many distinct problems as it can, and that one finding does not end the task.

@@ -238,7 +238,7 @@ Each sweep session is one trial, with a hard cap of 300 Oversold runs (`--max-ru
 
 ### Scoring
 
-The same code path in `src/shortfall/score.py` scores sweep candidates now and agent attempts later. A candidate that sets `target.variant`, `target.locking` or `checks` is refused before it runs. Only the harness sets the target fields, and every run uses every check. A run with any complete call whose outcome is `unknown` counts as inconclusive, for the candidate and for controls, since Oversold's `no_missing_orders` skips a cart with an unknown call.
+The same code path in `src/shortfall/score.py` scores both sweep candidates and agent attempts. A candidate that sets `target.variant`, `target.locking` or `checks` is refused before it runs. Only the harness sets the target fields, and every run uses every check. A run with any complete call whose outcome is `unknown` counts as inconclusive, for the candidate and for controls, since Oversold's `no_missing_orders` skips a cart with an unknown call.
 
 Screen and retry:
 
